@@ -1,0 +1,27 @@
+Folder PATH listing
+Volume serial number is D0B3-15FE
+C:\USERS\USER\DESKTOP\ROOMSCLUSTERAPP\ROOMSCLUSTER-WEB\SRC
++---app
+|   +---(auth)
+|   |   +---login
+|   |   \---register
+|   +---(dashboard)
+|   |   \---dashboard
+|   |       \---sessions
+|   |           +---new
+|   |           \---[id]
+|   \---(session)
+|       \---room
+|           \---[joinCode]
+|               \---join
++---components
+|   +---auth
+|   +---dashboard
+|   +---session
+|   \---ui
++---contexts
++---hooks
++---lib
+|   \---api
++---store
+\---types
