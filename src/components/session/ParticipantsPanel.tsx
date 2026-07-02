@@ -22,18 +22,19 @@ interface ParticipantsPanelProps {
   participants: Participant[];
   raisedHands: RaisedHand[];
   isHost: boolean;
+  isCohost: boolean;
   currentUserId: string;
   onPromote: (userId: string) => void;
   onDemote: (userId: string) => void;
   onLowerHand: (userId: string) => void;
+  onMakeCohost: (userId: string) => void;    // ← new
+  onRemoveCohost: (userId: string) => void;  // ← new
 }
 
-// Resolve the actual ID regardless of whether it's nested or flat
 function resolveId(p: Participant): string {
   return p.user?.id ?? p.userId;
 }
 
-// Resolve display name
 function resolveName(p: Participant): string {
   return p.user?.name ?? p.name ?? p.user?.email ?? p.email ?? "Unknown";
 }
@@ -41,28 +42,34 @@ function resolveName(p: Participant): string {
 function getRoleBadge(role: string) {
   switch (role) {
     case 'HOST':
-      return <span className="text-xs bg-purple-600 text-white px-1.5 py-0.5 rounded">Host</span>;
+      return <span className="text-xs bg-primary-700 text-white px-1.5 py-0.5 rounded">Host</span>;
     case 'SPEAKER':
-      return <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">Speaker</span>;
+      return <span className="text-xs bg-success-600 text-white px-1.5 py-0.5 rounded">Speaker</span>;
     case 'COHOST':
-      return <span className="text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded">Co-host</span>;
+      return <span className="text-xs bg-primary-600 text-white px-1.5 py-0.5 rounded">Co-host</span>;
     default:
-      return <span className="text-xs bg-gray-600 text-white px-1.5 py-0.5 rounded">Guest</span>;
+      return <span className="text-xs bg-ink-700 text-white px-1.5 py-0.5 rounded">Guest</span>;
   }
 }
 
 function ThreeDotMenu({
   participant,
   hasRaisedHand,
+  isHost,
   onPromote,
   onDemote,
   onLowerHand,
+  onMakeCohost,
+  onRemoveCohost,
 }: {
   participant: Participant;
   hasRaisedHand: boolean;
+  isHost: boolean;
   onPromote: () => void;
   onDemote: () => void;
   onLowerHand: () => void;
+  onMakeCohost: () => void;
+  onRemoveCohost: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -79,6 +86,7 @@ function ThreeDotMenu({
 
   const isSpeaker = participant.role === 'SPEAKER';
   const isHostRole = participant.role === 'HOST';
+  const isCohost = participant.role === 'COHOST';
 
   if (isHostRole) return null;
 
@@ -86,7 +94,7 @@ function ThreeDotMenu({
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="text-gray-400 hover:text-white p-1 rounded transition"
+        className="text-gray-400 hover:text-white p-1 rounded transition cursor-pointer"
         title="Participant options"
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -95,11 +103,12 @@ function ThreeDotMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-6 z-50 bg-gray-700 border border-gray-600 rounded-lg shadow-xl w-44 py-1">
-          {!isSpeaker && (
+        <div className="absolute right-0 top-6 z-50 bg-ink-700 border border-white/10 rounded-lg shadow-xl w-44 py-1">
+          {/* Speaker controls */}
+          {!isSpeaker && !isCohost && (
             <button
               onClick={() => { onPromote(); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm text-green-400 hover:bg-gray-600 transition flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm text-success-600 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
             >
               <span>🎤</span> Allow to speak
             </button>
@@ -107,15 +116,35 @@ function ThreeDotMenu({
           {isSpeaker && (
             <button
               onClick={() => { onDemote(); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm text-yellow-400 hover:bg-gray-600 transition flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm text-warning-500 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
             >
               <span>🔇</span> Remove speaker
             </button>
           )}
+
+          {/* Co-host controls — host only, since co-hosts can't assign other co-hosts */}
+          {isHost && !isCohost && (
+            <button
+              onClick={() => { onMakeCohost(); setOpen(false); }}
+              className="w-full text-left px-3 py-2 text-sm text-primary-400 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
+            >
+              <span>⭐</span> Make co-host
+            </button>
+          )}
+          {isHost && isCohost && (
+            <button
+              onClick={() => { onRemoveCohost(); setOpen(false); }}
+              className="w-full text-left px-3 py-2 text-sm text-warning-500 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
+            >
+              <span>⭐</span> Remove co-host
+            </button>
+          )}
+
+          {/* Lower hand */}
           {hasRaisedHand && (
             <button
               onClick={() => { onLowerHand(); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-600 transition flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
             >
               <span>✋</span> Lower hand
             </button>
@@ -130,14 +159,17 @@ export function ParticipantsPanel({
   participants,
   raisedHands,
   isHost,
+  isCohost,
   currentUserId,
   onPromote,
   onDemote,
   onLowerHand,
+  onMakeCohost,
+  onRemoveCohost,
 }: ParticipantsPanelProps) {
   const raisedHandIds = new Set(raisedHands.map(h => h.userId));
+  const canManage = isHost || isCohost;
 
-  // Deduplicate by resolved ID before sorting
   const seen = new Set<string>();
   const deduped = participants.filter(p => {
     const id = resolveId(p);
@@ -155,34 +187,34 @@ export function ParticipantsPanel({
     <div className="flex flex-col h-full">
 
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-700 flex items-center justify-between">
+      <div className="shrink-0 px-4 py-3 border-b border-white/10 flex items-center justify-between">
         <h3 className="text-white text-sm font-semibold">Participants</h3>
-        <span className="bg-gray-600 text-gray-300 text-xs px-2 py-0.5 rounded-full">
+        <span className="bg-ink-700 text-gray-300 text-xs px-2 py-0.5 rounded-full">
           {participants.length}
         </span>
       </div>
 
       {/* Raised hands section */}
       {raisedHands.length > 0 && (
-        <div className="flex-shrink-0 px-4 py-2 border-b border-gray-700 bg-yellow-500/5">
-          <p className="text-xs text-yellow-400 font-medium mb-2">
+        <div className="shrink-0 px-4 py-2 border-b border-white/10 bg-warning-500/10">
+          <p className="text-xs text-warning-500 font-medium mb-2">
             ✋ Raised hands ({raisedHands.length})
           </p>
           <div className="space-y-1">
             {raisedHands.map(h => (
               <div key={h.userId} className="flex items-center justify-between">
                 <span className="text-gray-300 text-xs">{h.name}</span>
-                {isHost && (
+                {canManage && (
                   <div className="flex gap-1">
                     <button
                       onClick={() => { onPromote(h.userId); onLowerHand(h.userId); }}
-                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-0.5 rounded transition"
+                      className="text-xs bg-success-600 hover:bg-success-600/80 text-white px-2 py-0.5 rounded transition cursor-pointer"
                     >
                       Allow
                     </button>
                     <button
                       onClick={() => onLowerHand(h.userId)}
-                      className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-0.5 rounded transition"
+                      className="text-xs bg-ink-700 hover:bg-ink-700/70 text-white px-2 py-0.5 rounded transition cursor-pointer"
                     >
                       Lower
                     </button>
@@ -195,7 +227,7 @@ export function ParticipantsPanel({
       )}
 
       {/* Participant list */}
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-700/50">
+      <div className="flex-1 overflow-y-auto divide-y divide-white/5">
         {sorted.map((p) => {
           const pid = resolveId(p);
           const name = resolveName(p);
@@ -204,12 +236,9 @@ export function ParticipantsPanel({
 
           return (
             <div key={pid} className="flex items-center justify-between px-4 py-2.5">
-
-              {/* Avatar + info */}
               <div className="flex items-center gap-2 min-w-0">
-                {/* Avatar with hand emoji overlay */}
-                <div className="relative flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                <div className="relative shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
                     {getInitials(name)}
                   </div>
                   {hasRaisedHand && (
@@ -223,7 +252,7 @@ export function ParticipantsPanel({
                       {name}
                     </span>
                     {isMe && (
-                      <span className="text-gray-500 text-xs flex-shrink-0">(you)</span>
+                      <span className="text-gray-500 text-xs shrink-0">(you)</span>
                     )}
                   </div>
                   <div className="mt-0.5">
@@ -232,14 +261,17 @@ export function ParticipantsPanel({
                 </div>
               </div>
 
-              {/* Three-dot menu — host only, not for self */}
-              {isHost && !isMe && (
+              {/* Three-dot menu — host or co-host, not for self */}
+              {canManage && !isMe && (
                 <ThreeDotMenu
                   participant={p}
                   hasRaisedHand={hasRaisedHand}
+                  isHost={isHost}
                   onPromote={() => { onPromote(pid); onLowerHand(pid); }}
                   onDemote={() => onDemote(pid)}
                   onLowerHand={() => onLowerHand(pid)}
+                  onMakeCohost={() => onMakeCohost(pid)}
+                  onRemoveCohost={() => onRemoveCohost(pid)}
                 />
               )}
             </div>

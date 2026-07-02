@@ -57,6 +57,13 @@ interface RoomContextValue {
   recordingLoading: boolean;
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<void>;
+  activeSpeakerIds: Set<string>;
+  waitingParticipants: { id: string; name: string; email: string; identity: string }[];
+  admitParticipant: (joinCode: string, waitingParticipantId: string) => void;
+  admitAll: (joinCode: string) => void;
+  rejectParticipant: (joinCode: string, waitingParticipantId: string) => void;
+  makeCohost: (userId: string) => void;
+  removeCohost: (userId: string) => void;
 }
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -74,6 +81,7 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [canPublish, setCanPublish] = useState(false);
   const [liveKitError, setLiveKitError] = useState<string | null>(null);
+  const [activeSpeakerIds, setActiveSpeakerIds] = useState<Set<string>>(new Set());
 
   // ── Socket state ───────────────────────────────────
   const socketRef = useRef<Socket | null>(null);
@@ -82,6 +90,12 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
   const [raisedHands, setRaisedHands] = useState<RaisedHand[]>([]);
+  const [waitingParticipants, setWaitingParticipants] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    identity: string;
+  }[]>([]);
 
   // ── Callback refs ──────────────────────────────────
   const onWhiteboardDrawRef = useRef<((event: any) => void) | null>(null);
@@ -118,6 +132,9 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     newRoom.on(RoomEvent.LocalTrackPublished, updateParticipants);
     newRoom.on(RoomEvent.Disconnected, () => {
       if (!cancelled) setIsLiveKitConnected(false);
+    });
+    newRoom.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+      if (!cancelled) setActiveSpeakerIds(new Set(speakers.map((p) => p.identity)));
     });
 
     async function connect() {
@@ -400,6 +417,89 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
       if (!cancelled) setIsRecording(false);
     });
 
+    // Someone joined the waiting room
+    socket.on("waiting:new", (data: { id: string; name: string; email: string; identity: string }) => {
+      if (!cancelled) {
+        setWaitingParticipants((prev) => [...prev, data]);
+      }
+    });
+
+    // A specific participant was admitted
+    socket.on("waiting:participant-admitted", (data: { id: string; identity: string }) => {
+      if (!cancelled) {
+        setWaitingParticipants((prev) => prev.filter((p) => p.id !== data.id));
+      }
+    });
+
+    // All participants were admitted
+    socket.on("waiting:all-admitted", () => {
+      if (!cancelled) setWaitingParticipants([]);
+    });
+
+    // A participant was rejected
+    socket.on("waiting:participant-rejected", (data: { id: string }) => {
+      if (!cancelled) {
+        setWaitingParticipants((prev) => prev.filter((p) => p.id !== data.id));
+      }
+    });
+
+    // Co-host events
+    socket.on("participant:became-cohost", async (data: { userId: string; token?: string; serverUrl?: string }) => {
+      if (cancelled) return;
+
+      setParticipants((prev) =>
+        prev.map((p) => (p.userId === data.userId ? { ...p, role: "COHOST" } : p))
+      );
+
+      // If THIS user was promoted to co-host, reconnect with a publish-enabled token
+      const myIdentity = myIdentityRef.current;
+      if (myIdentity && myIdentity === data.userId && data.token && data.serverUrl) {
+        toast.success("You are now a co-host!");
+        const room = roomRef.current;
+        if (room) {
+          try {
+            await room.disconnect(false);
+            await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
+            setLocalParticipant(room.localParticipant);
+            setCanPublish(true);
+            setIsLiveKitConnected(true);
+          } catch (err) {
+            console.error("[LiveKit] Failed to reconnect as co-host:", err);
+          }
+        }
+      }
+    });
+
+    socket.on("participant:cohost-removed", async (data: { userId: string; token?: string; serverUrl?: string }) => {
+      if (cancelled) return;
+
+      setParticipants((prev) =>
+        prev.map((p) => (p.userId === data.userId ? { ...p, role: "GUEST" } : p))
+      );
+
+      // If THIS user was removed as co-host, reconnect with restricted token
+      const myIdentity = myIdentityRef.current;
+      if (myIdentity && myIdentity === data.userId && data.token && data.serverUrl) {
+        toast("Your co-host access has been removed");
+        const room = roomRef.current;
+        if (room) {
+          try {
+            await room.localParticipant.setMicrophoneEnabled(false);
+            await room.localParticipant.setCameraEnabled(false);
+            await room.disconnect(false);
+            await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
+            setLocalParticipant(room.localParticipant);
+            setCanPublish(false);
+            setIsMuted(true);
+            setIsCameraOff(true);
+            setIsLiveKitConnected(true);
+          } catch (err) {
+            console.error("[LiveKit] Failed to reconnect after co-host removal:", err);
+          }
+        }
+      }
+    });
+
     return () => {
       cancelled = true;
       socketJoinedRef.current = false;
@@ -540,6 +640,26 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     onPromotedRef.current = fn;
   }, []);
 
+  const admitParticipant = useCallback((joinCode: string, waitingParticipantId: string) => {
+    socketRef.current?.emit("waiting:admit", { joinCode, waitingParticipantId });
+  }, []);
+
+  const admitAll = useCallback((joinCode: string) => {
+    socketRef.current?.emit("waiting:admit-all", { joinCode });
+  }, []);
+
+  const rejectParticipant = useCallback((joinCode: string, waitingParticipantId: string) => {
+    socketRef.current?.emit("waiting:reject", { joinCode, waitingParticipantId });
+  }, []);
+
+  const makeCohost = useCallback((userId: string) => {
+    socketRef.current?.emit("participant:make-cohost", { userId });
+  }, []);
+
+  const removeCohost = useCallback((userId: string) => {
+    socketRef.current?.emit("participant:remove-cohost", { userId });
+  }, []);
+
   return (
     <RoomContext.Provider value={{
       localParticipant, remoteParticipants, isLiveKitConnected,
@@ -550,6 +670,8 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
       promoteParticipant, demoteParticipant, endSession, socketRef,
       setOnWhiteboardDraw, setOnWhiteboardClear, setOnPromoted,
       isRecording, recordingLoading, startRecording, stopRecording,
+      activeSpeakerIds, waitingParticipants, admitParticipant, admitAll, rejectParticipant,
+      makeCohost, removeCohost,
     }}>
       {children}
     </RoomContext.Provider>

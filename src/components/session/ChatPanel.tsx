@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { ChatMessage } from "@/types";
 import { useAuthStore } from "@/store/auth.store";
 import { formatRelative } from "@/lib/utils";
+import { Send } from "lucide-react";
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -28,10 +29,10 @@ export function ChatPanel({ messages, onSend }: ChatPanelProps) {
 
 
   return (
-    <div className="flex flex-col h-full bg-white border-l border-gray-200">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100">
-        <h3 className="font-semibold text-gray-900 text-sm">Chat</h3>
+      <div className="px-4 py-3 border-b border-white/10 hidden md:block">
+        <h3 className="font-semibold text-white text-sm">Chat</h3>
         <p className="text-xs text-gray-400">{messages.length} messages</p>
       </div>
 
@@ -55,15 +56,15 @@ export function ChatPanel({ messages, onSend }: ChatPanelProps) {
                   </span>
                 )}
                 <div
-                  className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${
+                  className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm border ${
                     isMe
-                      ? "bg-blue-600 text-white rounded-tr-sm"
-                      : "bg-gray-100 text-gray-900 rounded-tl-sm"
+                      ? "bg-primary-600/20 border-primary-500/30 text-white rounded-tr-sm"
+                      : "bg-white/5 border-white/5 text-gray-100 rounded-tl-sm"
                   }`}
                 >
                   {msg.content}
                 </div>
-                <span className="text-xs text-gray-300 mt-1">
+                <span className="text-xs text-gray-500 mt-1">
                   {formatRelative(msg.createdAt)}
                 </span>
               </div>
@@ -74,24 +75,24 @@ export function ChatPanel({ messages, onSend }: ChatPanelProps) {
       </div>
 
       {/* Input */}
-      <form
-        onSubmit={handleSend}
-        className="px-4 py-3 border-t border-gray-100 flex gap-2"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim()}
-          className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50"
-        >
-          Send
-        </button>
+      <form onSubmit={handleSend} className="px-4 py-3 border-t border-white/10">
+        <div className="relative">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a message..."
+            className="w-full border border-white/10 bg-white/5 text-white placeholder:text-gray-500 rounded-xl pl-4 pr-11 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-600 focus:border-primary-600"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary-500 hover:text-primary-400 disabled:opacity-30 disabled:hover:text-primary-500 p-1.5"
+            aria-label="Send message"
+          >
+            <Send size={18} />
+          </button>
+        </div>
       </form>
     </div>
   );

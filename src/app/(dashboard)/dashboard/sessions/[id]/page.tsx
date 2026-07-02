@@ -11,6 +11,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { formatDateTime, getJoinUrl } from "@/lib/utils";
 import { toast } from "sonner";
+import { SessionSettingsPanel } from "@/components/session/SessionSettingsPanel";
 
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -80,7 +81,7 @@ export default function SessionDetailPage() {
       },
       cancel: {
         label: "Cancel",
-        onClick: () => {},
+        onClick: () => { },
       },
       duration: 8000,
     });
@@ -192,8 +193,7 @@ export default function SessionDetailPage() {
     } else {
       const lines = attendance.map(
         (a) =>
-          `${a.name} (${a.email}) — ${a.role} — Joined: ${formatDateTime(a.joinedAt)}${
-            a.leftAt ? `, Left: ${formatDateTime(a.leftAt)}` : ""
+          `${a.name} (${a.email}) — ${a.role} — Joined: ${formatDateTime(a.joinedAt)}${a.leftAt ? `, Left: ${formatDateTime(a.leftAt)}` : ""
           }`
       );
       triggerDownload(lines.join("\n"), `${base}_attendance.txt`, "text/plain");
@@ -217,24 +217,26 @@ export default function SessionDetailPage() {
   return (
     <div className="max-w-3xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6 md:mb-8">
+        <div className="min-w-0">
           <Link
             href="/dashboard/sessions"
-            className="text-sm text-gray-400 hover:text-gray-600 mb-2 inline-block"
+            className="text-sm text-ink-700/40 hover:text-ink-700 mb-2 inline-block"
           >
             ← Back to Sessions
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-ink-900 wrap-break-words">{session.title}</h1>
           {session.description && (
-            <p className="text-gray-500 text-sm mt-1">{session.description}</p>
+            <p className="text-ink-700/60 text-sm mt-1">{session.description}</p>
           )}
         </div>
-        <StatusBadge status={session.status} />
+        <div className="shrink-0">
+          <StatusBadge status={session.status} />
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
           { label: "Participants", value: session._count?.participants ?? 0 },
           { label: "Registrations", value: session._count?.registrations ?? 0 },
@@ -247,8 +249,8 @@ export default function SessionDetailPage() {
         ].map((stat) => (
           <Card key={stat.label}>
             <CardContent className="py-5">
-              <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
-              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-xs text-ink-700/60 mb-1">{stat.label}</p>
+              <p className="text-xl font-bold text-ink-900">{stat.value}</p>
             </CardContent>
           </Card>
         ))}
@@ -257,11 +259,11 @@ export default function SessionDetailPage() {
       {/* Join Link */}
       <Card className="mb-4">
         <CardHeader>
-          <h2 className="font-semibold text-gray-900">Session Join Link</h2>
+          <h2 className="font-semibold text-ink-900">Session Join Link</h2>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3">
-            <code className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 truncate">
+            <code className="flex-1 bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink-700 truncate">
               {joinUrl}
             </code>
             <Button
@@ -275,16 +277,26 @@ export default function SessionDetailPage() {
               Copy
             </Button>
           </div>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-ink-700/40 mt-2">
             Share this link with your attendees
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Session Settings */}
+      <Card className="mb-4">
+        <CardHeader>
+          <h2 className="font-semibold text-ink-900">Meeting Settings</h2>
+        </CardHeader>
+        <CardContent>
+          <SessionSettingsPanel sessionId={id} />
         </CardContent>
       </Card>
 
       {/* Recordings */}
       <Card className="mb-4">
         <CardHeader>
-          <h2 className="font-semibold text-gray-900">
+          <h2 className="font-semibold text-ink-900">
             Recordings ({recordings?.length ?? 0})
           </h2>
         </CardHeader>
@@ -294,16 +306,16 @@ export default function SessionDetailPage() {
               <Spinner />
             </div>
           ) : !recordings || recordings.length === 0 ? (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-6 text-center">
-              <p className="text-sm text-gray-500">
+            <div className="bg-surface-50 border border-surface-200 rounded-lg px-4 py-6 text-center">
+              <p className="text-sm text-ink-700/60">
                 🎥 No recordings yet for this session.
               </p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-ink-700/40 mt-1">
                 Start a recording from the room's control bar while live.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-surface-200">
               {recordings.map((rec) => {
                 // Extract a clean display name from the stored filename —
                 // strip the path and extension, leaving just the
@@ -314,12 +326,12 @@ export default function SessionDetailPage() {
                   ?.replace(/\.mp4$/, "") ?? rec.filename;
 
                 return (
-                  <div key={rec.id} className="flex items-center justify-between py-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🎥</span>
-                      <div>
-                        <p className="text-sm text-gray-900">{baseName}</p>
-                        <p className="text-xs text-gray-400">
+                  <div key={rec.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-2xl shrink-0">🎥</span>
+                      <div className="min-w-0">
+                        <p className="text-sm text-ink-900 truncate">{baseName}</p>
+                        <p className="text-xs text-ink-700/40">
                           {formatDateTime(rec.createdAt)} · {formatDuration(rec.duration)} ·{" "}
                           {formatFileSize(rec.size)}
                         </p>
@@ -329,6 +341,7 @@ export default function SessionDetailPage() {
                       variant="secondary"
                       size="sm"
                       onClick={() => handleDownloadRecording(rec.id)}
+                      className="shrink-0"
                     >
                       Download
                     </Button>
@@ -343,11 +356,11 @@ export default function SessionDetailPage() {
       {/* Chat Transcript */}
       <Card className="mb-4">
         <CardHeader>
-          <h2 className="font-semibold text-gray-900">Chat Transcript</h2>
+          <h2 className="font-semibold text-ink-900">Chat Transcript</h2>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-ink-700/60">
               Download the full chat log from this session.
             </p>
             <div className="flex gap-2">
@@ -373,8 +386,8 @@ export default function SessionDetailPage() {
       {/* Attendance List */}
       <Card className="mb-4">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="font-semibold text-ink-900">
               Attendance ({attendance?.length ?? 0})
             </h2>
             {attendance && attendance.length > 0 && (
@@ -403,29 +416,29 @@ export default function SessionDetailPage() {
               <Spinner />
             </div>
           ) : !attendance || attendance.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">
+            <p className="text-sm text-ink-700/40 text-center py-6">
               No one has joined this session yet.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-500 border-b border-gray-100">
+                  <tr className="text-left text-ink-700/60 border-b border-surface-200">
                     <th className="py-2 pr-4 font-medium">Name</th>
                     <th className="py-2 pr-4 font-medium">Email</th>
                     <th className="py-2 pr-4 font-medium">Joined</th>
                     <th className="py-2 font-medium">Left</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-surface-200">
                   {attendance.map((a, i) => (
                     <tr key={`${a.email}-${i}`}>
-                      <td className="py-2.5 pr-4 text-gray-900">{a.name}</td>
-                      <td className="py-2.5 pr-4 text-gray-500">{a.email}</td>
-                      <td className="py-2.5 pr-4 text-gray-500">
+                      <td className="py-2.5 pr-4 text-ink-900">{a.name}</td>
+                      <td className="py-2.5 pr-4 text-ink-700/60">{a.email}</td>
+                      <td className="py-2.5 pr-4 text-ink-700/60">
                         {formatDateTime(a.joinedAt)}
                       </td>
-                      <td className="py-2.5 text-gray-500">
+                      <td className="py-2.5 text-ink-700/60">
                         {a.leftAt ? formatDateTime(a.leftAt) : "—"}
                       </td>
                     </tr>
@@ -440,7 +453,7 @@ export default function SessionDetailPage() {
       {/* Actions */}
       <Card>
         <CardHeader>
-          <h2 className="font-semibold text-gray-900">Actions</h2>
+          <h2 className="font-semibold text-ink-900">Actions</h2>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 flex-wrap">

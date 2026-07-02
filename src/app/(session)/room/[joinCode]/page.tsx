@@ -11,12 +11,15 @@ import { ControlBar } from "@/components/session/ControlBar";
 import { Whiteboard } from "@/components/session/Whiteboard";
 import { ParticipantsPanel } from "@/components/session/ParticipantsPanel";
 import { Spinner } from "@/components/ui/spinner";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { getCookie, clearGuestCookies } from "@/lib/cookies";
 import { RoomProvider, useRoom } from "@/contexts/RoomContext";
 import { toast } from "sonner";
+import { WaitingRoomPanel } from "@/components/session/WaitingRoomPanel";
+import { SessionSettingsPanel } from "@/components/session/SessionSettingsPanel";
 
 type MainView = "video" | "whiteboard";
-type SidebarTab = "chat" | "participants";
+type SidebarTab = "chat" | "participants" | "waiting" | "settings";
 
 // ── Inner component uses context ───────────────────
 function RoomContent({ joinCode }: { joinCode: string }) {
@@ -24,6 +27,7 @@ function RoomContent({ joinCode }: { joinCode: string }) {
   const { user, isAuthenticated } = useAuthStore();
   const [handRaised, setHandRaised] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [mainView, setMainView] = useState<MainView>("video");
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("chat");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -40,11 +44,13 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     localParticipant, remoteParticipants, isLiveKitConnected,
     isMuted, isCameraOff, isScreenSharing, canPublish, liveKitError,
     toggleMic, toggleCamera, toggleScreenShare, disconnect,
-    messages, participants, raisedHands,
+    messages, participants, raisedHands, activeSpeakerIds,
     sendMessage, raiseHand, lowerHand, lowerHandForUser,
     promoteParticipant, demoteParticipant, endSession, socketRef,
     setOnWhiteboardDraw, setOnWhiteboardClear,
     isRecording, recordingLoading, startRecording, stopRecording,
+    waitingParticipants, admitParticipant, admitAll, rejectParticipant,
+    makeCohost, removeCohost,
   } = useRoom();
 
   const { data: session, isLoading } = useQuery({
@@ -53,6 +59,10 @@ function RoomContent({ joinCode }: { joinCode: string }) {
   });
 
   const isHost = !isGuest && session?.hostId === user?.id;
+  const isCohost = !isGuest && participants.some(
+    (p) => p.userId === user?.id && p.role === "COHOST"
+  );
+  const canManage = isHost || isCohost;
 
   // Register whiteboard callbacks
   useEffect(() => {
@@ -94,6 +104,22 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     const interval = setInterval(updateElapsed, 1000);
     return () => clearInterval(interval);
   }, [session?.startedAt]);
+
+  const prevWaitingCountRef = useRef(0);
+  useEffect(() => {
+    const prevCount = prevWaitingCountRef.current;
+    prevWaitingCountRef.current = waitingParticipants.length;
+
+    // Only auto-switch on the empty → non-empty transition (a genuinely new
+    // arrival), not whenever the count happens to settle back at a low number
+    // (e.g. admitting one of two waiting guests would otherwise re-trigger this).
+    if (canManage && prevCount === 0 && waitingParticipants.length > 0) {
+      setSidebarTab("waiting");
+      setChatOpen(true);
+      setMobileSheetOpen(true);
+      toast("Someone is waiting to join", { duration: 4000 });
+    }
+  }, [waitingParticipants.length, canManage]);
 
   function formatElapsed(seconds: number) {
     const hrs = Math.floor(seconds / 3600);
@@ -154,9 +180,15 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     }
   }
 
+  function openPanel(tab: SidebarTab) {
+    setSidebarTab(tab);
+    setChatOpen(true);
+    setMobileSheetOpen(true);
+  }
+
   if (isLoading) {
     return (
-      <div className="h-screen bg-gray-900 flex items-center justify-center">
+      <div className="h-screen bg-ink-900 flex items-center justify-center">
         <Spinner className="text-white w-8 h-8" />
       </div>
     );
@@ -164,9 +196,9 @@ function RoomContent({ joinCode }: { joinCode: string }) {
 
   if (liveKitError) {
     return (
-      <div className="h-screen bg-gray-900 flex items-center justify-center">
+      <div className="h-screen bg-ink-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-400 text-lg mb-4">{liveKitError}</p>
+          <p className="text-danger-600 text-lg mb-4">{liveKitError}</p>
           <button
             onClick={() => router.push(isGuest ? "/" : "/dashboard")}
             className="text-white underline"
@@ -179,67 +211,43 @@ function RoomContent({ joinCode }: { joinCode: string }) {
   }
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-ink-900 relative overflow-hidden flex flex-col">
 
-      {/* ── Top bar ──────────────────────────────────── */}
-      <div className="shrink-0 bg-gray-800 px-6 py-3 flex items-center justify-between border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <span className="text-white font-semibold">{session?.title ?? "Session"}</span>
-          {isLiveKitConnected ? (
-            <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">LIVE</span>
-          ) : (
-            <span className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">Connecting...</span>
-          )}
-          {isLiveKitConnected && session?.startedAt && (
-            <span className="text-xs text-gray-300 font-mono">
-              {formatElapsed(elapsedSeconds)}
-            </span>
-          )}
-          {isRecording && (
-            <span className="flex items-center gap-1 text-xs bg-red-600 text-white px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              REC
-            </span>
-          )}
-          {isGuest && (
-            <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full">
-              Guest: {guestName}
-            </span>
-          )}
+      {/* ── Floating status pills — top left ──────────── */}
+      <div className="fixed top-3 md:top-5 left-3 md:left-5 z-40 flex items-center gap-2 flex-wrap max-w-[75vw]">
+        <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+          <span
+            className={`w-2 h-2 rounded-full ${isLiveKitConnected ? "bg-success-500" : "bg-warning-500"} animate-pulse`}
+          />
+          <span className="font-mono text-xs text-white tracking-wider uppercase">
+            {isLiveKitConnected ? "Live" : "Connecting"}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex bg-gray-700 rounded-lg p-1 gap-1">
-            <button
-              onClick={() => setMainView("video")}
-              className={`px-3 py-1 rounded text-xs font-medium transition ${mainView === "video"
-                ? "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-white"
-                }`}
-            >
-              📹 Video
-            </button>
-            <button
-              onClick={() => setMainView("whiteboard")}
-              className={`px-3 py-1 rounded text-xs font-medium transition ${mainView === "whiteboard"
-                ? "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-white"
-                }`}
-            >
-              🖊️ Whiteboard
-            </button>
+        <div className="hidden sm:flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 min-w-0">
+          <span className="text-white/90 text-xs truncate max-w-[30vw]">{session?.title ?? "Session"}</span>
+        </div>
+
+        {isLiveKitConnected && session?.startedAt && (
+          <div className="hidden sm:flex items-center bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+            <span className="font-mono text-xs text-white/70">{formatElapsed(elapsedSeconds)}</span>
           </div>
+        )}
 
-          {/* Sidebar toggle */}
-          <button
-            onClick={() => setChatOpen(!chatOpen)}
-            className="text-gray-400 hover:text-white text-xs transition ml-2"
-          >
-            {chatOpen ? "Hide Panel" : "Show Panel"}
-          </button>
-        </div>
+        {isGuest && (
+          <div className="hidden md:flex items-center bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+            <span className="text-xs text-white/70">Guest: {guestName}</span>
+          </div>
+        )}
       </div>
+
+      {/* ── Floating recording pill — top right ───────── */}
+      {isRecording && (
+        <div className="fixed top-3 md:top-5 right-3 md:right-5 z-40 flex items-center gap-2 bg-danger-600/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-danger-600/30">
+          <span className="w-2 h-2 rounded-full bg-danger-600 animate-pulse" />
+          <span className="font-mono text-xs text-white uppercase tracking-tight">Recording</span>
+        </div>
+      )}
 
       {/* ── Body ─────────────────────────────────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -248,19 +256,20 @@ function RoomContent({ joinCode }: { joinCode: string }) {
         <div className="flex-1 relative min-w-0 min-h-0">
           {/* Video */}
           <div
-            className="absolute inset-0 p-4"
+            className="absolute inset-0 p-4 pt-16 md:pt-6"
             style={{ display: mainView === "video" ? "flex" : "none" }}
           >
             <VideoGrid
               localParticipant={localParticipant}
               remoteParticipants={remoteParticipants}
               raisedHands={raisedHands}
+              activeSpeakerIds={activeSpeakerIds}
             />
           </div>
 
           {/* Whiteboard */}
           <div
-            className="absolute inset-0 flex flex-col"
+            className="absolute inset-0 flex flex-col p-4 pt-16 md:pt-6"
             style={{ display: mainView === "whiteboard" ? "flex" : "none" }}
           >
             <Whiteboard
@@ -273,22 +282,22 @@ function RoomContent({ joinCode }: { joinCode: string }) {
           </div>
         </div>
 
-        {/* ── Sidebar ─────────────────────────────────── */}
+        {/* ── Sidebar — desktop/tablet only ─────────────── */}
         {chatOpen && (
-          <div className="w-80 shrink-0 flex flex-col border-l border-gray-700 overflow-hidden">
+          <div className="hidden md:flex w-80 shrink-0 flex-col border-l border-white/10 bg-white/3 backdrop-blur-xl overflow-hidden">
 
             {/* Tab bar */}
-            <div className="shrink-0 flex border-b border-gray-700">
+            <div className="shrink-0 flex border-b border-white/10">
               <button
                 onClick={() => setSidebarTab("chat")}
                 className={`flex-1 py-2 text-xs font-medium transition ${sidebarTab === "chat"
-                  ? "text-white border-b-2 border-blue-500"
+                  ? "text-white border-b-2 border-primary-500"
                   : "text-gray-400 hover:text-white"
                   }`}
               >
                 Chat
                 {messages.length > 0 && (
-                  <span className="ml-1 bg-blue-600 text-white text-xs px-1.5 rounded-full">
+                  <span className="ml-1 bg-primary-600 text-white text-xs px-1.5 rounded-full">
                     {messages.length}
                   </span>
                 )}
@@ -296,39 +305,167 @@ function RoomContent({ joinCode }: { joinCode: string }) {
               <button
                 onClick={() => setSidebarTab("participants")}
                 className={`flex-1 py-2 text-xs font-medium transition ${sidebarTab === "participants"
-                  ? "text-white border-b-2 border-blue-500"
+                  ? "text-white border-b-2 border-primary-500"
                   : "text-gray-400 hover:text-white"
                   }`}
               >
                 People
-                <span className="ml-1 bg-gray-600 text-white text-xs px-1.5 rounded-full">
+                <span className="ml-1 bg-ink-700 text-white text-xs px-1.5 rounded-full">
                   {participants.length}
                 </span>
               </button>
+              {canManage && session && (
+                <button
+                  onClick={() => setSidebarTab("waiting")}
+                  className={`flex-1 py-2 text-xs font-medium transition relative ${sidebarTab === "waiting"
+                    ? "text-white border-b-2 border-primary-500"
+                    : "text-gray-400 hover:text-white"
+                    }`}
+                >
+                  Waiting
+                  {waitingParticipants.length > 0 && (
+                    <span className="ml-1 bg-warning-500 text-white text-xs px-1.5 rounded-full animate-pulse">
+                      {waitingParticipants.length}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {canManage && session && (
+                <button
+                  onClick={() => setSidebarTab("settings")}
+                  className={`flex-1 py-2 text-xs font-medium transition ${sidebarTab === "settings"
+                    ? "text-white border-b-2 border-primary-500"
+                    : "text-gray-400 hover:text-white"
+                    }`}
+                >
+                  Settings
+                </button>
+              )}
             </div>
 
             {/* Tab content */}
             <div className="flex-1 min-h-0 overflow-hidden">
-              {sidebarTab === "chat" ? (
+              {sidebarTab === "chat" && (
                 <ChatPanel messages={messages} onSend={sendMessage} />
-              ) : (
+              )}
+              {sidebarTab === "participants" && (
                 <ParticipantsPanel
                   participants={participants}
                   raisedHands={raisedHands}
                   isHost={isHost}
+                  isCohost={isCohost}
                   currentUserId={currentUserId}
                   onPromote={(userId) => { promoteParticipant(userId); lowerHandForUser(userId); }}
                   onDemote={(userId) => demoteParticipant(userId)}
                   onLowerHand={lowerHandForUser}
+                  onMakeCohost={makeCohost}
+                  onRemoveCohost={removeCohost}
                 />
+              )}
+              {sidebarTab === "waiting" && canManage && session && (
+                <WaitingRoomPanel joinCode={joinCode} />
+              )}
+              {sidebarTab === "settings" && canManage && session && (
+                <div className="overflow-y-auto h-full px-4 py-2">
+                  <SessionSettingsPanel sessionId={session.id} compact />
+                </div>
               )}
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Control bar ──────────────────────────────── */}
-      <div className="shrink-0">
+      {/* ── Chat/People — mobile bottom sheet ─────────── */}
+      <BottomSheet open={mobileSheetOpen} onClose={() => setMobileSheetOpen(false)} height="tall">
+        <div className="flex flex-col h-full">
+          <div className="shrink-0 flex border-b border-white/10">
+            <button
+              onClick={() => setSidebarTab("chat")}
+              className={`flex-1 py-2.5 text-sm font-medium transition ${sidebarTab === "chat"
+                ? "text-white border-b-2 border-primary-500"
+                : "text-gray-400"
+                }`}
+            >
+              Chat
+              {messages.length > 0 && (
+                <span className="ml-1 bg-primary-600 text-white text-xs px-1.5 rounded-full">
+                  {messages.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setSidebarTab("participants")}
+              className={`flex-1 py-2.5 text-sm font-medium transition ${sidebarTab === "participants"
+                ? "text-white border-b-2 border-primary-500"
+                : "text-gray-400"
+                }`}
+            >
+              People
+              <span className="ml-1 bg-ink-700 text-white text-xs px-1.5 rounded-full">
+                {participants.length}
+              </span>
+            </button>
+            {canManage && session && (
+              <button
+                onClick={() => setSidebarTab("waiting")}
+                className={`flex-1 py-2.5 text-sm font-medium transition relative ${sidebarTab === "waiting"
+                  ? "text-white border-b-2 border-primary-500"
+                  : "text-gray-400"
+                  }`}
+              >
+                Waiting
+                {waitingParticipants.length > 0 && (
+                  <span className="ml-1 bg-warning-500 text-white text-xs px-1.5 rounded-full animate-pulse">
+                    {waitingParticipants.length}
+                  </span>
+                )}
+              </button>
+            )}
+            {canManage && session && (
+              <button
+                onClick={() => setSidebarTab("settings")}
+                className={`flex-1 py-2.5 text-sm font-medium transition ${sidebarTab === "settings"
+                  ? "text-white border-b-2 border-primary-500"
+                  : "text-gray-400"
+                  }`}
+              >
+                Settings
+              </button>
+            )}
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {sidebarTab === "chat" && (
+              <ChatPanel messages={messages} onSend={sendMessage} />
+            )}
+            {sidebarTab === "participants" && (
+              <ParticipantsPanel
+                participants={participants}
+                raisedHands={raisedHands}
+                isHost={isHost}
+                isCohost={isCohost}
+                currentUserId={currentUserId}
+                onPromote={(userId) => { promoteParticipant(userId); lowerHandForUser(userId); }}
+                onDemote={(userId) => demoteParticipant(userId)}
+                onLowerHand={lowerHandForUser}
+                onMakeCohost={makeCohost}
+                onRemoveCohost={removeCohost}
+              />
+            )}
+            {sidebarTab === "waiting" && canManage && session && (
+              <WaitingRoomPanel joinCode={joinCode} />
+            )}
+            {sidebarTab === "settings" && canManage && session && (
+              <div className="overflow-y-auto h-full px-4 py-2">
+                <SessionSettingsPanel sessionId={session.id} compact />
+              </div>
+            )}
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* ── Floating control bar ───────────────────────── */}
+      <footer className="shrink-0 flex justify-center p-3 md:p-6 z-30">
         <ControlBar
           isMuted={isMuted}
           isCameraOff={isCameraOff}
@@ -338,15 +475,21 @@ function RoomContent({ joinCode }: { joinCode: string }) {
           handRaised={handRaised}
           isRecording={isRecording}
           recordingLoading={recordingLoading}
+          isWhiteboard={mainView === "whiteboard"}
+          unreadChat={messages.length}
+          peopleCount={participants.length}
           onToggleMic={toggleMic}
           onToggleCamera={toggleCamera}
           onToggleScreenShare={toggleScreenShare}
           onRaiseHand={handleRaiseHand}
           onToggleRecording={handleToggleRecording}
+          onToggleWhiteboard={() => setMainView((v) => (v === "whiteboard" ? "video" : "whiteboard"))}
+          onOpenChat={() => openPanel("chat")}
+          onOpenPeople={() => openPanel("participants")}
           onEndSession={handleEndSession}
           onLeave={handleLeave}
         />
-      </div>
+      </footer>
     </div>
   );
 }
@@ -360,7 +503,7 @@ function RoomProviderWrapper({ joinCode }: { joinCode: string }) {
 
   if (isLoading || !session) {
     return (
-      <div className="h-screen bg-gray-900 flex items-center justify-center">
+      <div className="h-screen bg-ink-900 flex items-center justify-center">
         <Spinner className="text-white w-8 h-8" />
       </div>
     );

@@ -57,29 +57,29 @@ export default function NewSessionPage() {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Create New Session</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-xl md:text-2xl font-bold text-ink-900">Create New Session</h1>
+        <p className="text-ink-700/60 text-sm mt-1">
           Set up a new webinar or virtual classroom
           {folderId && (
-            <span className="text-blue-600"> · will be created inside this folder</span>
+            <span className="text-primary-600"> · will be created inside this folder</span>
           )}
         </p>
       </div>
 
       {/* Active workspace banner — makes it unmistakable where this session lands */}
       {activeOrg && (
-        <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 mb-6">
-          <span className="w-7 h-7 rounded-lg bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-2.5 bg-primary-50 border border-primary-100 rounded-lg px-4 py-3 mb-6">
+          <span className="w-7 h-7 rounded-lg bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
             {activeOrg.name.charAt(0).toUpperCase()}
           </span>
           <div>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-ink-700">
               Creating in{" "}
               <strong>
                 {activeOrg.isPersonal ? "your Personal Workspace" : activeOrg.name}
               </strong>
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-700/50">
               Wrong workspace? Switch it from the menu in the top bar before creating.
             </p>
           </div>
@@ -99,29 +99,29 @@ export default function NewSessionPage() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 Description
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full border border-surface-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 resize-none"
                 placeholder="What is this session about?"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Schedule Date & Time
+              <label className="block text-sm font-medium text-ink-700 mb-1">
+                Schedule Date &amp; Time
               </label>
               <input
                 type="datetime-local"
                 value={scheduledAt}
                 onChange={(e) => setScheduledAt(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-surface-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-ink-700/40 mt-1">
                 Leave empty to start an instant session
               </p>
             </div>
@@ -134,12 +134,12 @@ export default function NewSessionPage() {
               placeholder="Leave empty for no passcode"
             />
 
-            <div className="flex gap-3 pt-2">
-              <Button type="submit" loading={createMutation.isPending}>
-                Create Session
-              </Button>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={() => router.back()}>
                 Cancel
+              </Button>
+              <Button type="submit" loading={createMutation.isPending} className="w-full sm:w-auto">
+                Create Session
               </Button>
             </div>
           </form>

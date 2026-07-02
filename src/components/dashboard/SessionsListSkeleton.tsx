@@ -2,7 +2,7 @@ import { Skeleton } from "../ui/Skeleton";
 
 export function SessionsListSkeleton() {
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="divide-y divide-surface-200">
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="flex items-center justify-between px-6 py-4">
           <div className="space-y-2">

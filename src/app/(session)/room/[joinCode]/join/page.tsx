@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { livekitApi, sessionsApi } from "@/lib/api";
+import { sessionSettingsApi } from "@/lib/api/session-settings.api";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
@@ -15,7 +16,6 @@ export default function GuestJoinPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Fetch session info to show title
   const { data: session, isLoading } = useQuery({
     queryKey: ["session-public", joinCode],
     queryFn: () => sessionsApi.getByJoinCode(joinCode),
@@ -35,6 +35,23 @@ export default function GuestJoinPage() {
       document.cookie = `guest_email=${encodeURIComponent(email)}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `guest_identity=${encodeURIComponent(tokenData.guestIdentity ?? "")}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `livekit_server_url=${encodeURIComponent(tokenData.serverUrl ?? "")}; path=/; max-age=${maxAge}; SameSite=Lax`;
+
+      // ── Waiting room gate ────────────────────────────
+      // Check if this session has waiting room enabled BEFORE
+      // sending the guest into the actual room. If enabled,
+      // redirect to the waiting lobby instead.
+      if (session?.id) {
+        try {
+          const settings = await sessionSettingsApi.get(session.id);
+          if (settings.waitingRoomEnabled) {
+            window.location.href = `/room/${joinCode}/waiting`;
+            return;
+          }
+        } catch {
+          // If settings fetch fails, just let them in normally
+          // rather than blocking them indefinitely
+        }
+      }
 
       window.location.href = `/room/${joinCode}`;
     } catch (err: any) {

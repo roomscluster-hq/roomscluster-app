@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { organizationsApi } from "@/lib/api/organizations.api";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export function OrgSwitcher() {
+export function OrgSwitcher({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -42,7 +43,7 @@ export function OrgSwitcher() {
   }, []);
 
   if (isLoading || !organizations) {
-    return <div className="w-40 h-9 bg-gray-100 rounded-lg animate-pulse" />;
+    return <div className="w-40 h-9 bg-surface-200 rounded-lg animate-pulse" />;
   }
 
   const activeOrg = organizations.find((o) => o.isActive) ?? organizations[0];
@@ -51,48 +52,54 @@ export function OrgSwitcher() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 transition text-sm cursor-pointer"
+        className={cn(
+          "flex items-center gap-2 rounded-lg border border-surface-200 hover:border-surface-200 hover:bg-surface-50 transition-colors text-sm cursor-pointer",
+          compact ? "px-2 py-1.5" : "w-full px-3 py-2"
+        )}
       >
-        <span className="w-5 h-5 rounded bg-blue-600 text-white text-xs font-bold flex items-center justify-center">
+        <span className="w-5 h-5 rounded bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
           {activeOrg?.name.charAt(0).toUpperCase() ?? "?"}
         </span>
-        <span className="text-gray-700 font-medium max-w-[140px] truncate">
-          {activeOrg?.isPersonal ? "Personal Workspace" : activeOrg?.name ?? "Workspace"}
-        </span>
-        <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {!compact && (
+          <span className="text-ink-700 font-medium truncate flex-1 text-left">
+            {activeOrg?.isPersonal ? "Personal Workspace" : activeOrg?.name ?? "Workspace"}
+          </span>
+        )}
+        <svg className="w-3.5 h-3.5 text-ink-700/50 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
-          <p className="px-3 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide">
+        <div className="absolute left-0 mt-2 w-64 bg-surface-0 border border-surface-200 rounded-xl shadow-raised py-2 z-50">
+          <p className="px-3 py-1 text-xs font-medium text-ink-700/50 uppercase tracking-wide">
             Workspaces
           </p>
           {organizations.map((org) => (
             <button
               key={org.id}
               onClick={() => !org.isActive && switchMutation.mutate(org.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 transition text-left cursor-pointer ${
-                org.isActive ? "bg-blue-50" : "hover:bg-gray-50"
-              }`}
+              className={cn(
+                "w-full flex items-center justify-between px-3 py-2.5 transition-colors text-left cursor-pointer",
+                org.isActive ? "bg-primary-50" : "hover:bg-surface-50"
+              )}
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-7 h-7 rounded-lg bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                <span className="w-7 h-7 rounded-lg bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
                   {org.name.charAt(0).toUpperCase()}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-ink-900 truncate">
                     {org.isPersonal ? "Personal Workspace" : org.name}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-ink-700/50">
                     {org.role === "OWNER" ? "Owner" : "Member"}
                     {!org.isPersonal && ` · ${org.memberCount} member${org.memberCount !== 1 ? "s" : ""}`}
                   </p>
                 </div>
               </div>
               {org.isActive && (
-                <svg className="w-4 h-4 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-4 h-4 text-primary-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -12,9 +12,25 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatDateTime } from "@/lib/utils";
+import { SessionStatus } from "@/types";
+import { CheckCircle, ChevronRight, Folder, FolderPlus, GripVertical, Video } from "lucide-react";
 import { toast } from "sonner";
 
 type ViewMode = "grid" | "list";
+type StatusFilter = "ALL" | SessionStatus;
+
+const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
+  { id: "ALL", label: "All" },
+  { id: "LIVE", label: "Live" },
+  { id: "SCHEDULED", label: "Scheduled" },
+  { id: "ENDED", label: "Ended" },
+];
+
+const SESSION_CARD_STYLES: Record<SessionStatus, string> = {
+  LIVE: "bg-linear-to-br from-success-600 to-ink-900",
+  SCHEDULED: "bg-linear-to-br from-primary-600 to-ink-900",
+  ENDED: "bg-linear-to-br from-ink-700 to-ink-900",
+};
 
 export default function SessionsExplorerPage() {
   const searchParams = useSearchParams();
@@ -30,9 +46,8 @@ export default function SessionsExplorerPage() {
   });
   const activeOrg = organizations?.find((o) => o.isActive);
 
-  console.log("active org:", activeOrg);
-
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
@@ -217,28 +232,30 @@ export default function SessionsExplorerPage() {
   }
 
   const folders = accumulatedFolders;
-  const sessions = accumulatedSessions;
-  const isEmpty = folders.length === 0 && sessions.length === 0;
+  const allSessions = accumulatedSessions;
+  const sessions =
+    statusFilter === "ALL" ? allSessions : allSessions.filter((s) => s.status === statusFilter);
+  const isEmpty = folders.length === 0 && allSessions.length === 0;
   const hasMore = contents?.pagination.hasMore ?? false;
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sessions</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold text-ink-900">Sessions</h1>
 
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1">
-            <button onClick={goToRoot} className="hover:text-blue-600 transition cursor-pointer">
+          <div className="flex items-center gap-1.5 text-sm text-ink-700/60 mt-1 overflow-x-auto">
+            <button onClick={goToRoot} className="hover:text-primary-600 transition-colors cursor-pointer shrink-0">
               All Sessions
             </button>
             {breadcrumbs?.map((b) => (
-              <span key={b.id} className="flex items-center gap-1.5">
-                <span className="text-gray-300">/</span>
+              <span key={b.id} className="flex items-center gap-1.5 shrink-0">
+                <ChevronRight size={14} className="text-ink-700/30" />
                 <button
                   onClick={() => openFolder(b.id)}
-                  className="hover:text-blue-600 transition cursor-pointer"
+                  className="hover:text-primary-600 transition-colors cursor-pointer"
                 >
                   {b.name}
                 </button>
@@ -247,25 +264,25 @@ export default function SessionsExplorerPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* View toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+          <div className="flex bg-surface-50 rounded-lg p-1 gap-1">
             <button
               onClick={() => setViewMode("grid")}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
                 viewMode === "grid"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-surface-0 text-ink-900 shadow-raised"
+                  : "text-ink-700/60 hover:text-ink-700"
               }`}
             >
               Grid
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
                 viewMode === "list"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-surface-0 text-ink-900 shadow-raised"
+                  : "text-ink-700/60 hover:text-ink-700"
               }`}
             >
               List
@@ -283,15 +300,32 @@ export default function SessionsExplorerPage() {
         </div>
       </div>
 
+      {/* Status filter chips */}
+      <div className="flex items-center gap-2 mb-5">
+        {STATUS_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setStatusFilter(f.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer border ${
+              statusFilter === f.id
+                ? "bg-primary-600 border-primary-600 text-white"
+                : "border-surface-200 text-ink-700/60 hover:bg-surface-50"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {/* Active workspace indicator */}
       {activeOrg && (
         <div className="flex items-center gap-2 mb-5 text-sm">
-          <span className="w-5 h-5 rounded bg-blue-600 text-white text-xs font-bold flex items-center justify-center">
+          <span className="w-5 h-5 rounded bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
             {activeOrg.name.charAt(0).toUpperCase()}
           </span>
-          <span className="text-gray-500">
+          <span className="text-ink-700/60">
             Viewing{" "}
-            <strong className="text-gray-700">
+            <strong className="text-ink-700">
               {activeOrg.isPersonal ? "your Personal Workspace" : activeOrg.name}
             </strong>
             {activeOrg.role === "OWNER" && !activeOrg.isPersonal && " · seeing everyone's sessions"}
@@ -303,16 +337,16 @@ export default function SessionsExplorerPage() {
       {creatingFolder && (
         <form
           onSubmit={handleCreateFolder}
-          className="flex items-center gap-2 mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3"
+          className="flex items-center gap-2 mb-4 bg-primary-50 border border-primary-100 rounded-lg px-4 py-3"
         >
-          <span className="text-lg">📁</span>
+          <Folder size={20} className="text-primary-600 shrink-0" />
           <input
             autoFocus
             type="text"
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             placeholder="Folder name"
-            className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-surface-0 border border-surface-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
           />
           <Button type="submit" size="sm" loading={createFolderMutation.isPending} className="cursor-pointer">
             Create
@@ -323,7 +357,7 @@ export default function SessionsExplorerPage() {
               setCreatingFolder(false);
               setNewFolderName("");
             }}
-            className="text-sm text-gray-500 hover:text-gray-700 px-2 cursor-pointer"
+            className="text-sm text-ink-700/60 hover:text-ink-700 px-2 cursor-pointer"
           >
             Cancel
           </button>
@@ -334,18 +368,18 @@ export default function SessionsExplorerPage() {
       {isEmpty && !creatingFolder && (
         <Card>
           <div className="py-16 text-center">
-            <p className="text-gray-400 text-sm">This folder is empty.</p>
+            <p className="text-ink-700/40 text-sm">This folder is empty.</p>
             <div className="flex items-center justify-center gap-4 mt-3">
               <button
                 onClick={() => setCreatingFolder(true)}
-                className="text-sm text-blue-600 hover:underline cursor-pointer"
+                className="text-sm text-primary-600 hover:underline cursor-pointer"
               >
                 Create a folder
               </button>
-              <span className="text-gray-300">·</span>
+              <span className="text-ink-700/30">·</span>
               <Link
                 href={`/dashboard/sessions/new${currentFolderId ? `?folder=${currentFolderId}` : ""}`}
-                className="text-sm text-blue-600 hover:underline cursor-pointer"
+                className="text-sm text-primary-600 hover:underline cursor-pointer"
               >
                 Create a session
               </Link>
@@ -356,102 +390,150 @@ export default function SessionsExplorerPage() {
 
       {/* Grid view */}
       {!isEmpty && viewMode === "grid" && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {folders.map((folder) => (
-            <div
-              key={folder.id}
-              onDragOver={(e) => handleDragOverFolder(e, folder.id)}
-              onDragLeave={handleDragLeaveFolder}
-              onDrop={(e) => handleDropOnFolder(e, folder.id)}
-              className={`group relative border rounded-xl p-4 transition ${
-                dragOverFolderId === folder.id
-                  ? "border-blue-400 bg-blue-50"
-                  : "border-gray-100 hover:border-gray-200 hover:shadow-sm"
-              }`}
-            >
-              <FolderMenu
-                onRename={() => startRename(folder.id, folder.name)}
-                onDelete={() => confirmDeleteFolder(folder.id, folder.name)}
-              />
+        <div className="space-y-8">
+          {folders.length > 0 && (
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900 mb-3">
+                Folders
+                <span className="text-xs bg-surface-200 text-ink-700 px-2 py-0.5 rounded-full">
+                  {folders.length}
+                </span>
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                {folders.map((folder) => (
+                  <div
+                    key={folder.id}
+                    onDragOver={(e) => handleDragOverFolder(e, folder.id)}
+                    onDragLeave={handleDragLeaveFolder}
+                    onDrop={(e) => handleDropOnFolder(e, folder.id)}
+                    className={`group relative border rounded-card p-5 transition-colors bg-surface-0 ${
+                      dragOverFolderId === folder.id
+                        ? "border-primary-500 bg-primary-50"
+                        : "border-surface-200 hover:shadow-raised"
+                    }`}
+                  >
+                    <FolderMenu
+                      onRename={() => startRename(folder.id, folder.name)}
+                      onDelete={() => confirmDeleteFolder(folder.id, folder.name)}
+                    />
 
-              {renamingFolderId === folder.id ? (
-                <form onSubmit={submitRename} onClick={(e) => e.stopPropagation()}>
-                  <div className="text-3xl mb-2">📁</div>
-                  <input
-                    autoFocus
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={submitRename}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") setRenamingFolderId(null);
-                    }}
-                    className="w-full text-sm font-medium text-gray-900 border border-blue-400 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </form>
-              ) : (
-                <div onClick={() => openFolder(folder.id)} className="cursor-pointer">
-                  <div className="text-3xl mb-2">📁</div>
-                  <p className="text-sm font-medium text-gray-900 truncate">{folder.name}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {folder._count.sessions} session{folder._count.sessions !== 1 ? "s" : ""}
-                    {folder._count.subFolders > 0 &&
-                      ` · ${folder._count.subFolders} folder${folder._count.subFolders !== 1 ? "s" : ""}`}
-                  </p>
-                </div>
-              )}
-            </div>
-          ))}
+                    {renamingFolderId === folder.id ? (
+                      <form onSubmit={submitRename} onClick={(e) => e.stopPropagation()}>
+                        <Folder size={40} className="text-primary-600 mb-3" />
+                        <input
+                          autoFocus
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onBlur={submitRename}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") setRenamingFolderId(null);
+                          }}
+                          className="w-full text-sm font-medium text-ink-900 border border-primary-500 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-primary-600"
+                        />
+                      </form>
+                    ) : (
+                      <div onClick={() => openFolder(folder.id)} className="cursor-pointer">
+                        <Folder size={40} className="text-primary-600 mb-3 group-hover:scale-105 transition-transform" />
+                        <p className="text-sm font-medium text-ink-900 truncate">{folder.name}</p>
+                        <p className="text-xs text-ink-700/50 mt-1">
+                          {folder._count.sessions} session{folder._count.sessions !== 1 ? "s" : ""}
+                          {folder._count.subFolders > 0 &&
+                            ` · ${folder._count.subFolders} folder${folder._count.subFolders !== 1 ? "s" : ""}`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
 
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              draggable
-              onDragStart={() => handleDragStart(session.id)}
-              className="group relative border border-gray-100 rounded-xl p-4 hover:border-gray-200 hover:shadow-sm transition cursor-grab"
-            >
-              <SessionMenu
-                currentFolderId={currentFolderId}
-                onMoveToRoot={() =>
-                  moveSessionMutation.mutate({ sessionId: session.id, folderId: null })
-                }
-                onDelete={() => confirmDeleteSession(session.id, session.title)}
-              />
-              <Link href={`/dashboard/sessions/${session.id}`} className="cursor-pointer">
-                <div className="text-3xl mb-2">🎥</div>
-                <p className="text-sm font-medium text-gray-900 truncate pr-6">
-                  {session.title}
-                </p>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <StatusBadge status={session.status} />
-                </div>
-                <p className="text-xs text-gray-400 mt-1.5">
-                  {session.scheduledAt
-                    ? formatDateTime(session.scheduledAt)
-                    : "Instant session"}
-                </p>
-              </Link>
+                <button
+                  onClick={() => setCreatingFolder(true)}
+                  className="border-2 border-dashed border-surface-200 rounded-card flex flex-col items-center justify-center p-5 text-ink-700/50 hover:border-primary-600 hover:text-primary-600 transition-colors cursor-pointer"
+                >
+                  <FolderPlus size={28} className="mb-2" />
+                  <span className="text-sm font-medium">Create Folder</span>
+                </button>
+              </div>
             </div>
-          ))}
+          )}
+
+          {allSessions.length > 0 && (
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900 mb-3">
+                Sessions
+                <span className="text-xs bg-surface-200 text-ink-700 px-2 py-0.5 rounded-full">
+                  {sessions.length}
+                </span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                {sessions.map((session) => (
+                  <div
+                    key={session.id}
+                    draggable
+                    onDragStart={() => handleDragStart(session.id)}
+                    className="group relative border border-surface-200 rounded-card overflow-hidden bg-surface-0 hover:shadow-raised transition-shadow cursor-grab active:cursor-grabbing"
+                  >
+                    <div className={`relative h-24 flex items-center justify-center ${SESSION_CARD_STYLES[session.status as SessionStatus]}`}>
+                      <Video size={32} className="text-white/30" />
+                      <div className="absolute top-2.5 left-2.5">
+                        <StatusBadge status={session.status} className="bg-white/90" />
+                      </div>
+                      <div className="absolute bottom-2.5 left-2.5 text-white/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <GripVertical size={16} />
+                      </div>
+                    </div>
+
+                    <SessionMenu
+                      currentFolderId={currentFolderId}
+                      onMoveToRoot={() =>
+                        moveSessionMutation.mutate({ sessionId: session.id, folderId: null })
+                      }
+                      onDelete={() => confirmDeleteSession(session.id, session.title)}
+                    />
+
+                    <Link href={`/dashboard/sessions/${session.id}`} className="block p-4">
+                      <p className="text-sm font-medium text-ink-900 truncate pr-6">
+                        {session.title}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-ink-700/50 mt-1.5">
+                        <span>
+                          {session.scheduledAt ? formatDateTime(session.scheduledAt) : "Instant session"}
+                        </span>
+                        {(session._count?.participants ?? 0) > 0 && (
+                          <span>{session._count.participants} participants</span>
+                        )}
+                      </div>
+                      {(session._count?.recordings ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 mt-2 text-xs text-success-600 bg-success-50 px-2 py-0.5 rounded">
+                          <CheckCircle size={12} />
+                          Recorded
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* List view */}
       {!isEmpty && viewMode === "list" && (
         <Card>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-surface-200">
             {folders.map((folder) => (
               <div
                 key={folder.id}
                 onDragOver={(e) => handleDragOverFolder(e, folder.id)}
                 onDragLeave={handleDragLeaveFolder}
                 onDrop={(e) => handleDropOnFolder(e, folder.id)}
-                className={`flex items-center justify-between px-6 py-3.5 transition ${
-                  dragOverFolderId === folder.id ? "bg-blue-50" : "hover:bg-gray-50"
+                className={`flex items-center justify-between px-4 md:px-6 py-3.5 transition-colors ${
+                  dragOverFolderId === folder.id ? "bg-primary-50" : "hover:bg-surface-50"
                 }`}
               >
                 {renamingFolderId === folder.id ? (
                   <form onSubmit={submitRename} className="flex items-center gap-3 flex-1">
-                    <span className="text-xl">📁</span>
+                    <Folder size={20} className="text-primary-600" />
                     <input
                       autoFocus
                       value={renameValue}
@@ -460,18 +542,18 @@ export default function SessionsExplorerPage() {
                       onKeyDown={(e) => {
                         if (e.key === "Escape") setRenamingFolderId(null);
                       }}
-                      className="text-sm font-medium text-gray-900 border border-blue-400 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="text-sm font-medium text-ink-900 border border-primary-500 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-primary-600"
                     />
                   </form>
                 ) : (
                   <div
                     onClick={() => openFolder(folder.id)}
-                    className="flex items-center gap-3 cursor-pointer flex-1"
+                    className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
                   >
-                    <span className="text-xl">📁</span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{folder.name}</p>
-                      <p className="text-xs text-gray-400">
+                    <Folder size={20} className="text-primary-600 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-900 truncate">{folder.name}</p>
+                      <p className="text-xs text-ink-700/50">
                         {folder._count.sessions} session{folder._count.sessions !== 1 ? "s" : ""}
                       </p>
                     </div>
@@ -489,23 +571,23 @@ export default function SessionsExplorerPage() {
                 key={session.id}
                 draggable
                 onDragStart={() => handleDragStart(session.id)}
-                className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50 transition cursor-grab"
+                className="flex items-center justify-between gap-3 px-4 md:px-6 py-3.5 hover:bg-surface-50 transition-colors cursor-grab"
               >
                 <Link
                   href={`/dashboard/sessions/${session.id}`}
-                  className="flex items-center gap-3 flex-1 cursor-pointer"
+                  className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
                 >
-                  <span className="text-xl">🎥</span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{session.title}</p>
-                    <p className="text-xs text-gray-400">
+                  <Video size={18} className="text-primary-600 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-900 truncate">{session.title}</p>
+                    <p className="text-xs text-ink-700/50">
                       {session.scheduledAt
                         ? formatDateTime(session.scheduledAt)
                         : "Instant session"}
                     </p>
                   </div>
                 </Link>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <StatusBadge status={session.status} />
                   <SessionMenu
                     currentFolderId={currentFolderId}
@@ -552,21 +634,21 @@ function FolderMenu({
     <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setOpen(!open)}
-        className="text-gray-400 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition p-1 cursor-pointer"
+        className="text-ink-700/40 hover:text-ink-700 opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
       >
         ⋮
       </button>
       {open && (
         <div
           onMouseLeave={() => setOpen(false)}
-          className="absolute right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-36 py-1"
+          className="absolute right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised w-36 py-1"
         >
           <button
             onClick={() => {
               onRename();
               setOpen(false);
             }}
-            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+            className="w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
           >
             Rename
           </button>
@@ -575,7 +657,7 @@ function FolderMenu({
               onDelete();
               setOpen(false);
             }}
-            className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition cursor-pointer"
+            className="w-full text-left px-3 py-2 text-sm text-danger-600 hover:bg-danger-50 transition-colors cursor-pointer"
           >
             Delete
           </button>
@@ -598,17 +680,17 @@ function SessionMenu({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative" onClick={(e) => e.stopPropagation()}>
+    <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setOpen(!open)}
-        className="text-gray-400 hover:text-gray-700 p-1 cursor-pointer"
+        className="text-white/70 hover:text-white p-1 cursor-pointer"
       >
         ⋮
       </button>
       {open && (
         <div
           onMouseLeave={() => setOpen(false)}
-          className="absolute right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-40 py-1 z-10"
+          className="absolute right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised w-40 py-1 z-10"
         >
           {currentFolderId && (
             <button
@@ -616,7 +698,7 @@ function SessionMenu({
                 onMoveToRoot();
                 setOpen(false);
               }}
-              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+              className="w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
             >
               Move to All Sessions
             </button>
@@ -626,7 +708,7 @@ function SessionMenu({
               onDelete();
               setOpen(false);
             }}
-            className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition cursor-pointer"
+            className="w-full text-left px-3 py-2 text-sm text-danger-600 hover:bg-danger-50 transition-colors cursor-pointer"
           >
             Delete
           </button>

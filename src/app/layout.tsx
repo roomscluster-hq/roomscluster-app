@@ -4,7 +4,7 @@ import "./globals.css";
 import Providers from "@/components/providers";
 import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "RoomsCluster",
@@ -18,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.variable} font-sans`}>
         <Providers>
           {children}
           <Toaster
@@ -26,9 +26,9 @@ export default function RootLayout({
           position="top-right"
           toastOptions={{
             style: {
-              background: "#1f2937", // gray-800
-              border: "1px solid #374151", // gray-700
-              color: "#f3f4f6", // gray-100
+              background: "var(--color-ink-800)",
+              border: "1px solid var(--color-ink-700)",
+              color: "var(--color-surface-200)",
             },
           }}
         />
