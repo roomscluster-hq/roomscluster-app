@@ -8,15 +8,13 @@ import { useAuthStore } from "@/store/auth.store";
 import { getCookie } from "@/lib/cookies";
 import { io, Socket } from "socket.io-client";
 
-// This page is shown to participants when waiting room is enabled.
-// URL: /room/[joinCode]/waiting
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:5000";
 
 export default function WaitingRoomPage() {
   const { joinCode } = useParams<{ joinCode: string }>();
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const [status, setStatus] = useState<"waiting" | "admitted" | "rejected">("waiting");
-  const [socket, setSocket] = useState<Socket | null>(null);
 
   const guestName = getCookie("guest_name");
   const guestEmail = getCookie("guest_email");
@@ -30,19 +28,35 @@ export default function WaitingRoomPage() {
   });
 
   useEffect(() => {
-    if (!session || !identity) return;
+    if (!joinCode) return;
 
-    const token = localStorage.getItem("access_token");
-    const s = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}/session`, {
-      auth: { token: token ?? "" },
+    // ── Pick the right token ──────────────────────────
+    // Authenticated users have an access_token in localStorage.
+    // Guests have a guest_token cookie (which is their LiveKit JWT).
+    // The gateway's handleConnection accepts both.
+    const token =
+      (typeof window !== "undefined" ? localStorage.getItem("access_token") : null) ??
+      getCookie("guest_token") ??
+      "";
+
+    if (!token) {
+      console.warn("[WaitingRoom] No token found — cannot connect to socket");
+      return;
+    }
+
+    const s = io(`${SOCKET_URL}/session`, {
+      auth: { token },
       transports: ["websocket"],
     });
 
-    setSocket(s);
-
     s.on("connect", () => {
-      // Tell the room we're waiting
+      console.log("[WaitingRoom] Socket connected:", s.id);
+      // Tell the server we're in the waiting room
       s.emit("waiting:join", { joinCode });
+    });
+
+    s.on("connect_error", (err) => {
+      console.error("[WaitingRoom] Socket connect error:", err.message);
     });
 
     // Host admitted us individually or via admit-all
@@ -65,15 +79,14 @@ export default function WaitingRoomPage() {
     return () => {
       s.disconnect();
     };
-  }, [session, identity, joinCode, router]);
+  }, [joinCode, identity, router]);
 
   return (
     <div className="min-h-screen bg-ink-900 flex items-center justify-center px-4">
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl max-w-sm w-full p-8 text-center">
+      <div className="bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl max-w-sm w-full p-8 text-center">
 
         {status === "waiting" && (
           <>
-            {/* Animated waiting indicator */}
             <div className="flex items-center justify-center gap-1.5 mb-6">
               {[0, 1, 2].map((i) => (
                 <div

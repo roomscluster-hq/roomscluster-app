@@ -50,7 +50,7 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     setOnWhiteboardDraw, setOnWhiteboardClear,
     isRecording, recordingLoading, startRecording, stopRecording,
     waitingParticipants, admitParticipant, admitAll, rejectParticipant,
-    makeCohost, removeCohost,
+    makeCohost, removeCohost, isCohost, 
   } = useRoom();
 
   const { data: session, isLoading } = useQuery({
@@ -59,9 +59,6 @@ function RoomContent({ joinCode }: { joinCode: string }) {
   });
 
   const isHost = !isGuest && session?.hostId === user?.id;
-  const isCohost = !isGuest && participants.some(
-    (p) => p.userId === user?.id && p.role === "COHOST"
-  );
   const canManage = isHost || isCohost;
 
   // Register whiteboard callbacks

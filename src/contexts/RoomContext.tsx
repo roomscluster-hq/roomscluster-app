@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, useEffect, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
 import {
   Room,
   RoomEvent,
@@ -14,7 +22,8 @@ import { ChatMessage } from "@/types";
 import { toast } from "sonner";
 import { recordingApi } from "@/lib/api/recording.api";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:5000";
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:5000";
 
 interface RaisedHand {
   userId: string;
@@ -58,30 +67,50 @@ interface RoomContextValue {
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<void>;
   activeSpeakerIds: Set<string>;
-  waitingParticipants: { id: string; name: string; email: string; identity: string }[];
+  waitingParticipants: {
+    id: string;
+    name: string;
+    email: string;
+    identity: string;
+  }[];
   admitParticipant: (joinCode: string, waitingParticipantId: string) => void;
   admitAll: (joinCode: string) => void;
   rejectParticipant: (joinCode: string, waitingParticipantId: string) => void;
   makeCohost: (userId: string) => void;
   removeCohost: (userId: string) => void;
+  rejectAll: (joinCode: string) => void;
+  isCohost: boolean;
 }
 
 const RoomContext = createContext<RoomContextValue | null>(null);
 
-export function RoomProvider({ joinCode, sessionId, children }: { joinCode: string; sessionId: string; children: ReactNode }) {
+export function RoomProvider({
+  joinCode,
+  sessionId,
+  children,
+}: {
+  joinCode: string;
+  sessionId: string;
+  children: ReactNode;
+}) {
   // ── LiveKit state ──────────────────────────────────
   const roomRef = useRef<Room | null>(null);
   const intentionalDisconnectRef = useRef(false);
   const myIdentityRef = useRef<string | null>(null);
-  const [localParticipant, setLocalParticipant] = useState<LocalParticipant | null>(null);
-  const [remoteParticipants, setRemoteParticipants] = useState<RemoteParticipant[]>([]);
+  const [localParticipant, setLocalParticipant] =
+    useState<LocalParticipant | null>(null);
+  const [remoteParticipants, setRemoteParticipants] = useState<
+    RemoteParticipant[]
+  >([]);
   const [isLiveKitConnected, setIsLiveKitConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isCameraOff, setIsCameraOff] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [canPublish, setCanPublish] = useState(false);
   const [liveKitError, setLiveKitError] = useState<string | null>(null);
-  const [activeSpeakerIds, setActiveSpeakerIds] = useState<Set<string>>(new Set());
+  const [activeSpeakerIds, setActiveSpeakerIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // ── Socket state ───────────────────────────────────
   const socketRef = useRef<Socket | null>(null);
@@ -90,12 +119,15 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
   const [raisedHands, setRaisedHands] = useState<RaisedHand[]>([]);
-  const [waitingParticipants, setWaitingParticipants] = useState<{
-    id: string;
-    name: string;
-    email: string;
-    identity: string;
-  }[]>([]);
+  const [waitingParticipants, setWaitingParticipants] = useState<
+    {
+      id: string;
+      name: string;
+      email: string;
+      identity: string;
+    }[]
+  >([]);
+  const [isCohost, setIsCohost] = useState(false);
 
   // ── Callback refs ──────────────────────────────────
   const onWhiteboardDrawRef = useRef<((event: any) => void) | null>(null);
@@ -122,7 +154,8 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     });
 
     const updateParticipants = () => {
-      if (!cancelled) setRemoteParticipants([...newRoom.remoteParticipants.values()]);
+      if (!cancelled)
+        setRemoteParticipants([...newRoom.remoteParticipants.values()]);
     };
 
     newRoom.on(RoomEvent.ParticipantConnected, updateParticipants);
@@ -134,7 +167,8 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
       if (!cancelled) setIsLiveKitConnected(false);
     });
     newRoom.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
-      if (!cancelled) setActiveSpeakerIds(new Set(speakers.map((p) => p.identity)));
+      if (!cancelled)
+        setActiveSpeakerIds(new Set(speakers.map((p) => p.identity)));
     });
 
     async function connect() {
@@ -220,7 +254,8 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
 
     loadChatHistory(); // ← only called once
 
-    const token = localStorage.getItem("access_token") ?? getCookie("guest_token") ?? "";
+    const token =
+      localStorage.getItem("access_token") ?? getCookie("guest_token") ?? "";
 
     if (!token) {
       console.warn("[Socket] No token found");
@@ -230,7 +265,10 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     // Reuse existing socket if still connected, otherwise create new one
     let socket: Socket;
     if (socketRef.current?.connected) {
-      console.log("[Socket] Reusing existing connection:", socketRef.current.id);
+      console.log(
+        "[Socket] Reusing existing connection:",
+        socketRef.current.id,
+      );
       socket = socketRef.current;
       socket.removeAllListeners();
     } else {
@@ -280,7 +318,7 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     socket.on("room:participants", (data: any[]) => {
       if (!cancelled) {
         const seen = new Set<string>();
-        const deduped = data.filter(p => {
+        const deduped = data.filter((p) => {
           const id = p.user?.id ?? p.userId;
           if (seen.has(id)) return false;
           seen.add(id);
@@ -293,93 +331,119 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     socket.on("participant:joined", (data: any) => {
       if (cancelled) return;
       toast(`${data.name} joined the session`);
-      setParticipants(prev => {
+      setParticipants((prev) => {
         const id = data.user?.id ?? data.userId;
-        const exists = prev.find(p => (p.user?.id ?? p.userId) === id);
+        const exists = prev.find((p) => (p.user?.id ?? p.userId) === id);
         return exists ? prev : [...prev, data];
       });
     });
 
     socket.on("participant:left", (data: { userId: string }) => {
       if (!cancelled) {
-        setParticipants(prev =>
-          prev.filter(p => (p.user?.id ?? p.userId) !== data.userId)
+        setParticipants((prev) =>
+          prev.filter((p) => (p.user?.id ?? p.userId) !== data.userId),
         );
       }
     });
 
-    socket.on("participant:promoted", async (data: { userId: string; token?: string; serverUrl?: string }) => {
-      if (cancelled) return;
+    socket.on(
+      "participant:promoted",
+      async (data: { userId: string; token?: string; serverUrl?: string }) => {
+        if (cancelled) return;
 
-      setParticipants(prev =>
-        prev.map(p => (p.user?.id ?? p.userId) === data.userId ? { ...p, role: "SPEAKER" } : p)
-      );
+        setParticipants((prev) =>
+          prev.map((p) =>
+            (p.user?.id ?? p.userId) === data.userId
+              ? { ...p, role: "SPEAKER" }
+              : p,
+          ),
+        );
 
-      const myIdentity = myIdentityRef.current;
-      if (myIdentity && myIdentity === data.userId && data.token && data.serverUrl) {
-        toast.success("You can now speak!");
-        const room = roomRef.current;
-        if (room) {
-          try {
-            // Disable UI flicker: set a "reconnecting" flag so VideoTile shows
-            // a brief "Upgrading..." state instead of fully disappearing
-            setLiveKitError(null);
+        const myIdentity = myIdentityRef.current;
+        if (
+          myIdentity &&
+          myIdentity === data.userId &&
+          data.token &&
+          data.serverUrl
+        ) {
+          toast.success("You can now speak!");
+          const room = roomRef.current;
+          if (room) {
+            try {
+              // Disable UI flicker: set a "reconnecting" flag so VideoTile shows
+              // a brief "Upgrading..." state instead of fully disappearing
+              setLiveKitError(null);
 
-            // Use LiveKit's built-in reconnect-in-place: pass the SAME room instance
-            // disconnect with shouldStopTracks: false keeps local media devices warm
-            await room.disconnect(false); // false = don't stop local tracks (camera/mic stay warm)
-            await room.connect(data.serverUrl, data.token, {
-              autoSubscribe: true,
-            });
+              // Use LiveKit's built-in reconnect-in-place: pass the SAME room instance
+              // disconnect with shouldStopTracks: false keeps local media devices warm
+              await room.disconnect(false); // false = don't stop local tracks (camera/mic stay warm)
+              await room.connect(data.serverUrl, data.token, {
+                autoSubscribe: true,
+              });
 
-            setLocalParticipant(room.localParticipant);
-            setCanPublish(true);
-            setIsLiveKitConnected(true);
-            console.log("[LiveKit] Reconnected as speaker — canPublish: true");
-          } catch (err) {
-            console.error("[LiveKit] Failed to reconnect as speaker:", err);
+              setLocalParticipant(room.localParticipant);
+              setCanPublish(true);
+              setIsLiveKitConnected(true);
+              console.log(
+                "[LiveKit] Reconnected as speaker — canPublish: true",
+              );
+            } catch (err) {
+              console.error("[LiveKit] Failed to reconnect as speaker:", err);
+            }
           }
         }
-      }
 
-      onPromotedRef.current?.(data.userId);
-    });
+        onPromotedRef.current?.(data.userId);
+      },
+    );
 
-    socket.on("participant:demoted", async (data: { userId: string; token?: string; serverUrl?: string }) => {
-      if (cancelled) return;
+    socket.on(
+      "participant:demoted",
+      async (data: { userId: string; token?: string; serverUrl?: string }) => {
+        if (cancelled) return;
 
-      setParticipants(prev =>
-        prev.map(p => (p.user?.id ?? p.userId) === data.userId ? { ...p, role: "GUEST" } : p)
-      );
+        setParticipants((prev) =>
+          prev.map((p) =>
+            (p.user?.id ?? p.userId) === data.userId
+              ? { ...p, role: "GUEST" }
+              : p,
+          ),
+        );
 
-      const myIdentity = myIdentityRef.current;
-      if (myIdentity && myIdentity === data.userId && data.token && data.serverUrl) {
-        toast("Your speaking access has been removed");
-        const room = roomRef.current;
-        if (room) {
-          try {
-            await room.localParticipant.setMicrophoneEnabled(false);
-            await room.localParticipant.setCameraEnabled(false);
-            await room.disconnect(false); // keep devices warm
-            await room.connect(data.serverUrl, data.token, {
-              autoSubscribe: true,
-            });
-            setLocalParticipant(room.localParticipant);
-            setCanPublish(false);
-            setIsMuted(true);
-            setIsCameraOff(true);
-            setIsLiveKitConnected(true);
-          } catch (err) {
-            console.error("[LiveKit] Failed to reconnect as audience:", err);
+        const myIdentity = myIdentityRef.current;
+        if (
+          myIdentity &&
+          myIdentity === data.userId &&
+          data.token &&
+          data.serverUrl
+        ) {
+          toast("Your speaking access has been removed");
+          const room = roomRef.current;
+          if (room) {
+            try {
+              await room.localParticipant.setMicrophoneEnabled(false);
+              await room.localParticipant.setCameraEnabled(false);
+              await room.disconnect(false); // keep devices warm
+              await room.connect(data.serverUrl, data.token, {
+                autoSubscribe: true,
+              });
+              setLocalParticipant(room.localParticipant);
+              setCanPublish(false);
+              setIsMuted(true);
+              setIsCameraOff(true);
+              setIsLiveKitConnected(true);
+            } catch (err) {
+              console.error("[LiveKit] Failed to reconnect as audience:", err);
+            }
           }
         }
-      }
-    });
+      },
+    );
 
     socket.on("chat:message", (message: ChatMessage) => {
       if (!cancelled) {
-        setMessages(prev => {
-          if (prev.find(m => m.id === message.id)) return prev;
+        setMessages((prev) => {
+          if (prev.find((m) => m.id === message.id)) return prev;
           return [...prev, message];
         });
       }
@@ -387,14 +451,15 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
 
     socket.on("hand:raised", (data: RaisedHand) => {
       if (cancelled) return;
-      setRaisedHands(prev => {
-        const exists = prev.find(h => h.userId === data.userId);
+      setRaisedHands((prev) => {
+        const exists = prev.find((h) => h.userId === data.userId);
         return exists ? prev : [...prev, data];
       });
     });
 
     socket.on("hand:lowered", (data: { userId: string }) => {
-      if (!cancelled) setRaisedHands(prev => prev.filter(h => h.userId !== data.userId));
+      if (!cancelled)
+        setRaisedHands((prev) => prev.filter((h) => h.userId !== data.userId));
     });
 
     socket.on("whiteboard:draw", (data: any) => {
@@ -418,21 +483,33 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     });
 
     // Someone joined the waiting room
-    socket.on("waiting:new", (data: { id: string; name: string; email: string; identity: string }) => {
-      if (!cancelled) {
-        setWaitingParticipants((prev) => [...prev, data]);
-      }
-    });
+    socket.on(
+      "waiting:new",
+      (data: { id: string; name: string; email: string; identity: string }) => {
+        if (!cancelled) {
+          setWaitingParticipants((prev) => [...prev, data]);
+        }
+      },
+    );
 
     // A specific participant was admitted
-    socket.on("waiting:participant-admitted", (data: { id: string; identity: string }) => {
-      if (!cancelled) {
-        setWaitingParticipants((prev) => prev.filter((p) => p.id !== data.id));
-      }
-    });
+    socket.on(
+      "waiting:participant-admitted",
+      (data: { id: string; identity: string }) => {
+        if (!cancelled) {
+          setWaitingParticipants((prev) =>
+            prev.filter((p) => p.id !== data.id),
+          );
+        }
+      },
+    );
 
     // All participants were admitted
     socket.on("waiting:all-admitted", () => {
+      if (!cancelled) setWaitingParticipants([]);
+    });
+
+    socket.on("waiting:all-rejected", () => {
       if (!cancelled) setWaitingParticipants([]);
     });
 
@@ -444,61 +521,96 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     });
 
     // Co-host events
-    socket.on("participant:became-cohost", async (data: { userId: string; token?: string; serverUrl?: string }) => {
-      if (cancelled) return;
+    socket.on(
+      "participant:became-cohost",
+      async (data: { userId: string; token?: string; serverUrl?: string }) => {
+        if (cancelled) return;
 
-      setParticipants((prev) =>
-        prev.map((p) => (p.userId === data.userId ? { ...p, role: "COHOST" } : p))
-      );
+        setParticipants((prev) =>
+          prev.map((p) =>
+            p.userId === data.userId ? { ...p, role: "COHOST" } : p,
+          ),
+        );
 
-      // If THIS user was promoted to co-host, reconnect with a publish-enabled token
-      const myIdentity = myIdentityRef.current;
-      if (myIdentity && myIdentity === data.userId && data.token && data.serverUrl) {
-        toast.success("You are now a co-host!");
-        const room = roomRef.current;
-        if (room) {
-          try {
-            await room.disconnect(false);
-            await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
-            setLocalParticipant(room.localParticipant);
-            setCanPublish(true);
-            setIsLiveKitConnected(true);
-          } catch (err) {
-            console.error("[LiveKit] Failed to reconnect as co-host:", err);
+        if (data.userId === myIdentityRef.current) {
+          setIsCohost(true);
+        }
+
+        // If THIS user was promoted to co-host, reconnect with a publish-enabled token
+        const myIdentity = myIdentityRef.current;
+        if (
+          myIdentity &&
+          myIdentity === data.userId &&
+          data.token &&
+          data.serverUrl
+        ) {
+          toast.success("You are now a co-host!");
+          const room = roomRef.current;
+          if (room) {
+            try {
+              await room.disconnect(false);
+              await room.connect(data.serverUrl, data.token, {
+                autoSubscribe: true,
+              });
+              setLocalParticipant(room.localParticipant);
+              setCanPublish(true);
+              setIsLiveKitConnected(true);
+            } catch (err) {
+              console.error("[LiveKit] Failed to reconnect as co-host:", err);
+            }
           }
         }
-      }
-    });
+      },
+    );
 
-    socket.on("participant:cohost-removed", async (data: { userId: string; token?: string; serverUrl?: string }) => {
-      if (cancelled) return;
+    socket.on(
+      "participant:cohost-removed",
+      async (data: { userId: string; token?: string; serverUrl?: string }) => {
+        if (cancelled) return;
 
-      setParticipants((prev) =>
-        prev.map((p) => (p.userId === data.userId ? { ...p, role: "GUEST" } : p))
-      );
+        setParticipants((prev) =>
+          prev.map((p) =>
+            p.userId === data.userId ? { ...p, role: "GUEST" } : p,
+          ),
+        );
 
-      // If THIS user was removed as co-host, reconnect with restricted token
-      const myIdentity = myIdentityRef.current;
-      if (myIdentity && myIdentity === data.userId && data.token && data.serverUrl) {
-        toast("Your co-host access has been removed");
-        const room = roomRef.current;
-        if (room) {
-          try {
-            await room.localParticipant.setMicrophoneEnabled(false);
-            await room.localParticipant.setCameraEnabled(false);
-            await room.disconnect(false);
-            await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
-            setLocalParticipant(room.localParticipant);
-            setCanPublish(false);
-            setIsMuted(true);
-            setIsCameraOff(true);
-            setIsLiveKitConnected(true);
-          } catch (err) {
-            console.error("[LiveKit] Failed to reconnect after co-host removal:", err);
+        if (data.userId === myIdentityRef.current) {
+          setIsCohost(false);
+        }
+
+        // If THIS user was removed as co-host, reconnect with restricted token
+        const myIdentity = myIdentityRef.current;
+        if (
+          myIdentity &&
+          myIdentity === data.userId &&
+          data.token &&
+          data.serverUrl
+        ) {
+          toast("Your co-host access has been removed");
+          const room = roomRef.current;
+          if (room) {
+            try {
+              await room.localParticipant.setMicrophoneEnabled(false);
+              await room.localParticipant.setCameraEnabled(false);
+              await room.disconnect(false);
+              await room.connect(data.serverUrl, data.token, {
+                autoSubscribe: true,
+              });
+              setLocalParticipant(room.localParticipant);
+              setCanPublish(false);
+              setIsMuted(true);
+              setIsCameraOff(true);
+              setIsLiveKitConnected(true);
+            } catch (err) {
+              console.error(
+                "[LiveKit] Failed to reconnect after co-host removal:",
+                err,
+              );
+            }
           }
         }
-      }
-    });
+      },
+    );
 
     return () => {
       cancelled = true;
@@ -533,7 +645,8 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [joinCode]);
 
   // ── LiveKit controls ───────────────────────────────
@@ -628,9 +741,12 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
   }, []);
 
   // ── Callback setters ───────────────────────────────
-  const setOnWhiteboardDraw = useCallback((fn: ((event: any) => void) | null) => {
-    onWhiteboardDrawRef.current = fn;
-  }, []);
+  const setOnWhiteboardDraw = useCallback(
+    (fn: ((event: any) => void) | null) => {
+      onWhiteboardDrawRef.current = fn;
+    },
+    [],
+  );
 
   const setOnWhiteboardClear = useCallback((fn: (() => void) | null) => {
     onWhiteboardClearRef.current = fn;
@@ -640,17 +756,33 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
     onPromotedRef.current = fn;
   }, []);
 
-  const admitParticipant = useCallback((joinCode: string, waitingParticipantId: string) => {
-    socketRef.current?.emit("waiting:admit", { joinCode, waitingParticipantId });
-  }, []);
+  const admitParticipant = useCallback(
+    (joinCode: string, waitingParticipantId: string) => {
+      socketRef.current?.emit("waiting:admit", {
+        joinCode,
+        waitingParticipantId,
+      });
+    },
+    [],
+  );
 
   const admitAll = useCallback((joinCode: string) => {
     socketRef.current?.emit("waiting:admit-all", { joinCode });
   }, []);
 
-  const rejectParticipant = useCallback((joinCode: string, waitingParticipantId: string) => {
-    socketRef.current?.emit("waiting:reject", { joinCode, waitingParticipantId });
+  const rejectAll = useCallback((joinCode: string) => {
+    socketRef.current?.emit("waiting:reject-all", { joinCode });
   }, []);
+
+  const rejectParticipant = useCallback(
+    (joinCode: string, waitingParticipantId: string) => {
+      socketRef.current?.emit("waiting:reject", {
+        joinCode,
+        waitingParticipantId,
+      });
+    },
+    [],
+  );
 
   const makeCohost = useCallback((userId: string) => {
     socketRef.current?.emit("participant:make-cohost", { userId });
@@ -661,18 +793,50 @@ export function RoomProvider({ joinCode, sessionId, children }: { joinCode: stri
   }, []);
 
   return (
-    <RoomContext.Provider value={{
-      localParticipant, remoteParticipants, isLiveKitConnected,
-      isMuted, isCameraOff, isScreenSharing, canPublish, liveKitError,
-      toggleMic, toggleCamera, toggleScreenShare, disconnect,
-      isSocketConnected, messages, participants, raisedHands,
-      sendMessage, raiseHand, lowerHand, lowerHandForUser,
-      promoteParticipant, demoteParticipant, endSession, socketRef,
-      setOnWhiteboardDraw, setOnWhiteboardClear, setOnPromoted,
-      isRecording, recordingLoading, startRecording, stopRecording,
-      activeSpeakerIds, waitingParticipants, admitParticipant, admitAll, rejectParticipant,
-      makeCohost, removeCohost,
-    }}>
+    <RoomContext.Provider
+      value={{
+        localParticipant,
+        remoteParticipants,
+        isLiveKitConnected,
+        isMuted,
+        isCameraOff,
+        isScreenSharing,
+        canPublish,
+        liveKitError,
+        toggleMic,
+        toggleCamera,
+        toggleScreenShare,
+        disconnect,
+        isSocketConnected,
+        messages,
+        participants,
+        raisedHands,
+        sendMessage,
+        raiseHand,
+        lowerHand,
+        lowerHandForUser,
+        promoteParticipant,
+        demoteParticipant,
+        endSession,
+        socketRef,
+        setOnWhiteboardDraw,
+        setOnWhiteboardClear,
+        setOnPromoted,
+        isRecording,
+        recordingLoading,
+        startRecording,
+        stopRecording,
+        activeSpeakerIds,
+        waitingParticipants,
+        admitParticipant,
+        admitAll,
+        rejectParticipant,
+        makeCohost,
+        removeCohost,
+        rejectAll,
+        isCohost,
+      }}
+    >
       {children}
     </RoomContext.Provider>
   );

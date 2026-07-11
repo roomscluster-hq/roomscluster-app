@@ -13,10 +13,15 @@ export function middleware(req: NextRequest) {
     pathname.startsWith("/login") || pathname.startsWith("/register");
 
   const isGuestJoinPage = /^\/room\/[^/]+\/join$/.test(pathname);
+  const isWaitingPage = /^\/room\/[^/]+\/waiting$/.test(pathname);
   const isRoomPage = /^\/room\/[^/]+$/.test(pathname);
   const isDashboard = pathname.startsWith("/dashboard");
 
   if (isGuestJoinPage) {
+    return NextResponse.next();
+  }
+
+  if (isWaitingPage) {
     return NextResponse.next();
   }
 

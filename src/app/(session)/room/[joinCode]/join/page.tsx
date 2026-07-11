@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { livekitApi, sessionsApi } from "@/lib/api";
-import { sessionSettingsApi } from "@/lib/api/session-settings.api";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
@@ -37,19 +36,21 @@ export default function GuestJoinPage() {
       document.cookie = `livekit_server_url=${encodeURIComponent(tokenData.serverUrl ?? "")}; path=/; max-age=${maxAge}; SameSite=Lax`;
 
       // ── Waiting room gate ────────────────────────────
-      // Check if this session has waiting room enabled BEFORE
-      // sending the guest into the actual room. If enabled,
-      // redirect to the waiting lobby instead.
       if (session?.id) {
         try {
-          const settings = await sessionSettingsApi.get(session.id);
-          if (settings.waitingRoomEnabled) {
-            window.location.href = `/room/${joinCode}/waiting`;
-            return;
+          const API_URL =
+            process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
+          const res = await fetch(`${API_URL}/sessions/${session.id}/settings`);
+          if (res.ok) {
+            const json = await res.json();
+            const settings = json.data ?? json;
+            if (settings.waitingRoomEnabled) {
+              window.location.href = `/room/${joinCode}/waiting`;
+              return;
+            }
           }
         } catch {
-          // If settings fetch fails, just let them in normally
-          // rather than blocking them indefinitely
+          // Fetch failed — let guest through without waiting room
         }
       }
 
@@ -71,7 +72,6 @@ export default function GuestJoinPage() {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-md p-8">
-
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -136,7 +136,9 @@ export default function GuestJoinPage() {
             loading={loading}
             disabled={session?.status !== "LIVE"}
           >
-            {session?.status === "LIVE" ? "Join Session" : "Session Not Started"}
+            {session?.status === "LIVE"
+              ? "Join Session"
+              : "Session Not Started"}
           </Button>
         </form>
 

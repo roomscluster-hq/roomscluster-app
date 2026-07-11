@@ -1,21 +1,19 @@
 "use client";
 
 import { useRoom } from "@/contexts/RoomContext";
-import { Button } from "@/components/ui/button";
-
-interface WaitingParticipant {
-  id: string;
-  name: string;
-  email: string;
-  identity: string;
-}
 
 interface WaitingRoomPanelProps {
   joinCode: string;
 }
 
 export function WaitingRoomPanel({ joinCode }: WaitingRoomPanelProps) {
-  const { waitingParticipants, admitParticipant, admitAll, rejectParticipant } = useRoom();
+  const {
+    waitingParticipants,
+    admitParticipant,
+    admitAll,
+    rejectParticipant,
+    rejectAll,
+  } = useRoom();
 
   if (waitingParticipants.length === 0) {
     return (
@@ -27,17 +25,26 @@ export function WaitingRoomPanel({ joinCode }: WaitingRoomPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Admit all header */}
+      {/* Bulk actions header */}
       <div className="shrink-0 px-4 py-3 border-b border-white/10 flex items-center justify-between">
         <p className="text-white/60 text-xs">
           {waitingParticipants.length} waiting
         </p>
-        <button
-          onClick={() => admitAll(joinCode)}
-          className="text-xs text-primary-400 hover:text-primary-300 font-medium transition cursor-pointer"
-        >
-          Admit all
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => admitAll(joinCode)}
+            className="text-xs text-primary-400 hover:text-primary-300 font-medium transition cursor-pointer"
+          >
+            Admit all
+          </button>
+          <span className="text-white/20 text-xs">·</span>
+          <button
+            onClick={() => rejectAll(joinCode)}
+            className="text-xs text-danger-400 hover:text-danger-300 font-medium transition cursor-pointer"
+          >
+            Decline all
+          </button>
+        </div>
       </div>
 
       {/* Waiting list */}
@@ -60,7 +67,7 @@ export function WaitingRoomPanel({ joinCode }: WaitingRoomPanelProps) {
               </button>
               <button
                 onClick={() => rejectParticipant(joinCode, p.id)}
-                className="text-xs text-white/40 hover:text-white/70 transition cursor-pointer"
+                className="text-xs text-white/40 hover:text-danger-400 transition cursor-pointer"
               >
                 Decline
               </button>
