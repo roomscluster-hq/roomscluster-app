@@ -50,7 +50,7 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     setOnWhiteboardDraw, setOnWhiteboardClear,
     isRecording, recordingLoading, startRecording, stopRecording,
     waitingParticipants, admitParticipant, admitAll, rejectParticipant,
-    makeCohost, removeCohost, isCohost, 
+    makeCohost, removeCohost, isCohost, participantVideoEnabled, participantMicEnabled
   } = useRoom();
 
   const { data: session, isLoading } = useQuery({
@@ -485,6 +485,9 @@ function RoomContent({ joinCode }: { joinCode: string }) {
           onOpenPeople={() => openPanel("participants")}
           onEndSession={handleEndSession}
           onLeave={handleLeave}
+          isCohost={isCohost}
+          participantVideoEnabled={participantVideoEnabled}
+          participantMicEnabled={participantMicEnabled}
         />
       </footer>
     </div>

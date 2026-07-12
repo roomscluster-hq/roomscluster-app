@@ -80,6 +80,8 @@ interface RoomContextValue {
   removeCohost: (userId: string) => void;
   rejectAll: (joinCode: string) => void;
   isCohost: boolean;
+  participantVideoEnabled: boolean;
+  participantMicEnabled: boolean;
 }
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -128,6 +130,8 @@ export function RoomProvider({
     }[]
   >([]);
   const [isCohost, setIsCohost] = useState(false);
+  const [participantVideoEnabled, setParticipantVideoEnabled] = useState(true);
+  const [participantMicEnabled, setParticipantMicEnabled] = useState(true);
 
   // ── Callback refs ──────────────────────────────────
   const onWhiteboardDrawRef = useRef<((event: any) => void) | null>(null);
@@ -348,7 +352,13 @@ export function RoomProvider({
 
     socket.on(
       "participant:promoted",
-      async (data: { userId: string; token?: string; serverUrl?: string }) => {
+      async (data: {
+        userId: string;
+        token?: string;
+        serverUrl?: string;
+        participantVideoEnabled?: boolean;
+        participantMicEnabled?: boolean;
+      }) => {
         if (cancelled) return;
 
         setParticipants((prev) =>
@@ -389,6 +399,24 @@ export function RoomProvider({
               );
             } catch (err) {
               console.error("[LiveKit] Failed to reconnect as speaker:", err);
+            }
+
+            if (myIdentity === data.userId) {
+              const videoAllowed = data.participantVideoEnabled ?? true;
+              const micAllowed = data.participantMicEnabled ?? true;
+              setParticipantVideoEnabled(videoAllowed);
+              setParticipantMicEnabled(micAllowed);
+
+              // If mic is disabled, immediately mute
+              if (!micAllowed && room) {
+                await room.localParticipant.setMicrophoneEnabled(false);
+                setIsMuted(true);
+              }
+              // If video is disabled, immediately turn off camera
+              if (!videoAllowed && room) {
+                await room.localParticipant.setCameraEnabled(false);
+                setIsCameraOff(true);
+              }
             }
           }
         }
@@ -835,6 +863,8 @@ export function RoomProvider({
         removeCohost,
         rejectAll,
         isCohost,
+        participantVideoEnabled, 
+        participantMicEnabled,
       }}
     >
       {children}

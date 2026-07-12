@@ -10,12 +10,15 @@ interface ControlBarProps {
   isScreenSharing: boolean;
   canPublish: boolean;
   isHost: boolean;
+  isCohost: boolean;                     
   handRaised: boolean;
   isRecording: boolean;
   recordingLoading: boolean;
   isWhiteboard: boolean;
   unreadChat: number;
   peopleCount: number;
+  participantVideoEnabled: boolean;    
+  participantMicEnabled: boolean;       
   onToggleMic: () => void;
   onToggleCamera: () => void;
   onToggleScreenShare: () => void;
@@ -168,13 +171,22 @@ const MoreIcon = () => (
 
 export function ControlBar(props: ControlBarProps) {
   const {
-    isMuted, isCameraOff, isScreenSharing, canPublish, isHost, handRaised,
-    isRecording, recordingLoading, isWhiteboard, unreadChat, peopleCount,
+    isMuted, isCameraOff, isScreenSharing, canPublish, isHost, isCohost,
+    handRaised, isRecording, recordingLoading, isWhiteboard, unreadChat,
+    peopleCount, participantVideoEnabled, participantMicEnabled,
     onToggleMic, onToggleCamera, onToggleScreenShare, onRaiseHand,
     onToggleRecording, onToggleWhiteboard, onOpenChat, onOpenPeople,
     onEndSession, onLeave,
   } = props;
+
   const [moreOpen, setMoreOpen] = useState(false);
+
+  const canManage = isHost || isCohost;
+
+  // Mic is disabled if: no publish permission, OR host has disabled mics
+  const micDisabled = !canPublish || !participantMicEnabled;
+  // Camera is disabled if: no publish permission, OR host has disabled cameras
+  const cameraDisabled = !canPublish || !participantVideoEnabled;
 
   return (
     <div
@@ -184,23 +196,51 @@ export function ControlBar(props: ControlBarProps) {
       {/* ── Full control set — desktop/tablet ─────────── */}
       <div className="hidden md:flex items-center gap-4">
         <div className="flex items-center gap-2 pr-4 border-r border-white/10">
-          <ControlButton onClick={onToggleMic} active={!isMuted} disabled={!canPublish} title={isMuted ? "Unmute" : "Mute"}>
+          <ControlButton
+            onClick={onToggleMic}
+            active={!isMuted}
+            disabled={micDisabled}
+            title={
+              !participantMicEnabled && canPublish
+                ? "Microphone disabled by host"
+                : isMuted ? "Unmute" : "Mute"
+            }
+          >
             <MicIcon off={isMuted} />
             <Label>{isMuted ? "Unmute" : "Mute"}</Label>
           </ControlButton>
 
-          <ControlButton onClick={onToggleCamera} active={!isCameraOff} disabled={!canPublish} title={isCameraOff ? "Turn on camera" : "Turn off camera"}>
+          <ControlButton
+            onClick={onToggleCamera}
+            active={!isCameraOff}
+            disabled={cameraDisabled}
+            title={
+              !participantVideoEnabled && canPublish
+                ? "Camera disabled by host"
+                : isCameraOff ? "Turn on camera" : "Turn off camera"
+            }
+          >
             <CameraIcon off={isCameraOff} />
             <Label>{isCameraOff ? "Start" : "Stop"}</Label>
           </ControlButton>
 
-          {isHost ? (
-            <ControlButton onClick={onToggleRecording} active={isRecording} disabled={recordingLoading} title={isRecording ? "Stop recording" : "Start recording"}>
+          {/* Recording — host and co-host */}
+          {canManage ? (
+            <ControlButton
+              onClick={onToggleRecording}
+              active={isRecording}
+              disabled={recordingLoading}
+              title={isRecording ? "Stop recording" : "Start recording"}
+            >
               <RecordIcon recording={isRecording} loading={recordingLoading} />
               <Label>{isRecording ? "Stop Rec" : "Record"}</Label>
             </ControlButton>
           ) : (
-            <ControlButton onClick={onRaiseHand} active={handRaised} title={handRaised ? "Lower hand" : "Raise hand"}>
+            <ControlButton
+              onClick={onRaiseHand}
+              active={handRaised}
+              title={handRaised ? "Lower hand" : "Raise hand"}
+            >
               <HandIcon />
               <Label>{handRaised ? "Lower" : "Raise"}</Label>
             </ControlButton>
@@ -223,7 +263,12 @@ export function ControlBar(props: ControlBarProps) {
             <Label>People</Label>
           </ControlButton>
 
-          <ControlButton onClick={onToggleScreenShare} active={isScreenSharing} disabled={!canPublish} title="Screen Share">
+          <ControlButton
+            onClick={onToggleScreenShare}
+            active={isScreenSharing}
+            disabled={!canPublish}
+            title="Screen Share"
+          >
             <ScreenShareIcon />
             <Label>Share</Label>
           </ControlButton>
@@ -235,7 +280,8 @@ export function ControlBar(props: ControlBarProps) {
             <Label>Leave</Label>
           </ControlButton>
 
-          {isHost && (
+          {/* End session — host and co-host */}
+          {canManage && (
             <ControlButton onClick={onEndSession} danger title="End session for all">
               <EndSessionIcon />
               <Label>End</Label>
@@ -246,20 +292,51 @@ export function ControlBar(props: ControlBarProps) {
 
       {/* ── Condensed control set — mobile ─────────────── */}
       <div className="flex md:hidden items-center gap-1.5 w-full justify-center">
-        <ControlButton compact onClick={onToggleMic} active={!isMuted} disabled={!canPublish} title={isMuted ? "Unmute" : "Mute"}>
+        <ControlButton
+          compact
+          onClick={onToggleMic}
+          active={!isMuted}
+          disabled={micDisabled}
+          title={
+            !participantMicEnabled && canPublish
+              ? "Microphone disabled by host"
+              : isMuted ? "Unmute" : "Mute"
+          }
+        >
           <MicIcon off={isMuted} />
         </ControlButton>
 
-        <ControlButton compact onClick={onToggleCamera} active={!isCameraOff} disabled={!canPublish} title={isCameraOff ? "Turn on camera" : "Turn off camera"}>
+        <ControlButton
+          compact
+          onClick={onToggleCamera}
+          active={!isCameraOff}
+          disabled={cameraDisabled}
+          title={
+            !participantVideoEnabled && canPublish
+              ? "Camera disabled by host"
+              : isCameraOff ? "Turn on camera" : "Turn off camera"
+          }
+        >
           <CameraIcon off={isCameraOff} />
         </ControlButton>
 
-        {isHost ? (
-          <ControlButton compact onClick={onToggleRecording} active={isRecording} disabled={recordingLoading} title={isRecording ? "Stop recording" : "Start recording"}>
+        {canManage ? (
+          <ControlButton
+            compact
+            onClick={onToggleRecording}
+            active={isRecording}
+            disabled={recordingLoading}
+            title={isRecording ? "Stop recording" : "Start recording"}
+          >
             <RecordIcon recording={isRecording} loading={recordingLoading} />
           </ControlButton>
         ) : (
-          <ControlButton compact onClick={onRaiseHand} active={handRaised} title={handRaised ? "Lower hand" : "Raise hand"}>
+          <ControlButton
+            compact
+            onClick={onRaiseHand}
+            active={handRaised}
+            title={handRaised ? "Lower hand" : "Raise hand"}
+          >
             <HandIcon />
           </ControlButton>
         )}
@@ -304,7 +381,7 @@ export function ControlBar(props: ControlBarProps) {
             {isScreenSharing ? "Stop screen share" : "Share screen"}
           </button>
 
-          {isHost && (
+          {canManage && (
             <button
               onClick={() => { onEndSession(); setMoreOpen(false); }}
               className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-danger-600 hover:bg-danger-600/10"
