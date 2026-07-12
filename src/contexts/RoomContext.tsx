@@ -82,6 +82,9 @@ interface RoomContextValue {
   isCohost: boolean;
   participantVideoEnabled: boolean;
   participantMicEnabled: boolean;
+  roomChatEnabled: boolean;
+  roomVideoEnabled: boolean;
+  roomMicEnabled: boolean;
 }
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -132,6 +135,9 @@ export function RoomProvider({
   const [isCohost, setIsCohost] = useState(false);
   const [participantVideoEnabled, setParticipantVideoEnabled] = useState(true);
   const [participantMicEnabled, setParticipantMicEnabled] = useState(true);
+  const [roomChatEnabled, setRoomChatEnabled] = useState(true);
+  const [roomVideoEnabled, setRoomVideoEnabled] = useState(true);
+  const [roomMicEnabled, setRoomMicEnabled] = useState(true);
 
   // ── Callback refs ──────────────────────────────────
   const onWhiteboardDrawRef = useRef<((event: any) => void) | null>(null);
@@ -146,6 +152,27 @@ export function RoomProvider({
     console.log("[RoomProvider] MOUNTED");
     return () => console.log("[RoomProvider] UNMOUNTED");
   }, []);
+
+  // Load initial session settings so room-level state reflects DB on join
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
+        const res = await fetch(`${API_URL}/sessions/${sessionId}/settings`);
+        if (res.ok) {
+          const json = await res.json();
+          const s = json.data ?? json;
+          setRoomChatEnabled(s.chatEnabled ?? true);
+          setRoomVideoEnabled(s.participantVideoEnabled ?? true);
+          setRoomMicEnabled(s.participantMicEnabled ?? true);
+        }
+      } catch {
+        // fail silently — defaults to enabled
+      }
+    }
+    loadSettings();
+  }, [sessionId]);
 
   // ── Initialize LiveKit ─────────────────────────────
   useEffect(() => {
@@ -192,6 +219,7 @@ export function RoomProvider({
           token = data.token;
           serverUrl = data.serverUrl;
           publish = data.canPublish;
+          setCanPublish(publish);
         }
 
         // Strict Mode unmounted this before token fetch finished — bail without disconnecting
@@ -548,6 +576,22 @@ export function RoomProvider({
       }
     });
 
+    socket.on(
+      "settings:updated",
+      (s: {
+        chatEnabled?: boolean;
+        participantVideoEnabled?: boolean;
+        participantMicEnabled?: boolean;
+      }) => {
+        if (cancelled) return;
+        if (s.chatEnabled !== undefined) setRoomChatEnabled(s.chatEnabled);
+        if (s.participantVideoEnabled !== undefined)
+          setRoomVideoEnabled(s.participantVideoEnabled);
+        if (s.participantMicEnabled !== undefined)
+          setRoomMicEnabled(s.participantMicEnabled);
+      },
+    );
+
     // Co-host events
     socket.on(
       "participant:became-cohost",
@@ -713,6 +757,12 @@ export function RoomProvider({
   }, []);
 
   const startRecording = useCallback(async () => {
+    // Verify token exists before attempting — prevents confusing 401
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      toast.error("Authentication required. Please refresh the page.");
+      return;
+    }
     setRecordingLoading(true);
     try {
       await recordingApi.start(sessionId);
@@ -863,8 +913,11 @@ export function RoomProvider({
         removeCohost,
         rejectAll,
         isCohost,
-        participantVideoEnabled, 
+        participantVideoEnabled,
         participantMicEnabled,
+        roomChatEnabled,
+        roomVideoEnabled,
+        roomMicEnabled,
       }}
     >
       {children}

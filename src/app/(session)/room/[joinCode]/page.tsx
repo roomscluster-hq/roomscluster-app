@@ -21,7 +21,6 @@ import { SessionSettingsPanel } from "@/components/session/SessionSettingsPanel"
 type MainView = "video" | "whiteboard";
 type SidebarTab = "chat" | "participants" | "waiting" | "settings";
 
-// ── Inner component uses context ───────────────────
 function RoomContent({ joinCode }: { joinCode: string }) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
@@ -50,8 +49,11 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     setOnWhiteboardDraw, setOnWhiteboardClear,
     isRecording, recordingLoading, startRecording, stopRecording,
     waitingParticipants, admitParticipant, admitAll, rejectParticipant,
-    makeCohost, removeCohost, isCohost, participantVideoEnabled, participantMicEnabled
+    makeCohost, removeCohost,
+    isCohost,
+    roomChatEnabled, roomVideoEnabled, roomMicEnabled,
   } = useRoom();
+  
 
   const { data: session, isLoading } = useQuery({
     queryKey: ["session-room", joinCode],
@@ -60,6 +62,8 @@ function RoomContent({ joinCode }: { joinCode: string }) {
 
   const isHost = !isGuest && session?.hostId === user?.id;
   const canManage = isHost || isCohost;
+
+  console.log('[Debug] canPublish:', canPublish, 'isHost:', isHost);
 
   // Register whiteboard callbacks
   useEffect(() => {
@@ -74,20 +78,18 @@ function RoomContent({ joinCode }: { joinCode: string }) {
   // Join session (authenticated users only)
   useEffect(() => {
     if (session && !isGuest) {
-      sessionsApi.join(joinCode).catch(() => { });
+      sessionsApi.join(joinCode).catch(() => {});
     }
   }, [session, joinCode, isGuest]);
 
+  // Elapsed timer + 4-hour warning
   useEffect(() => {
     if (!session?.startedAt) return;
-
     const startTime = new Date(session.startedAt).getTime();
 
     function updateElapsed() {
       const seconds = Math.floor((Date.now() - startTime) / 1000);
       setElapsedSeconds(seconds);
-
-      // Warn once when crossing 3h50m (10 min before the 4-hour auto-end)
       const tenMinutesBeforeLimit = 4 * 60 * 60 - 10 * 60;
       if (seconds >= tenMinutesBeforeLimit && !warnedRef.current) {
         warnedRef.current = true;
@@ -102,14 +104,11 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     return () => clearInterval(interval);
   }, [session?.startedAt]);
 
+  // Auto-switch to waiting tab when first guest arrives
   const prevWaitingCountRef = useRef(0);
   useEffect(() => {
     const prevCount = prevWaitingCountRef.current;
     prevWaitingCountRef.current = waitingParticipants.length;
-
-    // Only auto-switch on the empty → non-empty transition (a genuinely new
-    // arrival), not whenever the count happens to settle back at a low number
-    // (e.g. admitting one of two waiting guests would otherwise re-trigger this).
     if (canManage && prevCount === 0 && waitingParticipants.length > 0) {
       setSidebarTab("waiting");
       setChatOpen(true);
@@ -144,7 +143,7 @@ function RoomContent({ joinCode }: { joinCode: string }) {
       clearGuestCookies();
       window.location.href = `/room/${joinCode}/join`;
     } else {
-      await sessionsApi.leave(joinCode).catch(() => { });
+      await sessionsApi.leave(joinCode).catch(() => {});
       router.push("/dashboard");
     }
   }
@@ -155,16 +154,13 @@ function RoomContent({ joinCode }: { joinCode: string }) {
         label: "End Session",
         onClick: async () => {
           endSession();
-          if (!isGuest) await sessionsApi.end(session!.id).catch(() => { });
+          if (!isGuest) await sessionsApi.end(session!.id).catch(() => {});
           await disconnect();
           clearGuestCookies();
           router.push(isGuest ? "/" : "/dashboard");
         },
       },
-      cancel: {
-        label: "Cancel",
-        onClick: () => { },
-      },
+      cancel: { label: "Cancel", onClick: () => {} },
       duration: 8000,
     });
   }
@@ -207,30 +203,127 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     );
   }
 
+  // ── Shared panel content ───────────────────────────────
+  const sidebarContent = (
+    <>
+      {sidebarTab === "chat" && (
+        <ChatPanel
+          messages={messages}
+          onSend={sendMessage}
+          chatEnabled={roomChatEnabled}
+        />
+      )}
+      {sidebarTab === "participants" && (
+        <ParticipantsPanel
+          participants={participants}
+          raisedHands={raisedHands}
+          isHost={isHost}
+          isCohost={isCohost}
+          currentUserId={currentUserId}
+          onPromote={(userId) => { promoteParticipant(userId); lowerHandForUser(userId); }}
+          onDemote={(userId) => demoteParticipant(userId)}
+          onLowerHand={lowerHandForUser}
+          onMakeCohost={makeCohost}
+          onRemoveCohost={removeCohost}
+        />
+      )}
+      {sidebarTab === "waiting" && canManage && session && (
+        <WaitingRoomPanel joinCode={joinCode} />
+      )}
+      {sidebarTab === "settings" && canManage && session && (
+        <div className="overflow-y-auto h-full px-4 py-2">
+          <SessionSettingsPanel
+            sessionId={session.id}
+            joinCode={joinCode}
+            compact
+          />
+        </div>
+      )}
+    </>
+  );
+
+  // ── Shared tab bar ─────────────────────────────────────
+  const tabBar = (mobile = false) => (
+    <div className={`shrink-0 flex border-b border-white/10`}>
+      <button
+        onClick={() => setSidebarTab("chat")}
+        className={`flex-1 ${mobile ? "py-2.5 text-sm" : "py-2 text-xs"} font-medium transition ${
+          sidebarTab === "chat"
+            ? "text-white border-b-2 border-primary-500"
+            : "text-gray-400 hover:text-white"
+        }`}
+      >
+        Chat
+        {messages.length > 0 && (
+          <span className="ml-1 bg-primary-600 text-white text-xs px-1.5 rounded-full">
+            {messages.length}
+          </span>
+        )}
+      </button>
+      <button
+        onClick={() => setSidebarTab("participants")}
+        className={`flex-1 ${mobile ? "py-2.5 text-sm" : "py-2 text-xs"} font-medium transition ${
+          sidebarTab === "participants"
+            ? "text-white border-b-2 border-primary-500"
+            : "text-gray-400 hover:text-white"
+        }`}
+      >
+        People
+        <span className="ml-1 bg-ink-700 text-white text-xs px-1.5 rounded-full">
+          {participants.length}
+        </span>
+      </button>
+      {canManage && session && (
+        <button
+          onClick={() => setSidebarTab("waiting")}
+          className={`flex-1 ${mobile ? "py-2.5 text-sm" : "py-2 text-xs"} font-medium transition relative ${
+            sidebarTab === "waiting"
+              ? "text-white border-b-2 border-primary-500"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          Waiting
+          {waitingParticipants.length > 0 && (
+            <span className="ml-1 bg-warning-500 text-white text-xs px-1.5 rounded-full animate-pulse">
+              {waitingParticipants.length}
+            </span>
+          )}
+        </button>
+      )}
+      {canManage && session && (
+        <button
+          onClick={() => setSidebarTab("settings")}
+          className={`flex-1 ${mobile ? "py-2.5 text-sm" : "py-2 text-xs"} font-medium transition ${
+            sidebarTab === "settings"
+              ? "text-white border-b-2 border-primary-500"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          Settings
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="h-screen bg-ink-900 relative overflow-hidden flex flex-col">
 
       {/* ── Floating status pills — top left ──────────── */}
       <div className="fixed top-3 md:top-5 left-3 md:left-5 z-40 flex items-center gap-2 flex-wrap max-w-[75vw]">
         <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-          <span
-            className={`w-2 h-2 rounded-full ${isLiveKitConnected ? "bg-success-500" : "bg-warning-500"} animate-pulse`}
-          />
+          <span className={`w-2 h-2 rounded-full ${isLiveKitConnected ? "bg-success-500" : "bg-warning-500"} animate-pulse`} />
           <span className="font-mono text-xs text-white tracking-wider uppercase">
             {isLiveKitConnected ? "Live" : "Connecting"}
           </span>
         </div>
-
         <div className="hidden sm:flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 min-w-0">
           <span className="text-white/90 text-xs truncate max-w-[30vw]">{session?.title ?? "Session"}</span>
         </div>
-
         {isLiveKitConnected && session?.startedAt && (
           <div className="hidden sm:flex items-center bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
             <span className="font-mono text-xs text-white/70">{formatElapsed(elapsedSeconds)}</span>
           </div>
         )}
-
         {isGuest && (
           <div className="hidden md:flex items-center bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
             <span className="text-xs text-white/70">Guest: {guestName}</span>
@@ -251,7 +344,6 @@ function RoomContent({ joinCode }: { joinCode: string }) {
 
         {/* Main area */}
         <div className="flex-1 relative min-w-0 min-h-0">
-          {/* Video */}
           <div
             className="absolute inset-0 p-4 pt-16 md:pt-6"
             style={{ display: mainView === "video" ? "flex" : "none" }}
@@ -263,8 +355,6 @@ function RoomContent({ joinCode }: { joinCode: string }) {
               activeSpeakerIds={activeSpeakerIds}
             />
           </div>
-
-          {/* Whiteboard */}
           <div
             className="absolute inset-0 flex flex-col p-4 pt-16 md:pt-6"
             style={{ display: mainView === "whiteboard" ? "flex" : "none" }}
@@ -281,93 +371,10 @@ function RoomContent({ joinCode }: { joinCode: string }) {
 
         {/* ── Sidebar — desktop/tablet only ─────────────── */}
         {chatOpen && (
-          <div className="hidden md:flex w-80 shrink-0 flex-col border-l border-white/10 bg-white/3 backdrop-blur-xl overflow-hidden">
-
-            {/* Tab bar */}
-            <div className="shrink-0 flex border-b border-white/10">
-              <button
-                onClick={() => setSidebarTab("chat")}
-                className={`flex-1 py-2 text-xs font-medium transition ${sidebarTab === "chat"
-                  ? "text-white border-b-2 border-primary-500"
-                  : "text-gray-400 hover:text-white"
-                  }`}
-              >
-                Chat
-                {messages.length > 0 && (
-                  <span className="ml-1 bg-primary-600 text-white text-xs px-1.5 rounded-full">
-                    {messages.length}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setSidebarTab("participants")}
-                className={`flex-1 py-2 text-xs font-medium transition ${sidebarTab === "participants"
-                  ? "text-white border-b-2 border-primary-500"
-                  : "text-gray-400 hover:text-white"
-                  }`}
-              >
-                People
-                <span className="ml-1 bg-ink-700 text-white text-xs px-1.5 rounded-full">
-                  {participants.length}
-                </span>
-              </button>
-              {canManage && session && (
-                <button
-                  onClick={() => setSidebarTab("waiting")}
-                  className={`flex-1 py-2 text-xs font-medium transition relative ${sidebarTab === "waiting"
-                    ? "text-white border-b-2 border-primary-500"
-                    : "text-gray-400 hover:text-white"
-                    }`}
-                >
-                  Waiting
-                  {waitingParticipants.length > 0 && (
-                    <span className="ml-1 bg-warning-500 text-white text-xs px-1.5 rounded-full animate-pulse">
-                      {waitingParticipants.length}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {canManage && session && (
-                <button
-                  onClick={() => setSidebarTab("settings")}
-                  className={`flex-1 py-2 text-xs font-medium transition ${sidebarTab === "settings"
-                    ? "text-white border-b-2 border-primary-500"
-                    : "text-gray-400 hover:text-white"
-                    }`}
-                >
-                  Settings
-                </button>
-              )}
-            </div>
-
-            {/* Tab content */}
+          <div className="hidden md:flex w-80 shrink-0 flex-col border-l border-white/10 bg-white/[0.03] backdrop-blur-xl overflow-hidden">
+            {tabBar(false)}
             <div className="flex-1 min-h-0 overflow-hidden">
-              {sidebarTab === "chat" && (
-                <ChatPanel messages={messages} onSend={sendMessage} />
-              )}
-              {sidebarTab === "participants" && (
-                <ParticipantsPanel
-                  participants={participants}
-                  raisedHands={raisedHands}
-                  isHost={isHost}
-                  isCohost={isCohost}
-                  currentUserId={currentUserId}
-                  onPromote={(userId) => { promoteParticipant(userId); lowerHandForUser(userId); }}
-                  onDemote={(userId) => demoteParticipant(userId)}
-                  onLowerHand={lowerHandForUser}
-                  onMakeCohost={makeCohost}
-                  onRemoveCohost={removeCohost}
-                />
-              )}
-              {sidebarTab === "waiting" && canManage && session && (
-                <WaitingRoomPanel joinCode={joinCode} />
-              )}
-              {sidebarTab === "settings" && canManage && session && (
-                <div className="overflow-y-auto h-full px-4 py-2">
-                  <SessionSettingsPanel sessionId={session.id} compact />
-                </div>
-              )}
+              {sidebarContent}
             </div>
           </div>
         )}
@@ -376,87 +383,9 @@ function RoomContent({ joinCode }: { joinCode: string }) {
       {/* ── Chat/People — mobile bottom sheet ─────────── */}
       <BottomSheet open={mobileSheetOpen} onClose={() => setMobileSheetOpen(false)} height="tall">
         <div className="flex flex-col h-full">
-          <div className="shrink-0 flex border-b border-white/10">
-            <button
-              onClick={() => setSidebarTab("chat")}
-              className={`flex-1 py-2.5 text-sm font-medium transition ${sidebarTab === "chat"
-                ? "text-white border-b-2 border-primary-500"
-                : "text-gray-400"
-                }`}
-            >
-              Chat
-              {messages.length > 0 && (
-                <span className="ml-1 bg-primary-600 text-white text-xs px-1.5 rounded-full">
-                  {messages.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setSidebarTab("participants")}
-              className={`flex-1 py-2.5 text-sm font-medium transition ${sidebarTab === "participants"
-                ? "text-white border-b-2 border-primary-500"
-                : "text-gray-400"
-                }`}
-            >
-              People
-              <span className="ml-1 bg-ink-700 text-white text-xs px-1.5 rounded-full">
-                {participants.length}
-              </span>
-            </button>
-            {canManage && session && (
-              <button
-                onClick={() => setSidebarTab("waiting")}
-                className={`flex-1 py-2.5 text-sm font-medium transition relative ${sidebarTab === "waiting"
-                  ? "text-white border-b-2 border-primary-500"
-                  : "text-gray-400"
-                  }`}
-              >
-                Waiting
-                {waitingParticipants.length > 0 && (
-                  <span className="ml-1 bg-warning-500 text-white text-xs px-1.5 rounded-full animate-pulse">
-                    {waitingParticipants.length}
-                  </span>
-                )}
-              </button>
-            )}
-            {canManage && session && (
-              <button
-                onClick={() => setSidebarTab("settings")}
-                className={`flex-1 py-2.5 text-sm font-medium transition ${sidebarTab === "settings"
-                  ? "text-white border-b-2 border-primary-500"
-                  : "text-gray-400"
-                  }`}
-              >
-                Settings
-              </button>
-            )}
-          </div>
+          {tabBar(true)}
           <div className="flex-1 min-h-0 overflow-hidden">
-            {sidebarTab === "chat" && (
-              <ChatPanel messages={messages} onSend={sendMessage} />
-            )}
-            {sidebarTab === "participants" && (
-              <ParticipantsPanel
-                participants={participants}
-                raisedHands={raisedHands}
-                isHost={isHost}
-                isCohost={isCohost}
-                currentUserId={currentUserId}
-                onPromote={(userId) => { promoteParticipant(userId); lowerHandForUser(userId); }}
-                onDemote={(userId) => demoteParticipant(userId)}
-                onLowerHand={lowerHandForUser}
-                onMakeCohost={makeCohost}
-                onRemoveCohost={removeCohost}
-              />
-            )}
-            {sidebarTab === "waiting" && canManage && session && (
-              <WaitingRoomPanel joinCode={joinCode} />
-            )}
-            {sidebarTab === "settings" && canManage && session && (
-              <div className="overflow-y-auto h-full px-4 py-2">
-                <SessionSettingsPanel sessionId={session.id} compact />
-              </div>
-            )}
+            {sidebarContent}
           </div>
         </div>
       </BottomSheet>
@@ -469,12 +398,15 @@ function RoomContent({ joinCode }: { joinCode: string }) {
           isScreenSharing={isScreenSharing}
           canPublish={canPublish}
           isHost={isHost}
+          isCohost={isCohost}
           handRaised={handRaised}
           isRecording={isRecording}
           recordingLoading={recordingLoading}
           isWhiteboard={mainView === "whiteboard"}
           unreadChat={messages.length}
           peopleCount={participants.length}
+          participantVideoEnabled={roomVideoEnabled}
+          participantMicEnabled={roomMicEnabled}
           onToggleMic={toggleMic}
           onToggleCamera={toggleCamera}
           onToggleScreenShare={toggleScreenShare}
@@ -485,16 +417,12 @@ function RoomContent({ joinCode }: { joinCode: string }) {
           onOpenPeople={() => openPanel("participants")}
           onEndSession={handleEndSession}
           onLeave={handleLeave}
-          isCohost={isCohost}
-          participantVideoEnabled={participantVideoEnabled}
-          participantMicEnabled={participantMicEnabled}
         />
       </footer>
     </div>
   );
 }
 
-// ── Wrapper — fetches session first so we have sessionId for RoomProvider ──
 function RoomProviderWrapper({ joinCode }: { joinCode: string }) {
   const { data: session, isLoading } = useQuery({
     queryKey: ["session-room", joinCode],
@@ -516,7 +444,6 @@ function RoomProviderWrapper({ joinCode }: { joinCode: string }) {
   );
 }
 
-// ── Outer component ───────────────────────────────
 export default function RoomPage() {
   const { joinCode } = useParams<{ joinCode: string }>();
   return <RoomProviderWrapper joinCode={joinCode} />;

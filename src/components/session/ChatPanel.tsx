@@ -9,9 +9,10 @@ import { Send } from "lucide-react";
 interface ChatPanelProps {
   messages: ChatMessage[];
   onSend: (content: string) => void;
+  chatEnabled?: boolean;
 }
 
-export function ChatPanel({ messages, onSend }: ChatPanelProps) {
+export function ChatPanel({ messages, onSend, chatEnabled = true }: ChatPanelProps) {
   const { user } = useAuthStore();
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -26,7 +27,6 @@ export function ChatPanel({ messages, onSend }: ChatPanelProps) {
     onSend(input.trim());
     setInput("");
   }
-
 
   return (
     <div className="flex flex-col h-full">
@@ -74,26 +74,32 @@ export function ChatPanel({ messages, onSend }: ChatPanelProps) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSend} className="px-4 py-3 border-t border-white/10">
-        <div className="relative">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="w-full border border-white/10 bg-white/5 text-white placeholder:text-gray-500 rounded-xl pl-4 pr-11 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-600 focus:border-primary-600"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary-500 hover:text-primary-400 disabled:opacity-30 disabled:hover:text-primary-500 p-1.5"
-            aria-label="Send message"
-          >
-            <Send size={18} />
-          </button>
+      {/* Input — disabled when chat is turned off */}
+      {chatEnabled ? (
+        <form onSubmit={handleSend} className="px-4 py-3 border-t border-white/10">
+          <div className="relative">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message..."
+              className="w-full border border-white/10 bg-white/5 text-white placeholder:text-gray-500 rounded-xl pl-4 pr-11 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-600 focus:border-primary-600"
+            />
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary-500 hover:text-primary-400 disabled:opacity-30 disabled:hover:text-primary-500 p-1.5"
+              aria-label="Send message"
+            >
+              <Send size={18} />
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="px-4 py-4 border-t border-white/10 text-center">
+          <p className="text-xs text-white/40">Chat has been disabled by the host</p>
         </div>
-      </form>
+      )}
     </div>
   );
 }

@@ -2,13 +2,14 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionSettingsApi, SessionSettings } from "@/lib/api/session-settings.api";
+import { useRoom } from "@/contexts/RoomContext";
 import { toast } from "sonner";
 
 interface ToggleRowProps {
   label: string;
   description: string;
   checked: boolean;
-  onChange: (val: boolean) => void;
+  onChange: () => void;
   disabled?: boolean;
   dark?: boolean;
 }
@@ -23,7 +24,7 @@ function ToggleRow({ label, description, checked, onChange, disabled, dark }: To
       <button
         type="button"
         disabled={disabled}
-        onClick={() => onChange(!checked)}
+        onClick={onChange}
         className={`relative shrink-0 w-11 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 ${
           checked ? "bg-primary-600" : dark ? "bg-white/10" : "bg-surface-200"
         } ${dark ? "focus:ring-offset-ink-900" : ""} ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
@@ -40,12 +41,22 @@ function ToggleRow({ label, description, checked, onChange, disabled, dark }: To
 
 interface SessionSettingsPanelProps {
   sessionId: string;
-  // When used inside the room, we use a compact style
+  joinCode?: string;  // when provided, broadcasts changes to the live room via socket
   compact?: boolean;
 }
 
-export function SessionSettingsPanel({ sessionId, compact = false }: SessionSettingsPanelProps) {
+export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: SessionSettingsPanelProps) {
   const queryClient = useQueryClient();
+
+  // socketRef is only available inside RoomProvider — outside the room
+  // (session detail page), useRoom() will throw, so we guard it.
+  let socketRef: React.RefObject<any> | null = null;
+  try {
+    const room = useRoom();
+    socketRef = room.socketRef;
+  } catch {
+    // Not inside RoomProvider — session detail page usage, no socket needed
+  }
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["session-settings", sessionId],
@@ -55,8 +66,12 @@ export function SessionSettingsPanel({ sessionId, compact = false }: SessionSett
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Omit<SessionSettings, "id" | "sessionId">>) =>
       sessionSettingsApi.update(sessionId, data),
-    onSuccess: (updated) => {
+    onSuccess: (updated, variables) => {
       queryClient.setQueryData(["session-settings", sessionId], updated);
+      // Broadcast to live room participants via socket if we're inside a room
+      if (joinCode && socketRef?.current) {
+        socketRef.current.emit("settings:update", { joinCode, settings: variables });
+      }
     },
     onError: () => toast.error("Failed to update settings"),
   });

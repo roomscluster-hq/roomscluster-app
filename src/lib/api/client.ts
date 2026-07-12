@@ -24,17 +24,23 @@ client.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
-        // Avoid double-toasting if multiple requests 401 at once
-        const alreadyRedirecting = sessionStorage.getItem("redirecting_to_login");
-        if (!alreadyRedirecting) {
-          sessionStorage.setItem("redirecting_to_login", "true");
-          toast.error("Your session has expired. Please sign in again.");
-          localStorage.removeItem("access_token");
-
-          setTimeout(() => {
-            sessionStorage.removeItem("redirecting_to_login");
-            window.location.href = "/login";
-          }, 1200); // give the toast time to be seen before navigating away
+        const url = error.config?.url ?? "";
+        // Don't wipe token for LiveKit token requests — those 401s
+        // don't mean the user's session expired, just that the room
+        // isn't accessible (e.g. session not live yet)
+        const isLiveKitRequest = url.includes("/livekit/") || url.includes("/token");
+        
+        if (!isLiveKitRequest) {
+          const alreadyRedirecting = sessionStorage.getItem("redirecting_to_login");
+          if (!alreadyRedirecting) {
+            sessionStorage.setItem("redirecting_to_login", "true");
+            toast.error("Your session has expired. Please sign in again.");
+            localStorage.removeItem("access_token");
+            setTimeout(() => {
+              sessionStorage.removeItem("redirecting_to_login");
+              window.location.href = "/login";
+            }, 1200);
+          }
         }
       }
     }

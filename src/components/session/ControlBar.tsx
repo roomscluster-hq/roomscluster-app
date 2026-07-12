@@ -10,15 +10,15 @@ interface ControlBarProps {
   isScreenSharing: boolean;
   canPublish: boolean;
   isHost: boolean;
-  isCohost: boolean;                     
+  isCohost: boolean;
   handRaised: boolean;
   isRecording: boolean;
   recordingLoading: boolean;
   isWhiteboard: boolean;
   unreadChat: number;
   peopleCount: number;
-  participantVideoEnabled: boolean;    
-  participantMicEnabled: boolean;       
+  participantVideoEnabled: boolean;
+  participantMicEnabled: boolean;
   onToggleMic: () => void;
   onToggleCamera: () => void;
   onToggleScreenShare: () => void;
@@ -61,9 +61,9 @@ function ControlButton({
         danger
           ? "bg-danger-600 hover:bg-danger-700"
           : active
-          ? "bg-primary-600 hover:bg-primary-700"
-          : "bg-white/5 hover:bg-white/10",
-        disabled && "opacity-40 cursor-not-allowed"
+            ? "bg-primary-600 hover:bg-primary-700"
+            : "bg-white/5 hover:bg-white/10",
+        disabled && "opacity-40 cursor-not-allowed",
       )}
     >
       {children}
@@ -77,13 +77,19 @@ function ControlButton({
 }
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[9px] font-bold uppercase tracking-tighter opacity-70">{children}</span>
+  <span className="text-[9px] font-bold uppercase tracking-tighter opacity-70">
+    {children}
+  </span>
 );
 
 const MicIcon = ({ off }: { off: boolean }) =>
   off ? (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1 1 0 000-.501A10.008 10.008 0 0010 3a9.958 9.958 0 00-4.512 1.074L3.28 2.22zM10 5a3 3 0 013 3v1.28l-4.513-4.513A3 3 0 0110 5z" clipRule="evenodd" />
+      <path
+        fillRule="evenodd"
+        d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1 1 0 000-.501A10.008 10.008 0 0010 3a9.958 9.958 0 00-4.512 1.074L3.28 2.22zM10 5a3 3 0 013 3v1.28l-4.513-4.513A3 3 0 0110 5z"
+        clipRule="evenodd"
+      />
     </svg>
   ) : (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -105,20 +111,43 @@ const CameraIcon = ({ off }: { off: boolean }) =>
 
 const ScreenShareIcon = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M2 4.25A2.25 2.25 0 014.25 2h11.5A2.25 2.25 0 0118 4.25v8.5A2.25 2.25 0 0115.75 15h-3.105a3.501 3.501 0 001.1 1.677A.75.75 0 0113.26 18H6.74a.75.75 0 01-.484-1.323A3.501 3.501 0 007.355 15H4.25A2.25 2.25 0 012 12.75v-8.5z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M2 4.25A2.25 2.25 0 014.25 2h11.5A2.25 2.25 0 0118 4.25v8.5A2.25 2.25 0 0115.75 15h-3.105a3.501 3.501 0 001.1 1.677A.75.75 0 0113.26 18H6.74a.75.75 0 01-.484-1.323A3.501 3.501 0 007.355 15H4.25A2.25 2.25 0 012 12.75v-8.5z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
 const BoardIcon = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 20 20" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M4 4h12v9H4z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M8 17l2-4 2 4" />
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    viewBox="0 0 20 20"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+      d="M4 4h12v9H4z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.7}
+      d="M8 17l2-4 2 4"
+    />
   </svg>
 );
 
 const ChatIcon = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
@@ -134,11 +163,28 @@ const HandIcon = () => (
   </svg>
 );
 
-const RecordIcon = ({ recording, loading }: { recording: boolean; loading: boolean }) =>
+const RecordIcon = ({
+  recording,
+  loading,
+}: {
+  recording: boolean;
+  loading: boolean;
+}) =>
   loading ? (
     <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
     </svg>
   ) : recording ? (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -152,8 +198,16 @@ const RecordIcon = ({ recording, loading }: { recording: boolean; loading: boole
 
 const LeaveIcon = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
-    <path fillRule="evenodd" d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-1.08a.75.75 0 10-1.004-1.114l-2.5 2.5a.75.75 0 000 1.108l2.5 2.5a.75.75 0 101.004-1.114l-1.048-1.08H18.25A.75.75 0 0019 10z" clipRule="evenodd" />
+    <path
+      fillRule="evenodd"
+      d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
+      clipRule="evenodd"
+    />
+    <path
+      fillRule="evenodd"
+      d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-1.08a.75.75 0 10-1.004-1.114l-2.5 2.5a.75.75 0 000 1.108l2.5 2.5a.75.75 0 101.004-1.114l-1.048-1.08H18.25A.75.75 0 0019 10z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
@@ -171,12 +225,30 @@ const MoreIcon = () => (
 
 export function ControlBar(props: ControlBarProps) {
   const {
-    isMuted, isCameraOff, isScreenSharing, canPublish, isHost, isCohost,
-    handRaised, isRecording, recordingLoading, isWhiteboard, unreadChat,
-    peopleCount, participantVideoEnabled, participantMicEnabled,
-    onToggleMic, onToggleCamera, onToggleScreenShare, onRaiseHand,
-    onToggleRecording, onToggleWhiteboard, onOpenChat, onOpenPeople,
-    onEndSession, onLeave,
+    isMuted,
+    isCameraOff,
+    isScreenSharing,
+    canPublish,
+    isHost,
+    isCohost,
+    handRaised,
+    isRecording,
+    recordingLoading,
+    isWhiteboard,
+    unreadChat,
+    peopleCount,
+    participantVideoEnabled,
+    participantMicEnabled,
+    onToggleMic,
+    onToggleCamera,
+    onToggleScreenShare,
+    onRaiseHand,
+    onToggleRecording,
+    onToggleWhiteboard,
+    onOpenChat,
+    onOpenPeople,
+    onEndSession,
+    onLeave,
   } = props;
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -184,9 +256,10 @@ export function ControlBar(props: ControlBarProps) {
   const canManage = isHost || isCohost;
 
   // Mic is disabled if: no publish permission, OR host has disabled mics
-  const micDisabled = !canPublish || !participantMicEnabled;
-  // Camera is disabled if: no publish permission, OR host has disabled cameras
-  const cameraDisabled = !canPublish || !participantVideoEnabled;
+  // Host and co-host are never restricted by participant settings
+  const micDisabled = !canPublish || (!canManage && !participantMicEnabled);
+  const cameraDisabled =
+    !canPublish || (!canManage && !participantVideoEnabled);
 
   return (
     <div
@@ -203,7 +276,9 @@ export function ControlBar(props: ControlBarProps) {
             title={
               !participantMicEnabled && canPublish
                 ? "Microphone disabled by host"
-                : isMuted ? "Unmute" : "Mute"
+                : isMuted
+                  ? "Unmute"
+                  : "Mute"
             }
           >
             <MicIcon off={isMuted} />
@@ -217,7 +292,9 @@ export function ControlBar(props: ControlBarProps) {
             title={
               !participantVideoEnabled && canPublish
                 ? "Camera disabled by host"
-                : isCameraOff ? "Turn on camera" : "Turn off camera"
+                : isCameraOff
+                  ? "Turn on camera"
+                  : "Turn off camera"
             }
           >
             <CameraIcon off={isCameraOff} />
@@ -248,7 +325,11 @@ export function ControlBar(props: ControlBarProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <ControlButton onClick={onToggleWhiteboard} active={isWhiteboard} title="Whiteboard">
+          <ControlButton
+            onClick={onToggleWhiteboard}
+            active={isWhiteboard}
+            title="Whiteboard"
+          >
             <BoardIcon />
             <Label>Board</Label>
           </ControlButton>
@@ -258,7 +339,11 @@ export function ControlBar(props: ControlBarProps) {
             <Label>Chat</Label>
           </ControlButton>
 
-          <ControlButton onClick={onOpenPeople} badge={peopleCount} title="People">
+          <ControlButton
+            onClick={onOpenPeople}
+            badge={peopleCount}
+            title="People"
+          >
             <PeopleIcon />
             <Label>People</Label>
           </ControlButton>
@@ -282,7 +367,11 @@ export function ControlBar(props: ControlBarProps) {
 
           {/* End session — host and co-host */}
           {canManage && (
-            <ControlButton onClick={onEndSession} danger title="End session for all">
+            <ControlButton
+              onClick={onEndSession}
+              danger
+              title="End session for all"
+            >
               <EndSessionIcon />
               <Label>End</Label>
             </ControlButton>
@@ -300,7 +389,9 @@ export function ControlBar(props: ControlBarProps) {
           title={
             !participantMicEnabled && canPublish
               ? "Microphone disabled by host"
-              : isMuted ? "Unmute" : "Mute"
+              : isMuted
+                ? "Unmute"
+                : "Mute"
           }
         >
           <MicIcon off={isMuted} />
@@ -314,7 +405,9 @@ export function ControlBar(props: ControlBarProps) {
           title={
             !participantVideoEnabled && canPublish
               ? "Camera disabled by host"
-              : isCameraOff ? "Turn on camera" : "Turn off camera"
+              : isCameraOff
+                ? "Turn on camera"
+                : "Turn off camera"
           }
         >
           <CameraIcon off={isCameraOff} />
@@ -341,7 +434,12 @@ export function ControlBar(props: ControlBarProps) {
           </ControlButton>
         )}
 
-        <ControlButton compact onClick={onOpenChat} badge={unreadChat} title="Chat and people">
+        <ControlButton
+          compact
+          onClick={onOpenChat}
+          badge={unreadChat}
+          title="Chat and people"
+        >
           <ChatIcon />
         </ControlButton>
 
@@ -349,15 +447,26 @@ export function ControlBar(props: ControlBarProps) {
           <LeaveIcon />
         </ControlButton>
 
-        <ControlButton compact onClick={() => setMoreOpen(true)} title="More options">
+        <ControlButton
+          compact
+          onClick={() => setMoreOpen(true)}
+          title="More options"
+        >
           <MoreIcon />
         </ControlButton>
       </div>
 
-      <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More options">
+      <BottomSheet
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        title="More options"
+      >
         <div className="p-2 pb-4 flex flex-col gap-1">
           <button
-            onClick={() => { onToggleWhiteboard(); setMoreOpen(false); }}
+            onClick={() => {
+              onToggleWhiteboard();
+              setMoreOpen(false);
+            }}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5"
           >
             <BoardIcon />
@@ -365,7 +474,10 @@ export function ControlBar(props: ControlBarProps) {
           </button>
 
           <button
-            onClick={() => { onOpenPeople(); setMoreOpen(false); }}
+            onClick={() => {
+              onOpenPeople();
+              setMoreOpen(false);
+            }}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5"
           >
             <PeopleIcon />
@@ -373,7 +485,10 @@ export function ControlBar(props: ControlBarProps) {
           </button>
 
           <button
-            onClick={() => { onToggleScreenShare(); setMoreOpen(false); }}
+            onClick={() => {
+              onToggleScreenShare();
+              setMoreOpen(false);
+            }}
             disabled={!canPublish}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
           >
@@ -383,7 +498,10 @@ export function ControlBar(props: ControlBarProps) {
 
           {canManage && (
             <button
-              onClick={() => { onEndSession(); setMoreOpen(false); }}
+              onClick={() => {
+                onEndSession();
+                setMoreOpen(false);
+              }}
               className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-danger-600 hover:bg-danger-600/10"
             >
               <EndSessionIcon />
