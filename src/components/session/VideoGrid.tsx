@@ -198,14 +198,11 @@ function VideoTile({
   return (
     <div
       className={cn(
-        // On mobile: fixed aspect ratio so cards stay landscape
-        // On desktop: fill the grid cell completely
         "relative bg-ink-800 rounded-xl overflow-hidden border-2 transition-colors duration-150",
-        "w-full md:w-auto md:h-full",
+        "w-full aspect-video md:aspect-auto md:w-full md:h-full",
         isLocal ? "border-primary-600/60" : "border-transparent",
         isSpeaking && "border-success-500",
       )}
-      style={{ aspectRatio: "16/9" }}
     >
       {isCameraEnabled ? (
         <video
@@ -350,8 +347,10 @@ export function VideoGrid({
 
       {/* ── Desktop grid — fills space, no scroll ── */}
       <div
-        className="hidden md:grid flex-1 min-h-0 gap-2"
+        className="hidden md:grid gap-2"
         style={{
+          flex: 1,
+          minHeight: 0,
           gridTemplateColumns: `repeat(${desktopCols}, 1fr)`,
           gridTemplateRows: `repeat(${desktopRows}, 1fr)`,
         }}
