@@ -47,11 +47,17 @@ function AudioRenderer({ participant }: { participant: RemoteParticipant }) {
     };
   }, [participant]);
 
-  return <audio ref={audioRef} autoPlay playsInline style={{ display: "none" }} />;
+  return (
+    <audio ref={audioRef} autoPlay playsInline style={{ display: "none" }} />
+  );
 }
 
 // ── Screen share tile ───────────────────────────────
-function ScreenShareTile({ participant }: { participant: LocalParticipant | RemoteParticipant }) {
+function ScreenShareTile({
+  participant,
+}: {
+  participant: LocalParticipant | RemoteParticipant;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -61,10 +67,12 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
     if (!videoRef.current) return;
     const pubs = [...participant.videoTrackPublications.values()];
     const screenTrack = pubs.find(
-      (pub) => pub.track?.source === Track.Source.ScreenShare
+      (pub) => pub.track?.source === Track.Source.ScreenShare,
     )?.track;
     if (screenTrack && videoRef.current) screenTrack.attach(videoRef.current);
-    return () => { screenTrack?.detach(); };
+    return () => {
+      screenTrack?.detach();
+    };
   }, [participant]);
 
   useEffect(() => {
@@ -72,7 +80,8 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
       if (!document.fullscreenElement) setIsFullscreen(false);
     }
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   async function toggleFullscreen() {
@@ -99,11 +108,17 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
       ref={containerRef}
       className={cn(
         "relative bg-ink-900 rounded-xl overflow-hidden border-2 border-primary-500 w-full shrink-0",
-        isFullscreen ? "fixed inset-0 z-50 rounded-none border-0" : ""
+        isFullscreen ? "fixed inset-0 z-50 rounded-none border-0" : "",
       )}
       style={isFullscreen ? {} : { aspectRatio: "16/9" }}
     >
-      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="w-full h-full object-contain"
+      />
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/60 to-transparent">
         <div className="bg-primary-600 text-white text-xs px-2 py-0.5 rounded font-medium">
           {name} — Screen
@@ -114,12 +129,32 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
           title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
           {isFullscreen ? (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+              />
             </svg>
           ) : (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+              />
             </svg>
           )}
         </button>
@@ -136,17 +171,28 @@ interface VideoTileProps {
   isSpeaking?: boolean;
 }
 
-function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTileProps) {
+function VideoTile({
+  participant,
+  isLocal,
+  hasRaisedHand,
+  isSpeaking,
+}: VideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const name = participant.name ?? participant.identity;
   const isCameraEnabled = participant.isCameraEnabled;
 
   useEffect(() => {
     if (!videoRef.current) return;
-    const pubs = [...participant.videoTrackPublications.values()] as TrackPublication[];
-    const videoTrack = pubs.find((pub) => pub.track?.source === Track.Source.Camera)?.track;
+    const pubs = [
+      ...participant.videoTrackPublications.values(),
+    ] as TrackPublication[];
+    const videoTrack = pubs.find(
+      (pub) => pub.track?.source === Track.Source.Camera,
+    )?.track;
     if (videoTrack && videoRef.current) videoTrack.attach(videoRef.current);
-    return () => { videoTrack?.detach(); };
+    return () => {
+      videoTrack?.detach();
+    };
   }, [participant, isCameraEnabled]);
 
   return (
@@ -157,12 +203,18 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
         "relative bg-ink-800 rounded-xl overflow-hidden border-2 transition-colors duration-150",
         "w-full md:w-auto md:h-full",
         isLocal ? "border-primary-600/60" : "border-transparent",
-        isSpeaking && "border-success-500"
+        isSpeaking && "border-success-500",
       )}
       style={{ aspectRatio: "16/9" }}
     >
       {isCameraEnabled ? (
-        <video ref={videoRef} autoPlay playsInline muted={isLocal} className="w-full h-full object-cover" />
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isLocal}
+          className="w-full h-full object-cover"
+        />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-ink-800">
           <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg md:text-2xl font-bold shadow-lg">
@@ -175,7 +227,9 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
       {hasRaisedHand && (
         <div className="absolute top-1.5 left-1.5 bg-warning-500 rounded-full px-1.5 py-0.5 flex items-center gap-1 shadow">
           <span className="text-xs leading-none">✋</span>
-          <span className="text-white text-[10px] font-medium hidden sm:inline">Hand raised</span>
+          <span className="text-white text-[10px] font-medium hidden sm:inline">
+            Hand raised
+          </span>
         </div>
       )}
 
@@ -234,24 +288,39 @@ export function VideoGrid({
   activeSpeakerIds,
 }: VideoGridProps) {
   const [page, setPage] = useState(0);
-  const raisedHandIds = new Set(raisedHands.map(h => h.userId));
+  const raisedHandIds = new Set(raisedHands.map((h) => h.userId));
 
   const screenSharingSources = [
     ...(localParticipant ? [localParticipant] : []),
     ...remoteParticipants,
-  ].filter(p =>
+  ].filter((p) =>
     [...p.videoTrackPublications.values()].some(
-      pub => pub.track?.source === Track.Source.ScreenShare
-    )
+      (pub) => pub.track?.source === Track.Source.ScreenShare,
+    ),
   );
 
   const allParticipants = [
-    ...(localParticipant ? [{ participant: localParticipant as LocalParticipant | RemoteParticipant, isLocal: true }] : []),
-    ...remoteParticipants.map(p => ({ participant: p as LocalParticipant | RemoteParticipant, isLocal: false })),
+    ...(localParticipant
+      ? [
+          {
+            participant: localParticipant as
+              | LocalParticipant
+              | RemoteParticipant,
+            isLocal: true,
+          },
+        ]
+      : []),
+    ...remoteParticipants.map((p) => ({
+      participant: p as LocalParticipant | RemoteParticipant,
+      isLocal: false,
+    })),
   ];
 
   const totalPages = Math.ceil(allParticipants.length / PAGE_SIZE);
-  const paginated = allParticipants.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const paginated = allParticipants.slice(
+    page * PAGE_SIZE,
+    (page + 1) * PAGE_SIZE,
+  );
   const [desktopCols, desktopRows] = getDesktopGridDimensions(paginated.length);
   const mobileCols = getMobileColumns(paginated.length);
 
@@ -266,14 +335,14 @@ export function VideoGrid({
   return (
     <div className="flex flex-col h-full w-full gap-2 p-2">
       {/* Hidden audio renderers */}
-      {remoteParticipants.map(p => (
+      {remoteParticipants.map((p) => (
         <AudioRenderer key={p.identity} participant={p} />
       ))}
 
       {/* Screen share */}
       {screenSharingSources.length > 0 && (
         <div className="shrink-0 flex flex-col gap-2">
-          {screenSharingSources.map(p => (
+          {screenSharingSources.map((p) => (
             <ScreenShareTile key={`screen-${p.identity}`} participant={p} />
           ))}
         </div>
@@ -299,48 +368,59 @@ export function VideoGrid({
       </div>
 
       {/* ── Mobile grid — fixed aspect ratio cards, scroll vertically ── */}
-      <div
-        className="md:hidden flex-1 overflow-y-auto"
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${mobileCols}, 1fr)`,
-          gap: "8px",
-          alignContent: "start",
-        }}
-      >
-        {paginated.map(({ participant, isLocal }) => (
-          <VideoTile
-            key={participant.identity}
-            participant={participant}
-            isLocal={isLocal}
-            hasRaisedHand={raisedHandIds.has(participant.identity)}
-            isSpeaking={activeSpeakerIds?.has(participant.identity)}
-          />
-        ))}
+      <div className="md:hidden flex-1 overflow-y-auto">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${mobileCols}, 1fr)`,
+            gap: "8px",
+            alignContent: "start",
+          }}
+        >
+          {paginated.map(({ participant, isLocal }) => (
+            <VideoTile
+              key={participant.identity}
+              participant={participant}
+              isLocal={isLocal}
+              hasRaisedHand={raisedHandIds.has(participant.identity)}
+              isSpeaking={activeSpeakerIds?.has(participant.identity)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="shrink-0 flex items-center justify-center gap-4 py-1">
           <button
-            onClick={() => setPage(p => Math.max(0, p - 1))}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm transition"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
+                clipRule="evenodd"
+              />
             </svg>
             Prev
           </button>
-          <span className="text-white/60 text-xs">Page {page + 1} of {totalPages}</span>
+          <span className="text-white/60 text-xs">
+            Page {page + 1} of {totalPages}
+          </span>
           <button
-            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page === totalPages - 1}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm transition"
           >
             Next
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                clipRule="evenodd"
+              />
             </svg>
           </button>
         </div>
