@@ -227,7 +227,9 @@ export function RoomProvider({
 
         roomRef.current = newRoom;
         setCanPublish(publish);
-        await newRoom.connect(serverUrl, token);
+        await newRoom.connect(serverUrl, token, {
+          autoSubscribe: true,
+        });
 
         // Strict Mode unmounted during connect — only disconnect if intentional
         if (cancelled) {
