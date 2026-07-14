@@ -8,6 +8,7 @@ import {
   TrackPublication,
 } from "livekit-client";
 import { getInitials, cn } from "@/lib/utils";
+import { MicOff } from "lucide-react";
 
 interface RaisedHand {
   userId: string;
@@ -31,7 +32,6 @@ function AudioRenderer({ participant }: { participant: RemoteParticipant }) {
         }
       }
     };
-
     attachExisting();
 
     const handleSubscribed = (_: any, pub: TrackPublication) => {
@@ -55,7 +55,7 @@ function AudioRenderer({ participant }: { participant: RemoteParticipant }) {
   return <audio ref={audioRef} autoPlay playsInline style={{ display: "none" }} />;
 }
 
-// ── Screen share renderer ───────────────────────────
+// ── Screen share tile ───────────────────────────────
 function ScreenShareTile({ participant }: { participant: LocalParticipant | RemoteParticipant }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const name = participant.name ?? participant.identity;
@@ -66,15 +66,14 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
     const screenTrack = pubs.find(
       (pub) => pub.track?.source === Track.Source.ScreenShare
     )?.track;
-
-    if (screenTrack && videoRef.current) {
-      screenTrack.attach(videoRef.current);
-    }
+    if (screenTrack && videoRef.current) screenTrack.attach(videoRef.current);
     return () => { screenTrack?.detach(); };
   }, [participant]);
 
   return (
-    <div className="col-span-2 md:col-span-4 relative bg-ink-800 rounded-card overflow-hidden border-2 border-primary-500 aspect-video">
+    <div className="relative bg-ink-900 rounded-xl overflow-hidden border-2 border-primary-500 w-full"
+      style={{ aspectRatio: "16/9" }}
+    >
       <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
       <div className="absolute top-2 left-2 bg-primary-600 text-white text-xs px-2 py-0.5 rounded font-medium">
         {name} — Screen
@@ -107,48 +106,72 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
   return (
     <div
       className={cn(
-        "relative bg-ink-800 rounded-card overflow-hidden aspect-video border-2 transition-colors",
-        isLocal ? "border-primary-600/50" : "border-transparent",
+        "relative bg-ink-800 rounded-xl overflow-hidden w-full h-full border-2 transition-colors duration-150",
+        isLocal ? "border-primary-600/60" : "border-transparent",
         isSpeaking && "border-success-500"
       )}
     >
       {isCameraEnabled ? (
-        <video ref={videoRef} autoPlay playsInline muted={isLocal} className="w-full h-full object-cover" />
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isLocal}
+          className="w-full h-full object-cover"
+        />
       ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-xl font-bold">
+        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-ink-800">
+          <div className="w-16 h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
             {getInitials(name ?? "?")}
           </div>
+          <span className="text-white/60 text-xs">{name}</span>
         </div>
       )}
 
       {hasRaisedHand && (
-        <div className="absolute top-2 left-2 bg-warning-500 rounded-full px-2 py-0.5 flex items-center gap-1 shadow-md">
+        <div className="absolute top-2 left-2 bg-warning-500 rounded-full px-2 py-0.5 flex items-center gap-1 shadow">
           <span className="text-sm leading-none">✋</span>
           <span className="text-white text-xs font-medium">Hand raised</span>
         </div>
       )}
+
       {isLocal && (
-        <div className="absolute top-2 right-2 bg-primary-600 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+        <div className="absolute top-2 right-2 bg-primary-600/80 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded">
           You
         </div>
       )}
-      <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
-        {name}
-      </div>
+
+      {/* Name tag — only when camera is on */}
+      {isCameraEnabled && (
+        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+          {name}
+        </div>
+      )}
+
       {!participant.isMicrophoneEnabled && (
-        <div className="absolute bottom-2 right-2 bg-danger-600 rounded-full p-1">
-          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1 1 0 000-.501A10.008 10.008 0 0010 3a9.958 9.958 0 00-4.512 1.074L3.28 2.22zM10 5a3 3 0 013 3v1.28l-4.513-4.513A3 3 0 0110 5z" clipRule="evenodd" />
-          </svg>
+        <div className="absolute bottom-2 right-2 bg-danger-600/80 rounded-full p-1">
+          <MicOff className="w-3 h-3" />
         </div>
       )}
     </div>
   );
 }
 
-// ── Main VideoGrid ──────────────────────────────────
-const PAGE_SIZE = 12; // 4 cols × 3 rows
+// ── Grid layout calculator ──────────────────────────
+// Returns [cols, rows] that best fills the space for n participants
+// Matches the Teams/Meet approach of filling the viewport
+function getGridDimensions(count: number): [number, number] {
+  if (count === 1) return [1, 1];
+  if (count === 2) return [2, 1];
+  if (count === 3) return [3, 1];
+  if (count === 4) return [2, 2];
+  if (count <= 6) return [3, 2];
+  if (count <= 9) return [3, 3];
+  if (count <= 12) return [4, 3];
+  return [4, 3]; // paginate beyond 12
+}
+
+const PAGE_SIZE = 12;
 
 interface VideoGridProps {
   localParticipant: LocalParticipant | null;
@@ -166,7 +189,7 @@ export function VideoGrid({
   const [page, setPage] = useState(0);
   const raisedHandIds = new Set(raisedHands.map(h => h.userId));
 
-  // Find screen sharing participants
+  // Screen sharing participants
   const screenSharingSources = [
     ...(localParticipant ? [localParticipant] : []),
     ...remoteParticipants,
@@ -183,8 +206,8 @@ export function VideoGrid({
 
   const totalPages = Math.ceil(allParticipants.length / PAGE_SIZE);
   const paginated = allParticipants.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const [cols, rows] = getGridDimensions(paginated.length);
 
-  // Reset to page 0 if participants drop and current page is out of range
   useEffect(() => {
     if (page >= totalPages && totalPages > 0) {
       const id = setTimeout(() => setPage(totalPages - 1), 0);
@@ -194,24 +217,27 @@ export function VideoGrid({
   }, [totalPages, page]);
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Audio renderers — hidden, one per remote participant */}
+    <div className="flex flex-col h-full w-full gap-2 p-2">
+      {/* Hidden audio renderers */}
       {remoteParticipants.map(p => (
         <AudioRenderer key={p.identity} participant={p} />
       ))}
 
-      {/* Screen share — shown above grid when active */}
-      {screenSharingSources.map(p => (
-        <ScreenShareTile key={`screen-${p.identity}`} participant={p} />
-      ))}
+      {/* Screen share strip — above grid */}
+      {screenSharingSources.length > 0 && (
+        <div className="shrink-0 flex gap-2">
+          {screenSharingSources.map(p => (
+            <ScreenShareTile key={`screen-${p.identity}`} participant={p} />
+          ))}
+        </div>
+      )}
 
-      {/* Video grid — 4 cols × 3 rows, paginated */}
+      {/* Video grid — fills remaining space */}
       <div
-        className="grid gap-3 flex-1 min-h-0"
+        className="flex-1 min-h-0 grid gap-2"
         style={{
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gridTemplateRows: "repeat(3, 1fr)",
-          alignContent: "start",
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, 1fr)`,
         }}
       >
         {paginated.map(({ participant, isLocal }) => (
@@ -225,7 +251,7 @@ export function VideoGrid({
         ))}
       </div>
 
-      {/* Pagination — only shown when more than 12 participants */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="shrink-0 flex items-center justify-center gap-4 py-1">
           <button
@@ -238,11 +264,7 @@ export function VideoGrid({
             </svg>
             Prev
           </button>
-
-          <span className="text-white/60 text-xs">
-            Page {page + 1} of {totalPages}
-          </span>
-
+          <span className="text-white/60 text-xs">Page {page + 1} of {totalPages}</span>
           <button
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page === totalPages - 1}
