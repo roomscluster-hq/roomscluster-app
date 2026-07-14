@@ -58,6 +58,8 @@ function AudioRenderer({ participant }: { participant: RemoteParticipant }) {
 // ── Screen share tile ───────────────────────────────
 function ScreenShareTile({ participant }: { participant: LocalParticipant | RemoteParticipant }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const name = participant.name ?? participant.identity;
 
   useEffect(() => {
@@ -70,18 +72,86 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
     return () => { screenTrack?.detach(); };
   }, [participant]);
 
+  // Listen for native fullscreen exit (e.g. pressing Escape)
+  useEffect(() => {
+    function handleFullscreenChange() {
+      if (!document.fullscreenElement) setIsFullscreen(false);
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      try {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } catch {
+        // Fallback: some mobile browsers don't support requestFullscreen
+        // Try on the video element directly
+        const video = videoRef.current as any;
+        if (video?.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen(); // iOS Safari
+          setIsFullscreen(true);
+        }
+      }
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  }
+
   return (
-    <div className="relative bg-ink-900 rounded-xl overflow-hidden border-2 border-primary-500 w-full"
-      style={{ aspectRatio: "16/9" }}
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative bg-ink-900 rounded-xl overflow-hidden border-2 border-primary-500 w-full group",
+        isFullscreen ? "fixed inset-0 z-50 rounded-none border-0" : ""
+      )}
+      style={isFullscreen ? {} : { aspectRatio: "16/9" }}
     >
-      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
-      <div className="absolute top-2 left-2 bg-primary-600 text-white text-xs px-2 py-0.5 rounded font-medium">
-        {name} — Screen
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="w-full h-full object-contain"
+      />
+
+      {/* Top bar — name + fullscreen button */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/60 to-transparent">
+        <div className="bg-primary-600 text-white text-xs px-2 py-0.5 rounded font-medium">
+          {name} — Screen
+        </div>
+
+        {/* Fullscreen toggle */}
+        <button
+          onClick={toggleFullscreen}
+          className="bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition"
+          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+        >
+          {isFullscreen ? (
+            // Shrink icon
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+            </svg>
+          ) : (
+            // Expand icon
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile tap-to-fullscreen hint — shown briefly on first render */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition md:hidden pointer-events-none">
+        Tap ⛶ to fullscreen
       </div>
     </div>
   );
 }
-
 // ── Video tile ──────────────────────────────────────
 interface VideoTileProps {
   participant: LocalParticipant | RemoteParticipant;
