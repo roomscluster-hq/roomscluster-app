@@ -40,20 +40,47 @@ function RoomContent({ joinCode }: { joinCode: string }) {
   const remoteClearRef = useRef<(() => void) | null>(null);
 
   const {
-    localParticipant, remoteParticipants, isLiveKitConnected,
-    isMuted, isCameraOff, isScreenSharing, canPublish, liveKitError,
-    toggleMic, toggleCamera, toggleScreenShare, disconnect,
-    messages, participants, raisedHands, activeSpeakerIds,
-    sendMessage, raiseHand, lowerHand, lowerHandForUser,
-    promoteParticipant, demoteParticipant, endSession, socketRef,
-    setOnWhiteboardDraw, setOnWhiteboardClear,
-    isRecording, recordingLoading, startRecording, stopRecording,
-    waitingParticipants, admitParticipant, admitAll, rejectParticipant,
-    makeCohost, removeCohost,
+    localParticipant,
+    remoteParticipants,
+    isLiveKitConnected,
+    isMuted,
+    isCameraOff,
+    isScreenSharing,
+    canPublish,
+    liveKitError,
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare,
+    disconnect,
+    messages,
+    participants,
+    raisedHands,
+    activeSpeakerIds,
+    sendMessage,
+    raiseHand,
+    lowerHand,
+    lowerHandForUser,
+    promoteParticipant,
+    demoteParticipant,
+    endSession,
+    socketRef,
+    setOnWhiteboardDraw,
+    setOnWhiteboardClear,
+    isRecording,
+    recordingLoading,
+    startRecording,
+    stopRecording,
+    waitingParticipants,
+    admitParticipant,
+    admitAll,
+    rejectParticipant,
+    makeCohost,
+    removeCohost,
     isCohost,
-    roomChatEnabled, roomVideoEnabled, roomMicEnabled,
+    roomChatEnabled,
+    roomVideoEnabled,
+    roomMicEnabled,
   } = useRoom();
-  
 
   const { data: session, isLoading } = useQuery({
     queryKey: ["session-room", joinCode],
@@ -63,7 +90,7 @@ function RoomContent({ joinCode }: { joinCode: string }) {
   const isHost = !isGuest && session?.hostId === user?.id;
   const canManage = isHost || isCohost;
 
-  console.log('[Debug] canPublish:', canPublish, 'isHost:', isHost);
+  console.log("[Debug] canPublish:", canPublish, "isHost:", isHost);
 
   // Register whiteboard callbacks
   useEffect(() => {
@@ -93,9 +120,12 @@ function RoomContent({ joinCode }: { joinCode: string }) {
       const tenMinutesBeforeLimit = 4 * 60 * 60 - 10 * 60;
       if (seconds >= tenMinutesBeforeLimit && !warnedRef.current) {
         warnedRef.current = true;
-        toast("This session will end automatically in 10 minutes (4-hour limit)", {
-          duration: 10000,
-        });
+        toast(
+          "This session will end automatically in 10 minutes (4-hour limit)",
+          {
+            duration: 10000,
+          },
+        );
       }
     }
 
@@ -220,7 +250,10 @@ function RoomContent({ joinCode }: { joinCode: string }) {
           isHost={isHost}
           isCohost={isCohost}
           currentUserId={currentUserId}
-          onPromote={(userId) => { promoteParticipant(userId); lowerHandForUser(userId); }}
+          onPromote={(userId) => {
+            promoteParticipant(userId);
+            lowerHandForUser(userId);
+          }}
           onDemote={(userId) => demoteParticipant(userId)}
           onLowerHand={lowerHandForUser}
           onMakeCohost={makeCohost}
@@ -244,7 +277,7 @@ function RoomContent({ joinCode }: { joinCode: string }) {
 
   // ── Shared tab bar ─────────────────────────────────────
   const tabBar = (mobile = false) => (
-    <div className={`shrink-0 flex border-b border-white/10`}>
+    <div className="shrink-0 flex border-b border-white/10 items-center">
       <button
         onClick={() => setSidebarTab("chat")}
         className={`flex-1 ${mobile ? "py-2.5 text-sm" : "py-2 text-xs"} font-medium transition ${
@@ -302,26 +335,44 @@ function RoomContent({ joinCode }: { joinCode: string }) {
           Settings
         </button>
       )}
+
+      {/* ← Close button — desktop only */}
+      {!mobile && (
+        <button
+          onClick={() => setChatOpen(false)}
+          className="shrink-0 px-2 py-2 text-gray-400 hover:text-white transition"
+          title="Close panel"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 
   return (
     <div className="h-screen bg-ink-900 relative overflow-hidden flex flex-col">
-
       {/* ── Floating status pills — top left ──────────── */}
       <div className="fixed top-3 md:top-5 left-3 md:left-5 z-40 flex items-center gap-2 flex-wrap max-w-[75vw]">
         <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-          <span className={`w-2 h-2 rounded-full ${isLiveKitConnected ? "bg-success-500" : "bg-warning-500"} animate-pulse`} />
+          <span
+            className={`w-2 h-2 rounded-full ${isLiveKitConnected ? "bg-success-500" : "bg-warning-500"} animate-pulse`}
+          />
           <span className="font-mono text-xs text-white tracking-wider uppercase">
             {isLiveKitConnected ? "Live" : "Connecting"}
           </span>
         </div>
         <div className="hidden sm:flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 min-w-0">
-          <span className="text-white/90 text-xs truncate max-w-[30vw]">{session?.title ?? "Session"}</span>
+          <span className="text-white/90 text-xs truncate max-w-[30vw]">
+            {session?.title ?? "Session"}
+          </span>
         </div>
         {isLiveKitConnected && session?.startedAt && (
           <div className="hidden sm:flex items-center bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-            <span className="font-mono text-xs text-white/70">{formatElapsed(elapsedSeconds)}</span>
+            <span className="font-mono text-xs text-white/70">
+              {formatElapsed(elapsedSeconds)}
+            </span>
           </div>
         )}
         {isGuest && (
@@ -335,13 +386,14 @@ function RoomContent({ joinCode }: { joinCode: string }) {
       {isRecording && (
         <div className="fixed top-3 md:top-5 right-3 md:right-5 z-40 flex items-center gap-2 bg-danger-600/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-danger-600/30">
           <span className="w-2 h-2 rounded-full bg-danger-600 animate-pulse" />
-          <span className="font-mono text-xs text-white uppercase tracking-tight">Recording</span>
+          <span className="font-mono text-xs text-white uppercase tracking-tight">
+            Recording
+          </span>
         </div>
       )}
 
       {/* ── Body ─────────────────────────────────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
-
         {/* Main area */}
         <div className="flex-1 relative min-w-0 min-h-0">
           <div
@@ -363,8 +415,12 @@ function RoomContent({ joinCode }: { joinCode: string }) {
               socketRef={socketRef}
               canDraw={canPublish || isHost}
               isHost={isHost}
-              onRemoteDraw={(fn) => { remoteDrawRef.current = fn; }}
-              onRemoteClear={(fn) => { remoteClearRef.current = fn; }}
+              onRemoteDraw={(fn) => {
+                remoteDrawRef.current = fn;
+              }}
+              onRemoteClear={(fn) => {
+                remoteClearRef.current = fn;
+              }}
             />
           </div>
         </div>
@@ -381,12 +437,14 @@ function RoomContent({ joinCode }: { joinCode: string }) {
       </div>
 
       {/* ── Chat/People — mobile bottom sheet ─────────── */}
-      <BottomSheet open={mobileSheetOpen} onClose={() => setMobileSheetOpen(false)} height="tall">
+      <BottomSheet
+        open={mobileSheetOpen}
+        onClose={() => setMobileSheetOpen(false)}
+        height="tall"
+      >
         <div className="flex flex-col h-full">
           {tabBar(true)}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            {sidebarContent}
-          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">{sidebarContent}</div>
         </div>
       </BottomSheet>
 
@@ -412,7 +470,9 @@ function RoomContent({ joinCode }: { joinCode: string }) {
           onToggleScreenShare={toggleScreenShare}
           onRaiseHand={handleRaiseHand}
           onToggleRecording={handleToggleRecording}
-          onToggleWhiteboard={() => setMainView((v) => (v === "whiteboard" ? "video" : "whiteboard"))}
+          onToggleWhiteboard={() =>
+            setMainView((v) => (v === "whiteboard" ? "video" : "whiteboard"))
+          }
           onOpenChat={() => openPanel("chat")}
           onOpenPeople={() => openPanel("participants")}
           onEndSession={handleEndSession}

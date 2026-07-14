@@ -23,27 +23,22 @@ function AudioRenderer({ participant }: { participant: RemoteParticipant }) {
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-
     const attachExisting = () => {
       const pubs = [...participant.audioTrackPublications.values()];
       for (const pub of pubs) {
-        if (pub.track && pub.track.source === Track.Source.Microphone) {
+        if (pub.track && pub.track.source === Track.Source.Microphone)
           pub.track.attach(el);
-        }
       }
     };
     attachExisting();
-
     const handleSubscribed = (_: any, pub: TrackPublication) => {
       if (pub.track?.source === Track.Source.Microphone) pub.track.attach(el);
     };
     const handleUnsubscribed = (_: any, pub: TrackPublication) => {
       if (pub.track?.source === Track.Source.Microphone) pub.track.detach(el);
     };
-
     participant.on("trackSubscribed", handleSubscribed);
     participant.on("trackUnsubscribed", handleUnsubscribed);
-
     return () => {
       participant.off("trackSubscribed", handleSubscribed);
       participant.off("trackUnsubscribed", handleUnsubscribed);
@@ -72,7 +67,6 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
     return () => { screenTrack?.detach(); };
   }, [participant]);
 
-  // Listen for native fullscreen exit (e.g. pressing Escape)
   useEffect(() => {
     function handleFullscreenChange() {
       if (!document.fullscreenElement) setIsFullscreen(false);
@@ -88,11 +82,9 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
         await containerRef.current.requestFullscreen();
         setIsFullscreen(true);
       } catch {
-        // Fallback: some mobile browsers don't support requestFullscreen
-        // Try on the video element directly
         const video = videoRef.current as any;
         if (video?.webkitEnterFullscreen) {
-          video.webkitEnterFullscreen(); // iOS Safari
+          video.webkitEnterFullscreen();
           setIsFullscreen(true);
         }
       }
@@ -106,52 +98,36 @@ function ScreenShareTile({ participant }: { participant: LocalParticipant | Remo
     <div
       ref={containerRef}
       className={cn(
-        "relative bg-ink-900 rounded-xl overflow-hidden border-2 border-primary-500 w-full group",
+        "relative bg-ink-900 rounded-xl overflow-hidden border-2 border-primary-500 w-full shrink-0",
         isFullscreen ? "fixed inset-0 z-50 rounded-none border-0" : ""
       )}
       style={isFullscreen ? {} : { aspectRatio: "16/9" }}
     >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="w-full h-full object-contain"
-      />
-
-      {/* Top bar — name + fullscreen button */}
+      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/60 to-transparent">
         <div className="bg-primary-600 text-white text-xs px-2 py-0.5 rounded font-medium">
           {name} — Screen
         </div>
-
-        {/* Fullscreen toggle */}
         <button
           onClick={toggleFullscreen}
           className="bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition"
           title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
           {isFullscreen ? (
-            // Shrink icon
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
             </svg>
           ) : (
-            // Expand icon
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
             </svg>
           )}
         </button>
       </div>
-
-      {/* Mobile tap-to-fullscreen hint — shown briefly on first render */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition md:hidden pointer-events-none">
-        Tap ⛶ to fullscreen
-      </div>
     </div>
   );
 }
+
 // ── Video tile ──────────────────────────────────────
 interface VideoTileProps {
   participant: LocalParticipant | RemoteParticipant;
@@ -176,22 +152,20 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
   return (
     <div
       className={cn(
-        "relative bg-ink-800 rounded-xl overflow-hidden w-full h-full border-2 transition-colors duration-150",
+        // On mobile: fixed aspect ratio so cards stay landscape
+        // On desktop: fill the grid cell completely
+        "relative bg-ink-800 rounded-xl overflow-hidden border-2 transition-colors duration-150",
+        "w-full md:w-auto md:h-full",
         isLocal ? "border-primary-600/60" : "border-transparent",
         isSpeaking && "border-success-500"
       )}
+      style={{ aspectRatio: "16/9" }}
     >
       {isCameraEnabled ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={isLocal}
-          className="w-full h-full object-cover"
-        />
+        <video ref={videoRef} autoPlay playsInline muted={isLocal} className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-ink-800">
-          <div className="w-16 h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg md:text-2xl font-bold shadow-lg">
             {getInitials(name ?? "?")}
           </div>
           <span className="text-white/60 text-xs">{name}</span>
@@ -199,27 +173,26 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
       )}
 
       {hasRaisedHand && (
-        <div className="absolute top-2 left-2 bg-warning-500 rounded-full px-2 py-0.5 flex items-center gap-1 shadow">
-          <span className="text-sm leading-none">✋</span>
-          <span className="text-white text-xs font-medium">Hand raised</span>
+        <div className="absolute top-1.5 left-1.5 bg-warning-500 rounded-full px-1.5 py-0.5 flex items-center gap-1 shadow">
+          <span className="text-xs leading-none">✋</span>
+          <span className="text-white text-[10px] font-medium hidden sm:inline">Hand raised</span>
         </div>
       )}
 
       {isLocal && (
-        <div className="absolute top-2 right-2 bg-primary-600/80 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+        <div className="absolute top-1.5 right-1.5 bg-primary-600/80 text-white text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
           You
         </div>
       )}
 
-      {/* Name tag — only when camera is on */}
       {isCameraEnabled && (
-        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+        <div className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-md truncate max-w-[80%]">
           {name}
         </div>
       )}
 
       {!participant.isMicrophoneEnabled && (
-        <div className="absolute bottom-2 right-2 bg-danger-600/80 rounded-full p-1">
+        <div className="absolute bottom-1.5 right-1.5 bg-danger-600/80 rounded-full p-1">
           <MicOff className="w-3 h-3" />
         </div>
       )}
@@ -228,17 +201,21 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
 }
 
 // ── Grid layout calculator ──────────────────────────
-// Returns [cols, rows] that best fills the space for n participants
-// Matches the Teams/Meet approach of filling the viewport
-function getGridDimensions(count: number): [number, number] {
+// Desktop: fills viewport. Mobile: 1 or 2 cols max, scroll vertically.
+function getDesktopGridDimensions(count: number): [number, number] {
   if (count === 1) return [1, 1];
   if (count === 2) return [2, 1];
   if (count === 3) return [3, 1];
   if (count === 4) return [2, 2];
   if (count <= 6) return [3, 2];
   if (count <= 9) return [3, 3];
-  if (count <= 12) return [4, 3];
-  return [4, 3]; // paginate beyond 12
+  return [4, 3];
+}
+
+function getMobileColumns(count: number): number {
+  if (count === 1) return 1;
+  if (count <= 4) return 2;
+  return 2; // max 2 cols on mobile, scroll vertically for more
 }
 
 const PAGE_SIZE = 12;
@@ -259,7 +236,6 @@ export function VideoGrid({
   const [page, setPage] = useState(0);
   const raisedHandIds = new Set(raisedHands.map(h => h.userId));
 
-  // Screen sharing participants
   const screenSharingSources = [
     ...(localParticipant ? [localParticipant] : []),
     ...remoteParticipants,
@@ -276,7 +252,8 @@ export function VideoGrid({
 
   const totalPages = Math.ceil(allParticipants.length / PAGE_SIZE);
   const paginated = allParticipants.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const [cols, rows] = getGridDimensions(paginated.length);
+  const [desktopCols, desktopRows] = getDesktopGridDimensions(paginated.length);
+  const mobileCols = getMobileColumns(paginated.length);
 
   useEffect(() => {
     if (page >= totalPages && totalPages > 0) {
@@ -293,21 +270,42 @@ export function VideoGrid({
         <AudioRenderer key={p.identity} participant={p} />
       ))}
 
-      {/* Screen share strip — above grid */}
+      {/* Screen share */}
       {screenSharingSources.length > 0 && (
-        <div className="shrink-0 flex gap-2">
+        <div className="shrink-0 flex flex-col gap-2">
           {screenSharingSources.map(p => (
             <ScreenShareTile key={`screen-${p.identity}`} participant={p} />
           ))}
         </div>
       )}
 
-      {/* Video grid — fills remaining space */}
+      {/* ── Desktop grid — fills space, no scroll ── */}
       <div
-        className="flex-1 min-h-0 grid gap-2"
+        className="hidden md:grid flex-1 min-h-0 gap-2"
         style={{
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
+          gridTemplateColumns: `repeat(${desktopCols}, 1fr)`,
+          gridTemplateRows: `repeat(${desktopRows}, 1fr)`,
+        }}
+      >
+        {paginated.map(({ participant, isLocal }) => (
+          <VideoTile
+            key={participant.identity}
+            participant={participant}
+            isLocal={isLocal}
+            hasRaisedHand={raisedHandIds.has(participant.identity)}
+            isSpeaking={activeSpeakerIds?.has(participant.identity)}
+          />
+        ))}
+      </div>
+
+      {/* ── Mobile grid — fixed aspect ratio cards, scroll vertically ── */}
+      <div
+        className="md:hidden flex-1 overflow-y-auto"
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${mobileCols}, 1fr)`,
+          gap: "8px",
+          alignContent: "start",
         }}
       >
         {paginated.map(({ participant, isLocal }) => (
