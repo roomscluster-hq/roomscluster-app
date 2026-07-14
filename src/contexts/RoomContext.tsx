@@ -194,6 +194,8 @@ export function RoomProvider({
     newRoom.on(RoomEvent.TrackSubscribed, updateParticipants);
     newRoom.on(RoomEvent.TrackUnsubscribed, updateParticipants);
     newRoom.on(RoomEvent.LocalTrackPublished, updateParticipants);
+    newRoom.on(RoomEvent.TrackPublished, updateParticipants);
+    newRoom.on(RoomEvent.TrackUnpublished, updateParticipants);
     newRoom.on(RoomEvent.Disconnected, () => {
       if (!cancelled) setIsLiveKitConnected(false);
     });
@@ -266,6 +268,8 @@ export function RoomProvider({
         newRoom.off(RoomEvent.TrackSubscribed, updateParticipants);
         newRoom.off(RoomEvent.TrackUnsubscribed, updateParticipants);
         newRoom.off(RoomEvent.LocalTrackPublished, updateParticipants);
+        newRoom.off(RoomEvent.TrackPublished, updateParticipants);
+        newRoom.off(RoomEvent.TrackUnpublished, updateParticipants);
         newRoom.removeAllListeners(RoomEvent.Disconnected);
       }
     };

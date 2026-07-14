@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 
 interface ControlBarProps {
   isMuted: boolean;
@@ -81,33 +82,6 @@ const Label = ({ children }: { children: React.ReactNode }) => (
     {children}
   </span>
 );
-
-const MicIcon = ({ off }: { off: boolean }) =>
-  off ? (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <path
-        fillRule="evenodd"
-        d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1 1 0 000-.501A10.008 10.008 0 0010 3a9.958 9.958 0 00-4.512 1.074L3.28 2.22zM10 5a3 3 0 013 3v1.28l-4.513-4.513A3 3 0 0110 5z"
-        clipRule="evenodd"
-      />
-    </svg>
-  ) : (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4z" />
-      <path d="M5.5 9.643a.75.75 0 00-1.5 0V10c0 3.06 2.29 5.585 5.25 5.954V17.5h-1.5a.75.75 0 000 1.5h4.5a.75.75 0 000-1.5H10.5v-1.546A6.001 6.001 0 0016 10v-.357a.75.75 0 00-1.5 0V10a4.5 4.5 0 01-9 0v-.357z" />
-    </svg>
-  );
-
-const CameraIcon = ({ off }: { off: boolean }) =>
-  off ? (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M1 12.5A4.5 4.5 0 005.5 17H15a4.5 4.5 0 004.243-6.023L17.5 9.5v-2a.75.75 0 00-1.5 0v.573l-1.762-1.762A4.5 4.5 0 008.965 3H5.5A4.5 4.5 0 001 7.5v5zM5.5 4.5h3.465a3 3 0 012.121.879l5.536 5.535A3 3 0 0115 13.5H5.5a3 3 0 010-6z" />
-    </svg>
-  ) : (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h7.5A2.25 2.25 0 0013 13.75v-1.19l2.22 2.22a.75.75 0 001.28-.53V5.75a.75.75 0 00-1.28-.53L13 7.44V6.25A2.25 2.25 0 0010.75 4h-7.5z" />
-    </svg>
-  );
 
 const ScreenShareIcon = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -281,7 +255,7 @@ export function ControlBar(props: ControlBarProps) {
                   : "Mute"
             }
           >
-            <MicIcon off={isMuted} />
+            {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             <Label>{isMuted ? "Unmute" : "Mute"}</Label>
           </ControlButton>
 
@@ -297,7 +271,7 @@ export function ControlBar(props: ControlBarProps) {
                   : "Turn off camera"
             }
           >
-            <CameraIcon off={isCameraOff} />
+            {isCameraOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
             <Label>{isCameraOff ? "Start" : "Stop"}</Label>
           </ControlButton>
 
@@ -394,7 +368,7 @@ export function ControlBar(props: ControlBarProps) {
                 : "Mute"
           }
         >
-          <MicIcon off={isMuted} />
+          {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
         </ControlButton>
 
         <ControlButton
@@ -410,7 +384,7 @@ export function ControlBar(props: ControlBarProps) {
                 : "Turn off camera"
           }
         >
-          <CameraIcon off={isCameraOff} />
+          {isCameraOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
         </ControlButton>
 
         {canManage ? (
