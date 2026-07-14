@@ -15,6 +15,59 @@ interface RaisedHand {
   email: string;
 }
 
+// ── Audio renderer for a single remote participant ──
+// Must be a separate component so each participant gets
+// their own <audio> element and useEffect lifecycle.
+function AudioRenderer({ participant }: { participant: RemoteParticipant }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+
+    // Attach any existing audio track immediately
+    const attachExisting = () => {
+      const pubs = [...participant.audioTrackPublications.values()];
+      for (const pub of pubs) {
+        if (pub.track && pub.track.source === Track.Source.Microphone) {
+          pub.track.attach(el);
+        }
+      }
+    };
+
+    attachExisting();
+
+    // Also attach when new tracks are subscribed later
+    const handleSubscribed = (_track: any, pub: TrackPublication) => {
+      if (pub.track?.source === Track.Source.Microphone) {
+        pub.track.attach(el);
+      }
+    };
+
+    const handleUnsubscribed = (_track: any, pub: TrackPublication) => {
+      if (pub.track?.source === Track.Source.Microphone) {
+        pub.track.detach(el);
+      }
+    };
+
+    participant.on("trackSubscribed", handleSubscribed);
+    participant.on("trackUnsubscribed", handleUnsubscribed);
+
+    return () => {
+      participant.off("trackSubscribed", handleSubscribed);
+      participant.off("trackUnsubscribed", handleUnsubscribed);
+      // Detach all audio tracks on cleanup
+      const pubs = [...participant.audioTrackPublications.values()];
+      for (const pub of pubs) {
+        pub.track?.detach(el);
+      }
+    };
+  }, [participant]);
+
+  // Hidden audio element — no UI needed, just plays the audio
+  return <audio ref={audioRef} autoPlay playsInline style={{ display: "none" }} />;
+}
+
 interface VideoTileProps {
   participant: LocalParticipant | RemoteParticipant;
   isLocal?: boolean;
@@ -67,7 +120,6 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
         </div>
       )}
 
-      {/* Hand raise indicator — top left */}
       {hasRaisedHand && (
         <div className="absolute top-2 left-2 bg-warning-500 rounded-full px-2 py-0.5 flex items-center gap-1 shadow-md">
           <span className="text-sm leading-none">✋</span>
@@ -75,19 +127,16 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
         </div>
       )}
 
-      {/* Self-view badge — top right */}
       {isLocal && (
         <div className="absolute top-2 right-2 bg-primary-600 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded">
           You
         </div>
       )}
 
-      {/* Name tag */}
       <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
         {name}
       </div>
 
-      {/* Mic muted indicator — bottom right */}
       {!participant.isMicrophoneEnabled && (
         <div className="absolute bottom-2 right-2 bg-danger-600 rounded-full p-1">
           <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -112,9 +161,6 @@ export function VideoGrid({
   raisedHands = [],
   activeSpeakerIds,
 }: VideoGridProps) {
-  // Build a set of identities that have raised hands
-  // raisedHands.userId for guests is their LiveKit identity (e.g. guest_email_timestamp)
-  // for authenticated users it's their DB userId, which matches participant.identity
   const raisedHandIds = new Set(raisedHands.map(h => h.userId));
 
   const allParticipants = [
@@ -123,19 +169,27 @@ export function VideoGrid({
   ];
 
   return (
-    <div
-      className="grid gap-3 h-full auto-rows-fr"
-      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
-    >
-      {allParticipants.map(({ participant, isLocal }) => (
-        <VideoTile
-          key={participant.identity}
-          participant={participant}
-          isLocal={isLocal}
-          hasRaisedHand={raisedHandIds.has(participant.identity)}
-          isSpeaking={activeSpeakerIds?.has(participant.identity)}
-        />
+    <>
+      {/* ── Hidden audio renderers for all remote participants ── */}
+      {remoteParticipants.map((p) => (
+        <AudioRenderer key={p.identity} participant={p} />
       ))}
-    </div>
+
+      {/* ── Video grid ── */}
+      <div
+        className="grid gap-3 h-full auto-rows-fr"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
+      >
+        {allParticipants.map(({ participant, isLocal }) => (
+          <VideoTile
+            key={participant.identity}
+            participant={participant}
+            isLocal={isLocal}
+            hasRaisedHand={raisedHandIds.has(participant.identity)}
+            isSpeaking={activeSpeakerIds?.has(participant.identity)}
+          />
+        ))}
+      </div>
+    </>
   );
 }
