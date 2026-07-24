@@ -791,8 +791,6 @@ export function RoomProvider({
     //start recording
     setRecordingLoading(true);
     socketRef.current?.emit("recording:start");
-    // recordingLoading will be cleared by the recording:started socket event
-    // Add a timeout fallback in case the event doesn't come back
     setTimeout(() => setRecordingLoading(false), 5000);
   }, []);
 
