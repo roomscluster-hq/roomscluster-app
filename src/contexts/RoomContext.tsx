@@ -788,8 +788,7 @@ export function RoomProvider({
   }, []);
 
   const startRecording = useCallback(async () => {
-    // Use socket instead of HTTP so guests (co-hosts) can also record
-    // without needing a JWT access_token
+    //start recording
     setRecordingLoading(true);
     socketRef.current?.emit("recording:start");
     // recordingLoading will be cleared by the recording:started socket event
