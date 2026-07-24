@@ -763,6 +763,7 @@ export function RoomProvider({
   }, []);
 
   const startRecording = useCallback(async () => {
+    //start recording
     setRecordingLoading(true);
     try {
       await recordingApi.start(sessionId);
