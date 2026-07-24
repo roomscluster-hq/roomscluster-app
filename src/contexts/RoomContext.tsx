@@ -763,12 +763,6 @@ export function RoomProvider({
   }, []);
 
   const startRecording = useCallback(async () => {
-    // Verify token exists before attempting — prevents confusing 401
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      toast.error("Authentication required. Please refresh the page.");
-      return;
-    }
     setRecordingLoading(true);
     try {
       await recordingApi.start(sessionId);

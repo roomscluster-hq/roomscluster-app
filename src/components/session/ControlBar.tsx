@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Hand } from "lucide-react";
 
 interface ControlBarProps {
   isMuted: boolean;
@@ -128,12 +128,6 @@ const ChatIcon = () => (
 const PeopleIcon = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
     <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-  </svg>
-);
-
-const HandIcon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path d="M6.75 3A2.25 2.25 0 004.5 5.25v3.787a2.25 2.25 0 10-1.5 2.122V5.25C3 3.179 4.679 1.5 6.75 1.5h6.5C15.321 1.5 17 3.179 17 5.25v5.787a2.25 2.25 0 10-1.5-2.122V5.25A2.25 2.25 0 0013.25 3h-6.5z" />
   </svg>
 );
 
@@ -292,7 +286,7 @@ export function ControlBar(props: ControlBarProps) {
               active={handRaised}
               title={handRaised ? "Lower hand" : "Raise hand"}
             >
-              <HandIcon />
+              <Hand className="w-5 h-5" />
               <Label>{handRaised ? "Lower" : "Raise"}</Label>
             </ControlButton>
           )}
@@ -404,7 +398,7 @@ export function ControlBar(props: ControlBarProps) {
             active={handRaised}
             title={handRaised ? "Lower hand" : "Raise hand"}
           >
-            <HandIcon />
+            <Hand className="w-5 h-5" />
           </ControlButton>
         )}
 
