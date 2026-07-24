@@ -20,7 +20,6 @@ import { livekitApi, sessionsApi } from "@/lib/api";
 import { getCookie } from "@/lib/cookies";
 import { ChatMessage } from "@/types";
 import { toast } from "sonner";
-import { recordingApi } from "@/lib/api/recording.api";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:5000";
@@ -428,6 +427,12 @@ export function RoomProvider({
               setLocalParticipant(room.localParticipant);
               setCanPublish(true);
               setIsLiveKitConnected(true);
+
+              if (myIdentity.startsWith("guest_") && data.token) {
+                const maxAge = 60 * 60 * 4;
+                document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+                document.cookie = `livekit_server_url=${encodeURIComponent(data.serverUrl)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+              }
               console.log(
                 "[LiveKit] Reconnected as speaker — canPublish: true",
               );
@@ -537,11 +542,19 @@ export function RoomProvider({
     });
 
     socket.on("recording:started", () => {
-      if (!cancelled) setIsRecording(true);
+      if (!cancelled) {
+        setIsRecording(true);
+        setRecordingLoading(false); // ← add this
+        toast.success("Recording started"); // ← add this
+      }
     });
 
     socket.on("recording:stopped", () => {
-      if (!cancelled) setIsRecording(false);
+      if (!cancelled) {
+        setIsRecording(false);
+        setRecordingLoading(false); // ← add this
+        toast.success("Recording stopped — processing will finish shortly"); // ← add this
+      }
     });
 
     // Someone joined the waiting room
@@ -633,6 +646,18 @@ export function RoomProvider({
               setLocalParticipant(room.localParticipant);
               setCanPublish(true);
               setIsLiveKitConnected(true);
+              const accessToken = localStorage.getItem("access_token");
+              if (!accessToken) {
+                // Auth store still has it — rehydrate from cookie or re-login not needed
+                // The axios interceptor will use whatever is in localStorage
+              }
+
+              // If co-host is a guest (edge case), update their cookie too
+              if (myIdentity.startsWith("guest_") && data.token) {
+                const maxAge = 60 * 60 * 4;
+                document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+                document.cookie = `livekit_server_url=${encodeURIComponent(data.serverUrl)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+              }
             } catch (err) {
               console.error("[LiveKit] Failed to reconnect as co-host:", err);
             }
@@ -763,30 +788,20 @@ export function RoomProvider({
   }, []);
 
   const startRecording = useCallback(async () => {
+    // Use socket instead of HTTP so guests (co-hosts) can also record
+    // without needing a JWT access_token
     setRecordingLoading(true);
-    try {
-      await recordingApi.start(sessionId);
-      setIsRecording(true);
-      toast.success("Recording started");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Failed to start recording");
-    } finally {
-      setRecordingLoading(false);
-    }
-  }, [sessionId]);
+    socketRef.current?.emit("recording:start");
+    // recordingLoading will be cleared by the recording:started socket event
+    // Add a timeout fallback in case the event doesn't come back
+    setTimeout(() => setRecordingLoading(false), 5000);
+  }, []);
 
   const stopRecording = useCallback(async () => {
     setRecordingLoading(true);
-    try {
-      await recordingApi.stop(sessionId);
-      setIsRecording(false);
-      toast.success("Recording stopped — processing will finish shortly");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Failed to stop recording");
-    } finally {
-      setRecordingLoading(false);
-    }
-  }, [sessionId]);
+    socketRef.current?.emit("recording:stop");
+    setTimeout(() => setRecordingLoading(false), 5000);
+  }, []);
 
   // ── Socket controls ────────────────────────────────
   const sendMessage = useCallback((content: string) => {
