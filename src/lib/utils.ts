@@ -42,3 +42,16 @@ export function getJoinUrl(joinCode: string) {
       : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   return `${base}/room/${joinCode}`;
 }
+
+export function clearSessionCookies() {
+  const cookiesToClear = [
+    'guest_token',
+    'guest_name', 
+    'guest_email',
+    'guest_identity',
+    'livekit_server_url',
+  ];
+  cookiesToClear.forEach(name => {
+    document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+  });
+}

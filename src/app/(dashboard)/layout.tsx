@@ -59,7 +59,7 @@ export default function DashboardLayout({
               alt="RoomsCluster"
               width={160}
               height={48}
-              className="h-10 w-auto"
+              className="h-auto w-auto"
               priority
             />
           </Link>
@@ -113,7 +113,7 @@ export default function DashboardLayout({
               alt="RoomsCluster"
               width={140}
               height={40}
-              className="h-9 w-auto"
+              className="h-auto w-auto"
               priority
             />
           </Link>
