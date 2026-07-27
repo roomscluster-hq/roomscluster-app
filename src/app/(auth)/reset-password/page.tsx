@@ -163,10 +163,10 @@ export default function ResetPasswordPage() {
       <div className="relative w-full max-w-md p-6 sm:p-0">
         <div className="flex flex-col items-center mb-8">
           <Image
-            src="/logo.png"
+            src="/favicon.png"
             alt="RoomsCluster"
-            width={64}
-            height={64}
+            width={80}
+            height={80}
             className="mb-4"
             priority
           />

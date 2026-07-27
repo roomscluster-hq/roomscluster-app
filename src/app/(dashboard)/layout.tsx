@@ -53,15 +53,15 @@ export default function DashboardLayout({
       {/* ── Sidebar — desktop/tablet ─────────────────── */}
       <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:fixed md:inset-y-0 bg-surface-0 border-r border-surface-200">
         <div className="h-16 flex items-center px-5 border-b border-surface-200">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center">
             <Image
               src="/logo.png"
               alt="RoomsCluster"
-              width={32}
-              height={32}
+              width={120}
+              height={40}
+              className="h-8 w-auto"
               priority
             />
-            <span className="text-lg font-bold text-ink-900">RoomsCluster</span>
           </Link>
         </div>
 
@@ -107,15 +107,15 @@ export default function DashboardLayout({
       <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
         {/* Top bar — mobile only */}
         <header className="md:hidden sticky top-0 z-30 bg-surface-0 border-b border-surface-200 px-4 h-14 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center">
             <Image
               src="/logo.png"
               alt="RoomsCluster"
-              width={28}
-              height={28}
+              width={100}
+              height={32}
+              className="h-7 w-auto"
               priority
             />
-            <span className="text-base font-bold text-ink-900">RoomsCluster</span>
           </Link>
           <div className="flex items-center gap-2">
             <OrgSwitcher compact />
