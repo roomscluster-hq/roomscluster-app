@@ -57,9 +57,9 @@ export default function DashboardLayout({
             <Image
               src="/logo.png"
               alt="RoomsCluster"
-              width={120}
-              height={40}
-              className="h-8 w-auto"
+              width={160}
+              height={48}
+              className="h-10 w-auto"
               priority
             />
           </Link>
@@ -111,9 +111,9 @@ export default function DashboardLayout({
             <Image
               src="/logo.png"
               alt="RoomsCluster"
-              width={100}
-              height={32}
-              className="h-7 w-auto"
+              width={140}
+              height={40}
+              className="h-9 w-auto"
               priority
             />
           </Link>
