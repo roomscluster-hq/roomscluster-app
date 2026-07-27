@@ -16,7 +16,7 @@ function BrandMark() {
   return (
     <div className="flex flex-col items-center mb-8">
       <Image
-        src="/logo.png"
+        src="/favicon.png"
         alt="RoomsCluster"
         width={64}
         height={64}
