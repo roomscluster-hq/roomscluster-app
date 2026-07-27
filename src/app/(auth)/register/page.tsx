@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
@@ -45,9 +46,14 @@ export default function RegisterPage() {
 
       <div className="relative w-full max-w-md p-6 sm:p-0">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-ink-900 flex items-center justify-center mb-4">
-            <span className="text-white font-bold text-sm">RC</span>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="RoomsCluster"
+            width={64}
+            height={64}
+            className="mb-4"
+            priority
+          />
           <h1 className="text-2xl font-bold text-ink-900">RoomsCluster</h1>
         </div>
 
