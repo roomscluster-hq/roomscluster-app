@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { invitationsApi } from "@/lib/api/invitations.api";
 import { useAuthStore } from "@/store/auth.store";
@@ -14,9 +15,14 @@ import { toast } from "sonner";
 function BrandMark() {
   return (
     <div className="flex flex-col items-center mb-8">
-      <div className="w-12 h-12 rounded-xl bg-ink-900 flex items-center justify-center mb-4">
-        <span className="text-white font-bold text-sm">RC</span>
-      </div>
+      <Image
+        src="/favicon.png"
+        alt="RoomsCluster"
+        width={64}
+        height={64}
+        className="mb-4"
+        priority
+      />
       <h1 className="text-xl font-bold text-ink-900">RoomsCluster</h1>
     </div>
   );
