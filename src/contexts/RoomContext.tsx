@@ -20,6 +20,7 @@ import { livekitApi, sessionsApi } from "@/lib/api";
 import { getCookie } from "@/lib/cookies";
 import { ChatMessage } from "@/types";
 import { toast } from "sonner";
+import { clearSessionCookies } from "@/lib/utils";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:5000";
@@ -538,22 +539,25 @@ export function RoomProvider({
     });
 
     socket.on("session:ended", () => {
-      if (!cancelled) window.location.href = "/dashboard";
+      if (!cancelled) {
+        clearSessionCookies(); 
+        window.location.href = "/dashboard";
+      }
     });
 
     socket.on("recording:started", () => {
       if (!cancelled) {
         setIsRecording(true);
-        setRecordingLoading(false); // ← add this
-        toast.success("Recording started"); // ← add this
+        setRecordingLoading(false); 
+        toast.success("Recording started"); 
       }
     });
 
     socket.on("recording:stopped", () => {
       if (!cancelled) {
         setIsRecording(false);
-        setRecordingLoading(false); // ← add this
-        toast.success("Recording stopped — processing will finish shortly"); // ← add this
+        setRecordingLoading(false); 
+        toast.success("Recording stopped — processing will finish shortly"); 
       }
     });
 
