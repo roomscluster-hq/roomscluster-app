@@ -32,14 +32,17 @@ export default function ForgotPasswordPage() {
 
       <div className="relative w-full max-w-md p-6 sm:p-0">
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 bg-transparent">
+          <div className="mb-4">
             <Image
               src="/favicon.png"
               alt="RoomsCluster"
               width={80}
               height={80}
-              className="bg-transparent"
-              style={{ backgroundColor: 'transparent' }}
+              className="rounded-full"
+              style={{ 
+                backgroundColor: 'transparent',
+                mixBlendMode: 'multiply'
+              }}
               priority
             />
           </div>
