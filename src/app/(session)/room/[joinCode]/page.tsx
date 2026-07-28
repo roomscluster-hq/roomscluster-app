@@ -12,10 +12,10 @@ import { ParticipantsPanel } from "@/components/session/ParticipantsPanel";
 import { Spinner } from "@/components/ui/spinner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { clearGuestCookies } from "@/lib/cookies";
-import { RoomProvider, useRoom } from "@/contexts/RoomContext";
+import { RoomProvider } from "@/contexts/RoomContext";
+import { useRoomSession } from "@/hooks/session";
 import { WaitingRoomPanel } from "@/components/session/WaitingRoomPanel";
 import { SessionSettingsPanel } from "@/components/session/SessionSettingsPanel";
-import { useRoomSession } from "@/hooks/session";
 import {
   RoomStatusPills,
   RecordingPill,
@@ -28,15 +28,22 @@ import { toast } from "sonner";
 
 type MainView = "video" | "whiteboard";
 
-function RoomContent({ joinCode }: { joinCode: string }) {
+type WhiteboardDrawCallback = (event: any) => void;
+type WhiteboardClearCallback = () => void;
+
+interface RoomContentProps {
+  joinCode: string;
+}
+
+function RoomContent({ joinCode }: RoomContentProps) {
   const router = useRouter();
   const [mainView, setMainView] = useState<MainView>("video");
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("chat");
   const [chatOpen, setChatOpen] = useState(true);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
 
-  const remoteDrawRef = useRef<((event: any) => void) | null>(null);
-  const remoteClearRef = useRef<(() => void) | null>(null);
+  const remoteDrawRef = useRef<WhiteboardDrawCallback | null>(null);
+  const remoteClearRef = useRef<WhiteboardClearCallback | null>(null);
 
   const {
     session,
@@ -45,6 +52,7 @@ function RoomContent({ joinCode }: { joinCode: string }) {
     guestName,
     currentUserId,
     isHost,
+    isCohost,
     canManage,
     handRaised,
     elapsedSeconds,
@@ -233,7 +241,7 @@ function RoomContent({ joinCode }: { joinCode: string }) {
 
         {/* Sidebar — desktop/tablet */}
         {chatOpen && (
-          <div className="hidden md:flex w-80 shrink-0 flex-col border-l border-white/10 bg-white/[0.03] backdrop-blur-xl overflow-hidden">
+          <div className="hidden md:flex w-80 shrink-0 flex-col border-l border-white/10 bg-white/3 backdrop-blur-xl overflow-hidden">
             <RoomTabBar
               activeTab={sidebarTab}
               onChange={setSidebarTab}
