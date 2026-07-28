@@ -184,8 +184,36 @@ export function useSocket(joinCode: string, callbacks?: UseSocketCallbacks) {
     socketRef.current?.emit("participant:promote", { userId });
   }, []);
 
+  const demoteParticipant = useCallback((userId: string) => {
+    socketRef.current?.emit("participant:demote", { userId });
+  }, []);
+
   const endSession = useCallback(() => {
     socketRef.current?.emit("session:end");
+  }, []);
+
+  const admitParticipant = useCallback((joinCode: string, waitingParticipantId: string) => {
+    socketRef.current?.emit("waiting:admit", { joinCode, waitingParticipantId });
+  }, []);
+
+  const admitAll = useCallback((joinCode: string) => {
+    socketRef.current?.emit("waiting:admit-all", { joinCode });
+  }, []);
+
+  const rejectParticipant = useCallback((joinCode: string, waitingParticipantId: string) => {
+    socketRef.current?.emit("waiting:reject", { joinCode, waitingParticipantId });
+  }, []);
+
+  const rejectAll = useCallback((joinCode: string) => {
+    socketRef.current?.emit("waiting:reject-all", { joinCode });
+  }, []);
+
+  const makeCohost = useCallback((userId: string) => {
+    socketRef.current?.emit("participant:make-cohost", { userId });
+  }, []);
+
+  const removeCohost = useCallback((userId: string) => {
+    socketRef.current?.emit("participant:remove-cohost", { userId });
   }, []);
 
   return {
@@ -199,6 +227,13 @@ export function useSocket(joinCode: string, callbacks?: UseSocketCallbacks) {
     lowerHand,
     lowerHandForUser,
     promoteParticipant,
+    demoteParticipant,
     endSession,
+    admitParticipant,
+    admitAll,
+    rejectParticipant,
+    rejectAll,
+    makeCohost,
+    removeCohost,
   };
 }

@@ -4,14 +4,18 @@ import {
   createContext,
   useContext,
   useRef,
+  useState,
   useEffect,
   useCallback,
   ReactNode,
 } from "react";
-import { useLiveKit, useSocket, useRecording, useRoomSettings } from "@/hooks/room";
+import { useLiveKit } from "@/hooks/useLiveKit";
+import { useSocket } from "@/hooks/useSocket";
+import { useRoomSettings } from "@/hooks/room/useRoomSettings";
 import { RoomContextValue } from "@/lib/room/types";
 import { toast } from "sonner";
 import { clearSessionCookies } from "@/lib/utils";
+import { Socket } from "socket.io-client";
 
 const RoomContext = createContext<RoomContextValue | null>(null);
 
@@ -26,15 +30,19 @@ export function RoomProvider({
 }) {
   // Use our custom hooks
   const liveKit = useLiveKit(joinCode);
-  const socket = useSocket(joinCode, sessionId);
+  const socket = useSocket(joinCode);
   const settings = useRoomSettings(sessionId);
-  const recording = useRecording(socket.socket);
+  
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingLoading, setRecordingLoading] = useState(false);
 
   // Refs for callbacks
   const onWhiteboardDrawRef = useRef<((event: any) => void) | null>(null);
   const onWhiteboardClearRef = useRef<(() => void) | null>(null);
   const onPromotedRef = useRef<((userId: string) => void) | null>(null);
   const myIdentityRef = useRef<string | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   // Set identity ref when local participant is available
   useEffect(() => {
@@ -43,9 +51,16 @@ export function RoomProvider({
     }
   }, [liveKit.localParticipant]);
 
+  // Store socket in ref when available
+  useEffect(() => {
+    if (socket.socketRef.current) {
+      socketRef.current = socket.socketRef.current;
+    }
+  }, [socket.socketRef.current]);
+
   // Handle socket events that need LiveKit reconnection
   useEffect(() => {
-    const sock = socket.socket;
+    const sock = socket.socketRef.current;
     if (!sock) return;
 
     const handleParticipantPromoted = async (data: {
@@ -181,12 +196,14 @@ export function RoomProvider({
     };
 
     const handleRecordingStarted = () => {
-      recording.startRecording();
+      setIsRecording(true);
+      setRecordingLoading(false);
       toast.success("Recording started");
     };
 
     const handleRecordingStopped = () => {
-      recording.stopRecording();
+      setIsRecording(false);
+      setRecordingLoading(false);
       toast.success("Recording stopped — processing will finish shortly");
     };
 
@@ -213,7 +230,7 @@ export function RoomProvider({
       sock.off("recording:started", handleRecordingStarted);
       sock.off("recording:stopped", handleRecordingStopped);
     };
-  }, [socket.socket, liveKit.room, settings, recording]);
+  }, [socket.isConnected, liveKit.room, settings]);
 
   // Callback setters
   const setOnWhiteboardDraw = useCallback(
@@ -229,6 +246,20 @@ export function RoomProvider({
 
   const setOnPromoted = useCallback((fn: ((userId: string) => void) | null) => {
     onPromotedRef.current = fn;
+  }, []);
+
+  // Recording actions
+  const startRecording = useCallback(async () => {
+    setRecordingLoading(true);
+    socketRef.current?.emit("recording:start");
+    // Fallback timeout
+    setTimeout(() => setRecordingLoading(false), 5000);
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    setRecordingLoading(true);
+    socketRef.current?.emit("recording:stop");
+    setTimeout(() => setRecordingLoading(false), 5000);
   }, []);
 
   const value: RoomContextValue = {
@@ -248,10 +279,10 @@ export function RoomProvider({
     messages: socket.messages,
     participants: socket.participants,
     raisedHands: socket.raisedHands,
-    waitingParticipants: socket.waitingParticipants,
+    waitingParticipants: [], // Not implemented in existing hook
 
     // Room settings
-    isCohost: false, // This should be determined based on participant role
+    isCohost: false,
     participantVideoEnabled: settings.participantVideoEnabled,
     participantMicEnabled: settings.participantMicEnabled,
     roomChatEnabled: settings.chatEnabled,
@@ -259,11 +290,11 @@ export function RoomProvider({
     roomMicEnabled: settings.participantMicEnabled,
 
     // Recording
-    isRecording: recording.isRecording,
-    recordingLoading: recording.recordingLoading,
+    isRecording,
+    recordingLoading,
 
     // Refs
-    socketRef: { current: socket.socket },
+    socketRef,
 
     // LiveKit actions
     toggleMic: liveKit.toggleMic,
@@ -287,8 +318,8 @@ export function RoomProvider({
     removeCohost: socket.removeCohost,
 
     // Recording actions
-    startRecording: recording.startRecording,
-    stopRecording: recording.stopRecording,
+    startRecording,
+    stopRecording,
 
     // Callback setters
     setOnWhiteboardDraw,
