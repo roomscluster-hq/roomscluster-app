@@ -145,7 +145,7 @@ export function useLiveKit(joinCode: string) {
   }, []);
 
   return {
-    room: roomRef.current,
+    roomRef,
     localParticipant,
     remoteParticipants,
     isConnected,

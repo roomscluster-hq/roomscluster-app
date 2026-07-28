@@ -76,12 +76,12 @@ export function RoomProvider({
         myIdentity === data.userId &&
         data.token &&
         data.serverUrl &&
-        liveKit.room
+        liveKit.roomRef.current
       ) {
         toast.success("You can now speak!");
         try {
-          await liveKit.room.disconnect(false);
-          await liveKit.room.connect(data.serverUrl, data.token, {
+          await liveKit.roomRef.current.disconnect(false);
+          await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
         } catch (err) {
@@ -103,14 +103,14 @@ export function RoomProvider({
         myIdentity === data.userId &&
         data.token &&
         data.serverUrl &&
-        liveKit.room
+        liveKit.roomRef.current
       ) {
         toast("Your speaking access has been removed");
         try {
-          await liveKit.room.localParticipant.setMicrophoneEnabled(false);
-          await liveKit.room.localParticipant.setCameraEnabled(false);
-          await liveKit.room.disconnect(false);
-          await liveKit.room.connect(data.serverUrl, data.token, {
+          await liveKit.roomRef.current.localParticipant.setMicrophoneEnabled(false);
+          await liveKit.roomRef.current.localParticipant.setCameraEnabled(false);
+          await liveKit.roomRef.current.disconnect(false);
+          await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
         } catch (err) {
@@ -130,12 +130,12 @@ export function RoomProvider({
         myIdentity === data.userId &&
         data.token &&
         data.serverUrl &&
-        liveKit.room
+        liveKit.roomRef.current
       ) {
         toast.success("You are now a co-host!");
         try {
-          await liveKit.room.disconnect(false);
-          await liveKit.room.connect(data.serverUrl, data.token, {
+          await liveKit.roomRef.current.disconnect(false);
+          await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
         } catch (err) {
@@ -155,14 +155,14 @@ export function RoomProvider({
         myIdentity === data.userId &&
         data.token &&
         data.serverUrl &&
-        liveKit.room
+        liveKit.roomRef.current
       ) {
         toast("Your co-host access has been removed");
         try {
-          await liveKit.room.localParticipant.setMicrophoneEnabled(false);
-          await liveKit.room.localParticipant.setCameraEnabled(false);
-          await liveKit.room.disconnect(false);
-          await liveKit.room.connect(data.serverUrl, data.token, {
+          await liveKit.roomRef.current.localParticipant.setMicrophoneEnabled(false);
+          await liveKit.roomRef.current.localParticipant.setCameraEnabled(false);
+          await liveKit.roomRef.current.disconnect(false);
+          await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
         } catch (err) {
@@ -230,7 +230,7 @@ export function RoomProvider({
       sock.off("recording:started", handleRecordingStarted);
       sock.off("recording:stopped", handleRecordingStopped);
     };
-  }, [socket.isConnected, liveKit.room, settings]);
+  }, [socket.isConnected, liveKit.roomRef.current, settings]);
 
   // Callback setters
   const setOnWhiteboardDraw = useCallback(
