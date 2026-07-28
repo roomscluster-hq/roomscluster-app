@@ -19,8 +19,8 @@ import {
   NewFolderForm,
   WorkspaceIndicator,
   EmptyState,
-  type StatusFilter as StatusFilterType,
 } from "@/components/dashboard/sessions";
+import type { StatusFilter as StatusFilterType } from "@/components/dashboard/sessions";
 
 type ViewMode = "grid" | "list";
 
@@ -316,8 +316,18 @@ function FolderGrid({
 }
 
 // ── Session Grid Component ───────────────────────────────────────────────
+interface Session {
+  id: string;
+  title: string;
+  status: SessionStatus;
+  scheduledAt?: string;
+  _count?: {
+    participants: number;
+  };
+}
+
 interface SessionGridProps {
-  sessions: any[];
+  sessions: Session[];
   onDragStart: (id: string) => void;
   currentFolderId?: string;
   onMoveToRoot: (id: string) => void;
