@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Play, Video, Square, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SessionStatus } from "@/types";
 
@@ -29,20 +30,24 @@ export function SessionActions({
   const isEnded = status === "ENDED";
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center shrink-0">
+    <div className="flex items-center gap-2 shrink-0">
       {!isEnded && (
         <>
           {isLive ? (
             <Link href={`/room/${joinCode}`}>
-              <Button className="cursor-pointer whitespace-nowrap">Join Session</Button>
+              <Button className="cursor-pointer gap-2">
+                <Video size={18} />
+                <span className="hidden sm:inline">Join</span>
+              </Button>
             </Link>
           ) : (
             <Button
               onClick={onStart}
               loading={isStarting}
-              className="cursor-pointer whitespace-nowrap"
+              className="cursor-pointer gap-2"
             >
-              Start Session
+              <Play size={18} />
+              <span className="hidden sm:inline">Start</span>
             </Button>
           )}
 
@@ -51,9 +56,10 @@ export function SessionActions({
               variant="secondary"
               onClick={onEnd}
               loading={isEnding}
-              className="cursor-pointer whitespace-nowrap"
+              className="cursor-pointer gap-2"
             >
-              End Session
+              <Square size={18} />
+              <span className="hidden sm:inline">End</span>
             </Button>
           )}
         </>
@@ -63,9 +69,11 @@ export function SessionActions({
         variant="danger"
         onClick={onDelete}
         loading={isDeleting}
-        className="cursor-pointer whitespace-nowrap"
+        className="cursor-pointer gap-2"
+        title="Delete session"
       >
-        Delete
+        <Trash2 size={18} />
+        <span className="hidden sm:inline">Delete</span>
       </Button>
     </div>
   );
