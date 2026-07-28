@@ -144,6 +144,11 @@ export function useLiveKit(joinCode: string) {
     setIsConnected(false);
   }, []);
 
+  // Function to update canPublish state externally (e.g., after promotion)
+  const updateCanPublish = useCallback((value: boolean) => {
+    setCanPublish(value);
+  }, []);
+
   return {
     roomRef,
     localParticipant,
@@ -153,6 +158,7 @@ export function useLiveKit(joinCode: string) {
     isCameraOff,
     isScreenSharing,
     canPublish,
+    updateCanPublish,
     error,
     toggleMic,
     toggleCamera,

@@ -84,6 +84,8 @@ export function RoomProvider({
           await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
+          // Update canPublish state after successful reconnection
+          liveKit.updateCanPublish(true);
         } catch (err) {
           console.error("[LiveKit] Failed to reconnect as speaker:", err);
         }
@@ -113,6 +115,8 @@ export function RoomProvider({
           await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
+          // Update canPublish state after successful reconnection
+          liveKit.updateCanPublish(false);
         } catch (err) {
           console.error("[LiveKit] Failed to reconnect as audience:", err);
         }
@@ -138,6 +142,8 @@ export function RoomProvider({
           await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
+          // Update canPublish state after successful reconnection
+          liveKit.updateCanPublish(true);
         } catch (err) {
           console.error("[LiveKit] Failed to reconnect as co-host:", err);
         }
@@ -165,6 +171,8 @@ export function RoomProvider({
           await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
+          // Update canPublish state after successful reconnection
+          liveKit.updateCanPublish(false);
         } catch (err) {
           console.error(
             "[LiveKit] Failed to reconnect after co-host removal:",
