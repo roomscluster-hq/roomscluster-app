@@ -19,8 +19,8 @@ import {
   NewFolderForm,
   WorkspaceIndicator,
   EmptyState,
+  type StatusFilter,
 } from "@/components/dashboard/sessions";
-import type { StatusFilter as StatusFilterType } from "@/components/dashboard/sessions";
 
 type ViewMode = "grid" | "list";
 
@@ -32,7 +32,7 @@ const SESSION_CARD_STYLES: Record<SessionStatus, string> = {
 
 export default function SessionsExplorerPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [statusFilter, setStatusFilter] = useState<StatusFilterType>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
   const {
     currentFolderId,
@@ -323,6 +323,7 @@ interface Session {
   scheduledAt?: string;
   _count?: {
     participants: number;
+    recordings: number;
   };
 }
 
