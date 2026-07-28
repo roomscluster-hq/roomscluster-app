@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
 interface Attendee {
-  id: string;
+  id?: string;
   name: string;
   email: string;
   role: string;
@@ -52,8 +52,8 @@ export function AttendanceCard({
         ) : (
           <>
             <div className="divide-y divide-surface-200 mb-4">
-              {attendance.map((a) => (
-                <div key={a.id} className="flex items-center justify-between py-3">
+              {attendance.map((a, index) => (
+                <div key={a.id ?? `${a.email}-${index}`} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
                       {a.name.charAt(0).toUpperCase()}
