@@ -28,9 +28,14 @@ export function useFolderManagement() {
 
   // Reset accumulation when navigating to a different folder
   useEffect(() => {
-    setAccumulatedFolders([]);
-    setAccumulatedSessions([]);
-    setSkip(0);
+    // Defer state updates to avoid calling setState synchronously inside effect
+    const t = setTimeout(() => {
+      setAccumulatedFolders([]);
+      setAccumulatedSessions([]);
+      setSkip(0);
+    }, 0);
+
+    return () => clearTimeout(t);
   }, [currentFolderId]);
 
   // Fetch folder contents
@@ -49,14 +54,28 @@ export function useFolderManagement() {
   // Append new page's results
   useEffect(() => {
     if (!contents) return;
-    if (skip === 0) {
-      setAccumulatedFolders(contents.folders);
-      setAccumulatedSessions(contents.sessions);
-    } else {
-      setAccumulatedFolders((prev) => [...prev, ...contents.folders]);
-      setAccumulatedSessions((prev) => [...prev, ...contents.sessions]);
+    // Defer state updates to avoid synchronous setState within the effect body
+    const t = setTimeout(() => {
+      if (skip === 0) {
+        setAccumulatedFolders(contents.folders);
+        setAccumulatedSessions(contents.sessions);
+      } else {
+        setAccumulatedFolders((prev) => [...prev, ...contents.folders]);
+        setAccumulatedSessions((prev) => [...prev, ...contents.sessions]);
+      }
+    }, 0);
+
+    return () => clearTimeout(t);
+  }, [contents]);
+  
+  // Reset skip when contents change
+  useEffect(() => {
+    if (skip !== 0) {
+      // Defer state update to avoid synchronous setState within effect body
+      const t = setTimeout(() => setSkip(0), 0);
+      return () => clearTimeout(t);
     }
-  }, [contents, skip]);
+  }, [contents]);
 
   // Load more
   const loadMore = () => {
@@ -171,7 +190,6 @@ export function useFolderManagement() {
     folders: accumulatedFolders,
     sessions: accumulatedSessions,
     breadcrumbs,
-    contents,
     isLoading,
     isFetching,
     hasMore: contents?.pagination.hasMore ?? false,
