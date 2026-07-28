@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/lib/api";
@@ -16,6 +17,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
+  const router = useRouter();
   const { setAuth } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,6 +29,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       const user = await authApi.me();
       setAuth(user, data.access_token);
       toast.success("Welcome back!");
+      router.replace("/dashboard");
     },
     onError: () => {
       toast.error("Invalid email or password");
