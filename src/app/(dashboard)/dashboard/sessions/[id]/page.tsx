@@ -51,12 +51,24 @@ export default function SessionDetailPage() {
 
   return (
     <div className="max-w-3xl">
-      {/* Header */}
-      <SessionHeader
-        title={session.title}
-        description={session.description}
-        status={session.status}
-      />
+      {/* Header with Actions */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+        <SessionHeader
+          title={session.title}
+          description={session.description ?? ""}
+          status={session.status}
+        />
+        <SessionActions
+          status={session.status}
+          joinCode={session.joinCode}
+          onStart={startSession}
+          onEnd={endSession}
+          onDelete={confirmDelete}
+          isStarting={isStarting}
+          isEnding={isEnding}
+          isDeleting={isDeleting}
+        />
+      </div>
 
       {/* Stats */}
       <SessionStats
@@ -102,18 +114,6 @@ export default function SessionDetailPage() {
         onDownloadTxt={() => handleDownloadAttendance("txt")}
         onDownloadCsv={() => handleDownloadAttendance("csv")}
         formatDateTime={formatDateTime}
-      />
-
-      {/* Actions */}
-      <SessionActions
-        status={session.status}
-        joinCode={session.joinCode}
-        onStart={startSession}
-        onEnd={endSession}
-        onDelete={confirmDelete}
-        isStarting={isStarting}
-        isEnding={isEnding}
-        isDeleting={isDeleting}
       />
     </div>
   );

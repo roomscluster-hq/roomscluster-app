@@ -29,18 +29,18 @@ export function SessionActions({
   const isEnded = status === "ENDED";
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center shrink-0">
       {!isEnded && (
         <>
           {isLive ? (
-            <Link href={`/room/${joinCode}`} className="w-full sm:w-auto">
-              <Button className="w-full cursor-pointer">Join Session</Button>
+            <Link href={`/room/${joinCode}`}>
+              <Button className="cursor-pointer whitespace-nowrap">Join Session</Button>
             </Link>
           ) : (
             <Button
               onClick={onStart}
               loading={isStarting}
-              className="w-full sm:w-auto cursor-pointer"
+              className="cursor-pointer whitespace-nowrap"
             >
               Start Session
             </Button>
@@ -51,7 +51,7 @@ export function SessionActions({
               variant="secondary"
               onClick={onEnd}
               loading={isEnding}
-              className="w-full sm:w-auto cursor-pointer"
+              className="cursor-pointer whitespace-nowrap"
             >
               End Session
             </Button>
@@ -63,9 +63,9 @@ export function SessionActions({
         variant="danger"
         onClick={onDelete}
         loading={isDeleting}
-        className="w-full sm:w-auto cursor-pointer"
+        className="cursor-pointer whitespace-nowrap"
       >
-        Delete Session
+        Delete
       </Button>
     </div>
   );
