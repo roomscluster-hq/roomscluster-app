@@ -262,6 +262,8 @@ export function RoomProvider({
     setTimeout(() => setRecordingLoading(false), 5000);
   }, []);
 
+  const activeSpeakerIds = (liveKit as any).activeSpeakerIds ?? new Set();
+
   const value: RoomContextValue = {
     // LiveKit state
     localParticipant: liveKit.localParticipant,
@@ -272,7 +274,7 @@ export function RoomProvider({
     isScreenSharing: liveKit.isScreenSharing,
     canPublish: liveKit.canPublish,
     liveKitError: liveKit.error,
-    activeSpeakerIds: liveKit.activeSpeakerIds,
+    activeSpeakerIds,
 
     // Socket state
     isSocketConnected: socket.isConnected,
