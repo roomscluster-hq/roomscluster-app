@@ -10,7 +10,7 @@ interface Member {
   role: string;
   user: {
     id: string;
-    name?: string;
+    name: string | null;
     email: string;
   };
 }
