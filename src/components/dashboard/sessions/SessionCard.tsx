@@ -70,8 +70,8 @@ export function SessionCard({ session, onDragStart, onMoveToRoot, onDelete }: Se
           <span>
             {session.scheduledAt ? formatDateTime(session.scheduledAt) : "Instant session"}
           </span>
-          {(session._count?.participants ?? 0) > 0 && (
-            <span>{session._count.participants} participants</span>
+          {((session._count?.participants ?? 0) > 0) && (
+            <span>{session._count?.participants ?? 0} participants</span>
           )}
         </div>
         {(session._count?.recordings ?? 0) > 0 && (
