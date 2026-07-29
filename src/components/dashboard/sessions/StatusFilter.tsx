@@ -21,7 +21,7 @@ interface StatusFilterProps {
   onChange: (filter: StatusFilter) => void;
 }
 
-export function StatusFilter({ currentFilter, onChange }: StatusFilterProps) {
+export function StatusFilterComponent({ currentFilter, onChange }: StatusFilterProps) {
   return (
     <div className="flex items-center gap-2 mb-5">
       {STATUS_FILTERS.map((f) => (

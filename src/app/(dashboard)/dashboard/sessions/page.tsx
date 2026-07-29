@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { FolderPlus, Video, ChevronRight, Folder, GripVertical, CheckCircle } from "lucide-react";
+import { FolderPlus, Video, Folder, GripVertical, CheckCircle } from "lucide-react";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { StatusBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -15,11 +15,11 @@ import { useFolderManagement, useSessionManagement } from "@/hooks/dashboard";
 import {
   Breadcrumbs,
   ViewToggle,
-  StatusFilter,
   NewFolderForm,
   WorkspaceIndicator,
   EmptyState,
 } from "@/components/dashboard/sessions";
+import { StatusFilterComponent } from "@/components/dashboard/sessions/StatusFilter";
 
 // Local alias for the StatusFilter type to avoid conflicts with a runtime export
 type StatusFilterType = "ALL" | SessionStatus;
@@ -120,7 +120,7 @@ export default function SessionsExplorerPage() {
       </div>
 
       {/* Status filter */}
-      <StatusFilter currentFilter={statusFilter} onChange={setStatusFilter} />
+      <StatusFilterComponent currentFilter={statusFilter} onChange={setStatusFilter} />
 
       {/* Workspace indicator */}
       <WorkspaceIndicator organization={activeOrg} />

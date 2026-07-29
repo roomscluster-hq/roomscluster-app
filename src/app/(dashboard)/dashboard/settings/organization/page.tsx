@@ -90,7 +90,7 @@ export default function OrganizationSettingsPage() {
       <div className="mb-8">
         <h1 className="text-xl md:text-2xl font-bold text-ink-900">Settings</h1>
         <p className="text-ink-700/60 text-sm mt-1">
-          Manage your organization's workspace and team members.
+          Manage your organization&apos;s workspace and team members.
         </p>
       </div>
 

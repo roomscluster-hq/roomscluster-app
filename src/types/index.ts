@@ -61,6 +61,7 @@ export interface Participant {
   isCameraOff: boolean;
   handRaised: boolean;
   user: User;
+  _joinedAt?: number; // Internal timestamp for deduplication (frontend only)
 }
 
 // ── Chat ───────────────────────────────────────────────

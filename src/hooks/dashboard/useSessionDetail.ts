@@ -176,7 +176,7 @@ export function useSessionDetail() {
             a.leftAt ? `, Left: ${formatDateTime(a.leftAt)}` : ""
           }`
       );
-      triggerDownload(lines.join("\n"), `${base}_attendance.txt", "text/plain");
+      triggerDownload(lines.join("\n"), `${base}_attendance.txt`, "text/plain");
     }
 
     toast.success(`Attendance downloaded as ${format.toUpperCase()}`);

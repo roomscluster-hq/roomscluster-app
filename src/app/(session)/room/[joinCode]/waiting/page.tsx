@@ -6,14 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import { sessionsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { getCookie } from "@/lib/cookies";
-import { io, Socket } from "socket.io-client";
+import { io } from "socket.io-client";
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:5000";
 
 export default function WaitingRoomPage() {
   const { joinCode } = useParams<{ joinCode: string }>();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const [status, setStatus] = useState<"waiting" | "admitted" | "rejected">("waiting");
 
   const guestName = getCookie("guest_name");
@@ -83,7 +83,7 @@ export default function WaitingRoomPage() {
 
   return (
     <div className="min-h-screen bg-ink-900 flex items-center justify-center px-4">
-      <div className="bg-white/[0.05] backdrop-blur-xl border border-white/10 rounded-2xl max-w-sm w-full p-8 text-center">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl max-w-sm w-full p-8 text-center">
 
         {status === "waiting" && (
           <>
@@ -120,7 +120,7 @@ export default function WaitingRoomPage() {
             <div className="w-14 h-14 rounded-full bg-success-500/20 flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">✅</span>
             </div>
-            <h1 className="text-xl font-bold text-white mb-2">You're in!</h1>
+            <h1 className="text-xl font-bold text-white mb-2">You&apos;re in!</h1>
             <p className="text-white/60 text-sm">Taking you to the session...</p>
           </>
         )}

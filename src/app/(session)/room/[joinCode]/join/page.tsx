@@ -55,8 +55,14 @@ export default function GuestJoinPage() {
       }
 
       window.location.href = `/room/${joinCode}`;
-    } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Failed to join session");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+            "Failed to join session";
+      setError(message);
+      toast.error(message);
       setLoading(false);
     }
   }
@@ -90,7 +96,7 @@ export default function GuestJoinPage() {
           )}
           {session?.status === "SCHEDULED" && (
             <span className="inline-block mt-2 text-xs bg-yellow-500 text-white px-3 py-1 rounded-full">
-              Session hasn't started yet
+                Session hasn&apos;t started yet
             </span>
           )}
         </div>

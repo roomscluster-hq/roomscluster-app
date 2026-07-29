@@ -13,7 +13,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { clearGuestCookies } from "@/lib/cookies";
 import { RoomProvider } from "@/contexts/RoomContext";
-import { useRoomSession } from "@/hooks/session";
+import { useRoomSession } from "@/hooks/session/useRoomSession";
+import type { DrawEvent } from "@/hooks/useWhiteboard";
 import { WaitingRoomPanel } from "@/components/session/WaitingRoomPanel";
 import { SessionSettingsPanel } from "@/components/session/SessionSettingsPanel";
 import {
@@ -28,7 +29,7 @@ import { toast } from "sonner";
 
 type MainView = "video" | "whiteboard";
 
-type WhiteboardDrawCallback = (event: any) => void;
+type WhiteboardDrawCallback = (event: DrawEvent) => void;
 type WhiteboardClearCallback = () => void;
 
 interface RoomContentProps {
@@ -200,10 +201,10 @@ function RoomContent({ joinCode }: RoomContentProps) {
       <RoomStatusPills
         isLiveKitConnected={isLiveKitConnected}
         sessionTitle={session?.title}
-        startedAt={session?.startedAt}
+        startedAt={session?.startedAt ?? undefined}
         elapsedSeconds={elapsedSeconds}
         isGuest={isGuest}
-        guestName={guestName}
+        guestName={guestName ?? undefined}
         formatElapsed={formatElapsed}
       />
 

@@ -28,122 +28,137 @@ export function RoomProvider({
   sessionId: string;
   children: ReactNode;
 }) {
-  // Use our custom hooks
   const liveKit = useLiveKit(joinCode);
   const socket = useSocket(joinCode);
   const settings = useRoomSettings(sessionId);
-  
+
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingLoading, setRecordingLoading] = useState(false);
 
-  // Refs for callbacks
+  // isCohost as explicit state — set from socket events, not derived from participants
+  const [isCohost, setIsCohost] = useState(false);
+
+  // Refs
   const onWhiteboardDrawRef = useRef<((event: any) => void) | null>(null);
   const onWhiteboardClearRef = useRef<(() => void) | null>(null);
   const onPromotedRef = useRef<((userId: string) => void) | null>(null);
   const myIdentityRef = useRef<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
-  // Set identity ref when local participant is available
+  // Add this helper inside RoomProvider, before the useEffect
+  const getRoom = useCallback(async () => {
+    if (liveKit.roomRef.current) return liveKit.roomRef.current;
+
+    for (let attempts = 0; attempts < 50; attempts++) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      if (liveKit.roomRef.current) return liveKit.roomRef.current;
+    }
+
+    return liveKit.roomRef.current;
+  }, [liveKit.roomRef]);
+
+  // Track my LiveKit identity
   useEffect(() => {
     if (liveKit.localParticipant) {
       myIdentityRef.current = liveKit.localParticipant.identity;
     }
   }, [liveKit.localParticipant]);
 
-  // Store socket in ref when available
+  // Keep socketRef in sync
   useEffect(() => {
-    if (socket.socketRef.current) {
-      socketRef.current = socket.socketRef.current;
-    }
+    socketRef.current = socket.socketRef.current;
   }, [socket.socketRef.current]);
 
-  // Handle socket events that need LiveKit reconnection
+  // ── Handle socket events that need LiveKit reconnection ──
+  // We run this once when the socket connects and re-run if the socket
+  // reconnects. We use socket.socketRef.current directly so we always
+  // attach to the current socket instance.
   useEffect(() => {
     const sock = socket.socketRef.current;
-    if (!sock) return;
+    if (!sock || !socket.isConnected) return;
 
-    const handleParticipantPromoted = async (data: {
+    const handlePromoted = async (data: {
       userId: string;
       token?: string;
       serverUrl?: string;
-      participantVideoEnabled?: boolean;
-      participantMicEnabled?: boolean;
     }) => {
-      const myIdentity = myIdentityRef.current;
-      if (
-        myIdentity &&
-        myIdentity === data.userId &&
-        data.token &&
-        data.serverUrl &&
-        liveKit.roomRef.current
-      ) {
+      // Wait for LiveKit room to be available and get identity from it
+      const room = await getRoom();
+      const myIdentity = room?.localParticipant?.identity ?? myIdentityRef.current;
+      
+      if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast.success("You can now speak!");
         try {
-          await liveKit.roomRef.current.disconnect(false);
-          await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
+          await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
-          // Update canPublish state after successful reconnection
           liveKit.updateCanPublish(true);
+          if (myIdentity.startsWith("guest_")) {
+            const maxAge = 60 * 60 * 4;
+            document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+            document.cookie = `livekit_server_url=${encodeURIComponent(data.serverUrl)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          }
         } catch (err) {
           console.error("[LiveKit] Failed to reconnect as speaker:", err);
         }
       }
-
       onPromotedRef.current?.(data.userId);
     };
 
-    const handleParticipantDemoted = async (data: {
+    const handleDemoted = async (data: {
       userId: string;
       token?: string;
       serverUrl?: string;
     }) => {
-      const myIdentity = myIdentityRef.current;
-      if (
-        myIdentity &&
-        myIdentity === data.userId &&
-        data.token &&
-        data.serverUrl &&
-        liveKit.roomRef.current
-      ) {
+      // Wait for LiveKit room to be available and get identity from it
+      const room = await getRoom();
+      const myIdentity = room?.localParticipant?.identity ?? myIdentityRef.current;
+      
+      if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast("Your speaking access has been removed");
         try {
-          await liveKit.roomRef.current.localParticipant.setMicrophoneEnabled(false);
-          await liveKit.roomRef.current.localParticipant.setCameraEnabled(false);
-          await liveKit.roomRef.current.disconnect(false);
-          await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
+          await room.localParticipant.setMicrophoneEnabled(false);
+          await room.localParticipant.setCameraEnabled(false);
+          await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
-          // Update canPublish state after successful reconnection
           liveKit.updateCanPublish(false);
         } catch (err) {
-          console.error("[LiveKit] Failed to reconnect as audience:", err);
+          console.error("[LiveKit] Failed to reconnect after demotion:", err);
         }
       }
     };
 
-    const handleCohostAdded = async (data: {
+    const handleBecameCohost = async (data: {
       userId: string;
       token?: string;
       serverUrl?: string;
     }) => {
-      const myIdentity = myIdentityRef.current;
-      if (
-        myIdentity &&
-        myIdentity === data.userId &&
-        data.token &&
-        data.serverUrl &&
-        liveKit.roomRef.current
-      ) {
+      // Wait for LiveKit room to be available and get identity from it
+      const room = await getRoom();
+      const myIdentity = room?.localParticipant?.identity ?? myIdentityRef.current;
+      
+      if (myIdentity === data.userId) {
+        setIsCohost(true);
+      }
+      
+      if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast.success("You are now a co-host!");
         try {
-          await liveKit.roomRef.current.disconnect(false);
-          await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
+          const accessToken = localStorage.getItem("access_token");
+          await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
-          // Update canPublish state after successful reconnection
+          if (accessToken && !localStorage.getItem("access_token")) {
+            localStorage.setItem("access_token", accessToken);
+          }
           liveKit.updateCanPublish(true);
+          if (myIdentity?.startsWith("guest_")) {
+            const maxAge = 60 * 60 * 4;
+            document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+            document.cookie = `livekit_server_url=${encodeURIComponent(data.serverUrl)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          }
         } catch (err) {
           console.error("[LiveKit] Failed to reconnect as co-host:", err);
         }
@@ -155,28 +170,27 @@ export function RoomProvider({
       token?: string;
       serverUrl?: string;
     }) => {
-      const myIdentity = myIdentityRef.current;
-      if (
-        myIdentity &&
-        myIdentity === data.userId &&
-        data.token &&
-        data.serverUrl &&
-        liveKit.roomRef.current
-      ) {
+      // Wait for LiveKit room to be available and get identity from it
+      const room = await getRoom();
+      const myIdentity = room?.localParticipant?.identity ?? myIdentityRef.current;
+      
+      if (myIdentity === data.userId) {
+        setIsCohost(false);
+      }
+      
+      if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast("Your co-host access has been removed");
         try {
-          await liveKit.roomRef.current.localParticipant.setMicrophoneEnabled(false);
-          await liveKit.roomRef.current.localParticipant.setCameraEnabled(false);
-          await liveKit.roomRef.current.disconnect(false);
-          await liveKit.roomRef.current.connect(data.serverUrl, data.token, {
+          await room.localParticipant.setMicrophoneEnabled(false);
+          await room.localParticipant.setCameraEnabled(false);
+          await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
-          // Update canPublish state after successful reconnection
           liveKit.updateCanPublish(false);
         } catch (err) {
           console.error(
             "[LiveKit] Failed to reconnect after co-host removal:",
-            err
+            err,
           );
         }
       }
@@ -215,9 +229,9 @@ export function RoomProvider({
       toast.success("Recording stopped — processing will finish shortly");
     };
 
-    sock.on("participant:promoted", handleParticipantPromoted);
-    sock.on("participant:demoted", handleParticipantDemoted);
-    sock.on("participant:became-cohost", handleCohostAdded);
+    sock.on("participant:promoted", handlePromoted);
+    sock.on("participant:demoted", handleDemoted);
+    sock.on("participant:became-cohost", handleBecameCohost);
     sock.on("participant:cohost-removed", handleCohostRemoved);
     sock.on("session:ended", handleSessionEnded);
     sock.on("settings:updated", handleSettingsUpdated);
@@ -227,9 +241,9 @@ export function RoomProvider({
     sock.on("recording:stopped", handleRecordingStopped);
 
     return () => {
-      sock.off("participant:promoted", handleParticipantPromoted);
-      sock.off("participant:demoted", handleParticipantDemoted);
-      sock.off("participant:became-cohost", handleCohostAdded);
+      sock.off("participant:promoted", handlePromoted);
+      sock.off("participant:demoted", handleDemoted);
+      sock.off("participant:became-cohost", handleBecameCohost);
       sock.off("participant:cohost-removed", handleCohostRemoved);
       sock.off("session:ended", handleSessionEnded);
       sock.off("settings:updated", handleSettingsUpdated);
@@ -238,14 +252,14 @@ export function RoomProvider({
       sock.off("recording:started", handleRecordingStarted);
       sock.off("recording:stopped", handleRecordingStopped);
     };
-  }, [socket.isConnected, liveKit.roomRef.current, settings]);
+  }, [socket.isConnected]); // ← only re-run when connection status changes
 
   // Callback setters
   const setOnWhiteboardDraw = useCallback(
     (fn: ((event: any) => void) | null) => {
       onWhiteboardDrawRef.current = fn;
     },
-    []
+    [],
   );
 
   const setOnWhiteboardClear = useCallback((fn: (() => void) | null) => {
@@ -256,21 +270,18 @@ export function RoomProvider({
     onPromotedRef.current = fn;
   }, []);
 
-  // Recording actions
-  const startRecording = useCallback(async () => {
+  // Recording actions via socket
+  const startRecording = useCallback(() => {
     setRecordingLoading(true);
     socketRef.current?.emit("recording:start");
-    // Fallback timeout
     setTimeout(() => setRecordingLoading(false), 5000);
   }, []);
 
-  const stopRecording = useCallback(async () => {
+  const stopRecording = useCallback(() => {
     setRecordingLoading(true);
     socketRef.current?.emit("recording:stop");
     setTimeout(() => setRecordingLoading(false), 5000);
   }, []);
-
-  const activeSpeakerIds = (liveKit as any).activeSpeakerIds ?? new Set();
 
   const value: RoomContextValue = {
     // LiveKit state
@@ -282,17 +293,17 @@ export function RoomProvider({
     isScreenSharing: liveKit.isScreenSharing,
     canPublish: liveKit.canPublish,
     liveKitError: liveKit.error,
-    activeSpeakerIds,
+    activeSpeakerIds: new Set<string>(), // populated by useLiveKit if needed
 
     // Socket state
     isSocketConnected: socket.isConnected,
     messages: socket.messages,
     participants: socket.participants,
     raisedHands: socket.raisedHands,
-    waitingParticipants: [], // Not implemented in existing hook
+    waitingParticipants: socket.waitingParticipants, // ← now from socket hook
 
     // Room settings
-    isCohost: false,
+    isCohost, // ← now from explicit state
     participantVideoEnabled: settings.participantVideoEnabled,
     participantMicEnabled: settings.participantMicEnabled,
     roomChatEnabled: settings.chatEnabled,
@@ -337,9 +348,7 @@ export function RoomProvider({
     setOnPromoted,
   };
 
-  return (
-    <RoomContext.Provider value={value}>{children}</RoomContext.Provider>
-  );
+  return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;
 }
 
 export function useRoom() {

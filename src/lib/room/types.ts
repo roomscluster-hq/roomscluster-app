@@ -80,8 +80,8 @@ export interface RoomActions {
   removeCohost: (userId: string) => void;
 
   // Recording
-  startRecording: () => Promise<void>;
-  stopRecording: () => Promise<void>;
+  startRecording: () => void;
+  stopRecording: () => void;
 
   // Callback setters
   setOnWhiteboardDraw: (fn: ((event: any) => void) | null) => void;
