@@ -13,13 +13,16 @@ export function useLiveKit(joinCode: string) {
   const connectingRef = useRef(false);
   const [localParticipant, setLocalParticipant] =
     useState<LocalParticipant | null>(null);
-  const [remoteParticipants, setRemoteParticipants] = useState<RemoteParticipant[]>([]);
+  const [remoteParticipants, setRemoteParticipants] = useState<
+    RemoteParticipant[]
+  >([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isCameraOff, setIsCameraOff] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [canPublish, setCanPublish] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const canPublishRef = useRef(false);
 
   useEffect(() => {
     // Prevent double connect
@@ -40,9 +43,14 @@ export function useLiveKit(joinCode: string) {
     newRoom.on(RoomEvent.TrackSubscribed, updateParticipants);
     newRoom.on(RoomEvent.TrackUnsubscribed, updateParticipants);
     newRoom.on(RoomEvent.LocalTrackPublished, updateParticipants);
+    newRoom.on(RoomEvent.TrackPublished, updateParticipants);
+    newRoom.on(RoomEvent.TrackUnpublished, updateParticipants);
     newRoom.on(RoomEvent.Disconnected, () => {
       setIsConnected(false);
       connectingRef.current = false;
+    });
+    newRoom.on(RoomEvent.Connected, () => {
+      setIsConnected(true);
     });
 
     async function connect() {
@@ -70,6 +78,7 @@ export function useLiveKit(joinCode: string) {
 
         roomRef.current = newRoom;
         setCanPublish(publish);
+        canPublishRef.current = publish;
         await newRoom.connect(serverUrl, token);
         setLocalParticipant(newRoom.localParticipant);
         setRemoteParticipants([...newRoom.remoteParticipants.values()]);
@@ -92,48 +101,49 @@ export function useLiveKit(joinCode: string) {
   }, [joinCode]);
 
   useEffect(() => {
-  const handleVisibilityChange = () => {
-    const room = roomRef.current;
-    if (!room) return;
+    const handleVisibilityChange = () => {
+      const room = roomRef.current;
+      if (!room) return;
 
-    if (document.visibilityState === "visible") {
-      if (room.state === "disconnected") {
-        console.log("[LiveKit] Tab visible — reconnecting");
-        // Re-run connection by fetching a fresh token
-        livekitApi.getToken(joinCode).then(data => {
-          room.connect(data.serverUrl, data.token).catch(console.error);
-        });
+      if (document.visibilityState === "visible") {
+        if (room.state === "disconnected") {
+          console.log("[LiveKit] Tab visible — reconnecting");
+          // Re-run connection by fetching a fresh token
+          livekitApi.getToken(joinCode).then((data) => {
+            room.connect(data.serverUrl, data.token).catch(console.error);
+          });
+        }
       }
-    }
-  };
+    };
 
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-  return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-}, [joinCode]);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [joinCode]);
 
   const toggleMic = useCallback(async () => {
     const room = roomRef.current;
-    if (!room || !canPublish) return;
+    if (!room || !canPublishRef.current) return;
     const enabled = !room.localParticipant.isMicrophoneEnabled;
     await room.localParticipant.setMicrophoneEnabled(enabled);
     setIsMuted(!enabled);
-  }, [canPublish]);
+  }, []); // ← no dependency needed since we use ref
 
   const toggleCamera = useCallback(async () => {
     const room = roomRef.current;
-    if (!room || !canPublish) return;
+    if (!room || !canPublishRef.current) return;
     const enabled = !room.localParticipant.isCameraEnabled;
     await room.localParticipant.setCameraEnabled(enabled);
     setIsCameraOff(!enabled);
-  }, [canPublish]);
+  }, []); // ← no dependency needed
 
   const toggleScreenShare = useCallback(async () => {
     const room = roomRef.current;
-    if (!room || !canPublish) return;
+    if (!room || !canPublishRef.current) return;
     const enabled = !room.localParticipant.isScreenShareEnabled;
     await room.localParticipant.setScreenShareEnabled(enabled);
     setIsScreenSharing(enabled);
-  }, [canPublish]);
+  }, []); // ← no dependency needed
 
   const disconnect = useCallback(async () => {
     if (roomRef.current) {
@@ -144,8 +154,14 @@ export function useLiveKit(joinCode: string) {
     setIsConnected(false);
   }, []);
 
+  // Function to update canPublish state externally (e.g., after promotion)
+  const updateCanPublish = useCallback((value: boolean) => {
+    canPublishRef.current = value;
+    setCanPublish(value);
+  }, []);
+
   return {
-    room: roomRef.current,
+    roomRef,
     localParticipant,
     remoteParticipants,
     isConnected,
@@ -153,6 +169,7 @@ export function useLiveKit(joinCode: string) {
     isCameraOff,
     isScreenSharing,
     canPublish,
+    updateCanPublish,
     error,
     toggleMic,
     toggleCamera,

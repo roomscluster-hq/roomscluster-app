@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionSettingsApi, SessionSettings } from "@/lib/api/session-settings.api";
 import { useRoom } from "@/contexts/RoomContext";
 import { toast } from "sonner";
+import { Socket } from "socket.io-client";
 
 interface ToggleRowProps {
   label: string;
@@ -41,8 +42,41 @@ function ToggleRow({ label, description, checked, onChange, disabled, dark }: To
 
 interface SessionSettingsPanelProps {
   sessionId: string;
-  joinCode?: string;  // when provided, broadcasts changes to the live room via socket
+  joinCode?: string;  // when provided, uses socket instead of HTTP (supports guest co-hosts)
   compact?: boolean;
+}
+
+// Helper to update settings via socket with promise-based response handling
+function updateSettingsViaSocket(
+  socket: Socket,
+  joinCode: string,
+  settings: Partial<Omit<SessionSettings, "id" | "sessionId">>
+): Promise<SessionSettings> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      socket.off("settings:updated", handleSuccess);
+      socket.off("error", handleError);
+      reject(new Error("Settings update timeout"));
+    }, 10000);
+
+    const handleSuccess = (updated: SessionSettings) => {
+      clearTimeout(timeoutId);
+      socket.off("settings:updated", handleSuccess);
+      socket.off("error", handleError);
+      resolve(updated);
+    };
+
+    const handleError = (error: { message?: string }) => {
+      clearTimeout(timeoutId);
+      socket.off("settings:updated", handleSuccess);
+      socket.off("error", handleError);
+      reject(new Error(error.message || "Failed to update settings"));
+    };
+
+    socket.once("settings:updated", handleSuccess);
+    socket.once("error", handleError);
+    socket.emit("settings:update", { joinCode, settings });
+  });
 }
 
 export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: SessionSettingsPanelProps) {
@@ -50,10 +84,12 @@ export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: S
 
   // socketRef is only available inside RoomProvider — outside the room
   // (session detail page), useRoom() will throw, so we guard it.
-  let socketRef: React.RefObject<any> | null = null;
+  let socketRef: React.RefObject<Socket | null> | null = null;
+  let isSocketConnected = false;
   try {
     const room = useRoom();
     socketRef = room.socketRef;
+    isSocketConnected = room.isSocketConnected;
   } catch {
     // Not inside RoomProvider — session detail page usage, no socket needed
   }
@@ -63,17 +99,26 @@ export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: S
     queryFn: () => sessionSettingsApi.get(sessionId),
   });
 
+  // Determine if we should use socket (inside room with active connection) or HTTP
+  const shouldUseSocket = Boolean(joinCode && socketRef?.current && isSocketConnected);
+
   const updateMutation = useMutation({
-    mutationFn: (data: Partial<Omit<SessionSettings, "id" | "sessionId">>) =>
-      sessionSettingsApi.update(sessionId, data),
-    onSuccess: (updated, variables) => {
-      queryClient.setQueryData(["session-settings", sessionId], updated);
-      // Broadcast to live room participants via socket if we're inside a room
-      if (joinCode && socketRef?.current) {
-        socketRef.current.emit("settings:update", { joinCode, settings: variables });
+    mutationFn: async (data: Partial<Omit<SessionSettings, "id" | "sessionId">>) => {
+      if (shouldUseSocket && socketRef?.current) {
+        // Use socket for guests and co-hosts inside the room
+        // This bypasses JWT requirement - server validates via socket map
+        return updateSettingsViaSocket(socketRef.current, joinCode!, data);
+      } else {
+        // Fallback to HTTP for session detail page (host only, has JWT)
+        return sessionSettingsApi.update(sessionId, data);
       }
     },
-    onError: () => toast.error("Failed to update settings"),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["session-settings", sessionId], updated);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update settings");
+    },
   });
 
   function toggle(key: keyof Omit<SessionSettings, "id" | "sessionId">) {

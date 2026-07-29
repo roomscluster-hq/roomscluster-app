@@ -91,7 +91,7 @@ export function Whiteboard({
     return (
         <div className="flex flex-col h-full bg-gray-800">
             {/* Toolbar */}
-            <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-gray-900 border-b border-gray-700 flex-wrap">
+            <div className="shrink-0 flex items-center gap-3 px-4 py-2 bg-gray-900 border-b border-gray-700 flex-wrap">
 
                 {/* Tools */}
                 <div className="flex gap-1">
