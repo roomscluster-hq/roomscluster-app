@@ -65,7 +65,7 @@ export function useLiveKit(joinCode: string) {
         if (guestToken && guestServerUrl) {
           token = guestToken;
           serverUrl = decodeURIComponent(guestServerUrl);
-          publish = false;
+          publish = getCookie("guest_can_publish") === "true";
         } else {
           const data = await livekitApi.getToken(joinCode);
           token = data.token;
@@ -156,6 +156,7 @@ export function useLiveKit(joinCode: string) {
 
   // Function to update canPublish state externally (e.g., after promotion)
   const updateCanPublish = useCallback((value: boolean) => {
+    console.log('[LiveKit] updateCanPublish called:', value, 'current:', canPublishRef.current);
     canPublishRef.current = value;
     setCanPublish(value);
   }, []);

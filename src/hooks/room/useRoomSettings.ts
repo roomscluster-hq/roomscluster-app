@@ -12,6 +12,7 @@ export function useRoomSettings(sessionId: string): UseRoomSettingsReturn {
     chatEnabled: true,
     participantVideoEnabled: true,
     participantMicEnabled: true,
+    recordingEnabled: true,
   });
 
   // Load initial session settings
@@ -28,6 +29,7 @@ export function useRoomSettings(sessionId: string): UseRoomSettingsReturn {
             chatEnabled: s.chatEnabled ?? true,
             participantVideoEnabled: s.participantVideoEnabled ?? true,
             participantMicEnabled: s.participantMicEnabled ?? true,
+            recordingEnabled: s.recordingEnabled ?? true,
           });
         }
       } catch {

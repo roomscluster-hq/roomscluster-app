@@ -54,6 +54,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
     currentUserId,
     isHost,
     isCohost,
+    isSpeaker,
     canManage,
     handRaised,
     elapsedSeconds,
@@ -75,6 +76,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
     roomChatEnabled,
     roomVideoEnabled,
     roomMicEnabled,
+    roomRecordingEnabled,
     socketRef,
     formatElapsed,
     handleRaiseHand,
@@ -282,9 +284,11 @@ function RoomContent({ joinCode }: RoomContentProps) {
           canPublish={canPublish}
           isHost={isHost}
           isCohost={isCohost}
+          isSpeaker={isSpeaker}
           handRaised={handRaised}
           isRecording={isRecording}
           recordingLoading={recordingLoading}
+          recordingEnabled={roomRecordingEnabled}
           isWhiteboard={mainView === "whiteboard"}
           unreadChat={messages.length}
           peopleCount={participants.length}
