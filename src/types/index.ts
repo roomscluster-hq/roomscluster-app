@@ -48,6 +48,7 @@ export interface Session {
     participants: number;
     registrations: number;
     recordings: number;
+    attendance: number;
   };
 }
 

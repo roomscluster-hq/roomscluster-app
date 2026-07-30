@@ -72,7 +72,7 @@ export default function SessionDetailPage() {
 
       {/* Stats */}
       <SessionStats
-        participants={session._count?.participants ?? 0}
+        participants={attendance?.length ?? 0}
         registrations={session._count?.registrations ?? 0}
         scheduledAt={session.scheduledAt}
         formatDateTime={formatDateTime}

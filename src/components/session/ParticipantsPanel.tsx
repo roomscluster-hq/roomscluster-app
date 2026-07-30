@@ -167,7 +167,14 @@ export function ParticipantsPanel({
   onMakeCohost,
   onRemoveCohost,
 }: ParticipantsPanelProps) {
-  const raisedHandIds = new Set(raisedHands.map(h => h.userId));
+  // Deduplicate raised hands by userId
+  const seenRaisedHands = new Set<string>();
+  const dedupedRaisedHands = raisedHands.filter(h => {
+    if (seenRaisedHands.has(h.userId)) return false;
+    seenRaisedHands.add(h.userId);
+    return true;
+  });
+  const raisedHandIds = new Set(dedupedRaisedHands.map(h => h.userId));
   const canManage = isHost || isCohost;
 
   const seen = new Set<string>();
@@ -195,13 +202,13 @@ export function ParticipantsPanel({
       </div>
 
       {/* Raised hands section */}
-      {raisedHands.length > 0 && (
+      {dedupedRaisedHands.length > 0 && (
         <div className="shrink-0 px-4 py-2 border-b border-white/10 bg-warning-500/10">
           <p className="text-xs text-warning-500 font-medium mb-2">
-            ✋ Raised hands ({raisedHands.length})
+            ✋ Raised hands ({dedupedRaisedHands.length})
           </p>
           <div className="space-y-1">
-            {raisedHands.map(h => (
+            {dedupedRaisedHands.map(h => (
               <div key={h.userId} className="flex items-center justify-between">
                 <span className="text-gray-300 text-xs">{h.name}</span>
                 {canManage && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LocalParticipant,
   RemoteParticipant,
@@ -250,19 +250,47 @@ export function VideoGrid({
   const [page, setPage] = useState(0);
   const raisedHandIds = new Set(raisedHands.map((h) => h.userId));
 
-  const screenSharingSources = [
-    ...(localParticipant ? [localParticipant] : []),
-    ...remoteParticipants,
-  ].filter((p) =>
-    [...p.videoTrackPublications.values()].some(
-      (pub) => pub.track?.source === Track.Source.ScreenShare,
-    ),
-  );
+  // Build screen sharing sources with deduplication
+  const screenSharingSources = useMemo(() => {
+    const seen = new Set<string>();
+    const candidates = [
+      ...(localParticipant ? [localParticipant] : []),
+      ...remoteParticipants,
+    ];
+    
+    return candidates.filter((p) => {
+      // Skip duplicates
+      if (seen.has(p.identity)) return false;
+      seen.add(p.identity);
+      
+      // Check if sharing screen
+      return [...p.videoTrackPublications.values()].some(
+        (pub) => pub.track?.source === Track.Source.ScreenShare,
+      );
+    });
+  }, [localParticipant, remoteParticipants]);
 
-  const allParticipants = [
-    ...(localParticipant ? [{ participant: localParticipant as LocalParticipant | RemoteParticipant, isLocal: true }] : []),
-    ...remoteParticipants.map((p) => ({ participant: p as LocalParticipant | RemoteParticipant, isLocal: false })),
-  ];
+  // Build participants list with deduplication - local participant takes priority
+  const allParticipants = useMemo(() => {
+    const seen = new Set<string>();
+    const result: { participant: LocalParticipant | RemoteParticipant; isLocal: boolean }[] = [];
+    
+    // Add local participant first
+    if (localParticipant) {
+      result.push({ participant: localParticipant, isLocal: true });
+      seen.add(localParticipant.identity);
+    }
+    
+    // Add remote participants, skipping any duplicates
+    for (const p of remoteParticipants) {
+      if (!seen.has(p.identity)) {
+        result.push({ participant: p, isLocal: false });
+        seen.add(p.identity);
+      }
+    }
+    
+    return result;
+  }, [localParticipant, remoteParticipants]);
 
   const totalPages = Math.ceil(allParticipants.length / PAGE_SIZE);
   const paginated = allParticipants.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
