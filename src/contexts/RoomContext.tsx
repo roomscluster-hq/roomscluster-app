@@ -225,8 +225,22 @@ export function RoomProvider({
       chatEnabled?: boolean;
       participantVideoEnabled?: boolean;
       participantMicEnabled?: boolean;
+      waitingRoomEnabled?: boolean;
+      recordingEnabled?: boolean;
     }) => {
       settings.updateSettings(s);
+
+      if (!isCohost) {
+        const room = liveKit.roomRef.current;
+        if (room) {
+          if (s.participantMicEnabled === false) {
+            room.localParticipant.setMicrophoneEnabled(false).catch(() => {});
+          }
+          if (s.participantVideoEnabled === false) {
+            room.localParticipant.setCameraEnabled(false).catch(() => {});
+          }
+        }
+      }
     };
 
     const handleWhiteboardDraw = (data: any) => {
