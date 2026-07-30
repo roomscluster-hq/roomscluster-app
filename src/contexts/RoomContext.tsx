@@ -38,6 +38,10 @@ export function RoomProvider({
 
   // isCohost as explicit state — set from socket events, not derived from participants
   const [isCohost, setIsCohost] = useState(false);
+  
+  // isSpeaker as explicit state — set when user is promoted to speaker
+  // Speakers bypass settings restrictions (like co-hosts)
+  const [isSpeaker, setIsSpeaker] = useState(false);
 
   // Refs
   const onWhiteboardDrawRef = useRef<((event: any) => void) | null>(null);
@@ -88,6 +92,10 @@ export function RoomProvider({
       const myIdentity =
         room?.localParticipant?.identity ?? myIdentityRef.current;
 
+      if (myIdentity === data.userId) {
+        setIsSpeaker(true); // Mark as speaker - bypasses settings
+      }
+
       if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast.success("You can now speak!");
         try {
@@ -115,24 +123,31 @@ export function RoomProvider({
       userId: string;
       token?: string;
       serverUrl?: string;
+      canPublish?: boolean;
     }) => {
-      // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
       const myIdentity =
         room?.localParticipant?.identity ?? myIdentityRef.current;
 
+      if (myIdentity === data.userId) {
+        setIsSpeaker(false); // Clear speaker status - fallback to settings
+      }
+
       if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast("Your speaking access has been removed");
         try {
-          await room.localParticipant.setMicrophoneEnabled(false);
-          await room.localParticipant.setCameraEnabled(false);
+          // Only mute if we're actually losing publish access
+          if (!data.canPublish) {
+            await room.localParticipant.setMicrophoneEnabled(false);
+            await room.localParticipant.setCameraEnabled(false);
+          }
           if (room.state !== "disconnected") {
             await room.disconnect();
           }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
-          liveKit.updateCanPublish(false);
+          liveKit.updateCanPublish(data.canPublish ?? false);
           liveKit.syncLocalParticipant();
         } catch (err) {
           console.error("[LiveKit] Failed to reconnect after demotion:", err);
@@ -152,6 +167,7 @@ export function RoomProvider({
 
       if (myIdentity === data.userId) {
         setIsCohost(true);
+        setIsSpeaker(false); // Cohost is a higher role, no need for speaker flag
       }
 
       if (myIdentity === data.userId && data.token && data.serverUrl && room) {
@@ -184,6 +200,7 @@ export function RoomProvider({
       userId: string;
       token?: string;
       serverUrl?: string;
+      canPublish?: boolean;
     }) => {
       // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
@@ -192,20 +209,24 @@ export function RoomProvider({
 
       if (myIdentity === data.userId) {
         setIsCohost(false);
+        setIsSpeaker(false); // When removed as cohost, become regular guest (not speaker)
       }
 
       if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast("Your co-host access has been removed");
         try {
-          await room.localParticipant.setMicrophoneEnabled(false);
-          await room.localParticipant.setCameraEnabled(false);
+          // Only mute if we're actually losing publish access
+          if (!data.canPublish) {
+            await room.localParticipant.setMicrophoneEnabled(false);
+            await room.localParticipant.setCameraEnabled(false);
+          }
           if (room.state !== "disconnected") {
             await room.disconnect();
           }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
-          liveKit.updateCanPublish(false);
+          liveKit.updateCanPublish(data.canPublish ?? false);
           liveKit.syncLocalParticipant();
         } catch (err) {
           console.error(
@@ -263,6 +284,43 @@ export function RoomProvider({
       toast.success("Recording stopped — processing will finish shortly");
     };
 
+    const handleSettingsTokenUpdated = async (data: {
+      userId: string;
+      token: string;
+      serverUrl: string;
+      canPublish: boolean;
+    }) => {
+      console.log('[Socket] settings:token-updated received:', data);
+      const myIdentity =
+        myIdentityRef.current ??
+        liveKit.roomRef.current?.localParticipant?.identity;
+      console.log('[Socket] My identity:', myIdentity, 'Event userId:', data.userId);
+      
+      // Check if this event is for us - match by identity or email (for guests)
+      const isForMe = myIdentity === data.userId || 
+        (myIdentity?.startsWith('guest_') && data.userId?.includes('@'));
+      
+      if (!isForMe) {
+        console.log('[Socket] Event not for me, skipping');
+        return;
+      }
+
+      const room = await getRoom();
+      if (!room) return;
+
+      try {
+        console.log('[LiveKit] Reconnecting with new token, canPublish:', data.canPublish);
+        await room.disconnect(false);
+        await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
+        liveKit.updateCanPublish(data.canPublish);
+        console.log('[LiveKit] Token update complete, canPublish set to:', data.canPublish);
+        // No toast — silent update
+      } catch (err) {
+        console.error("[LiveKit] Failed to update token from settings:", err);
+      }
+    };
+
+    sock.on("settings:token-updated", handleSettingsTokenUpdated);
     sock.on("participant:promoted", handlePromoted);
     sock.on("participant:demoted", handleDemoted);
     sock.on("participant:became-cohost", handleBecameCohost);
@@ -338,11 +396,13 @@ export function RoomProvider({
 
     // Room settings
     isCohost, // ← now from explicit state
+    isSpeaker, // ← now from explicit state - speakers bypass settings
     participantVideoEnabled: settings.participantVideoEnabled,
     participantMicEnabled: settings.participantMicEnabled,
     roomChatEnabled: settings.chatEnabled,
     roomVideoEnabled: settings.participantVideoEnabled,
     roomMicEnabled: settings.participantMicEnabled,
+    roomRecordingEnabled: settings.recordingEnabled,
 
     // Recording
     isRecording,

@@ -12,9 +12,11 @@ interface ControlBarProps {
   canPublish: boolean;
   isHost: boolean;
   isCohost: boolean;
+  isSpeaker: boolean;
   handRaised: boolean;
   isRecording: boolean;
   recordingLoading: boolean;
+  recordingEnabled: boolean;
   isWhiteboard: boolean;
   unreadChat: number;
   peopleCount: number;
@@ -199,9 +201,11 @@ export function ControlBar(props: ControlBarProps) {
     canPublish,
     isHost,
     isCohost,
+    isSpeaker,
     handRaised,
     isRecording,
     recordingLoading,
+    recordingEnabled,
     isWhiteboard,
     unreadChat,
     peopleCount,
@@ -223,11 +227,15 @@ export function ControlBar(props: ControlBarProps) {
 
   const canManage = isHost || isCohost;
 
-  // Mic is disabled if: no publish permission, OR host has disabled mics
-  // Host and co-host are never restricted by participant settings
-  const micDisabled = !canPublish || (!canManage && !participantMicEnabled);
-  const cameraDisabled =
-    !canPublish || (!canManage && !participantVideoEnabled);
+  // Host/Co-host/Speaker: bypass settings restrictions
+  // Regular guests: must follow settings
+  const canBypassSettings = isHost || isCohost || isSpeaker;
+
+  // Mic/Camera disabled if:
+  // 1. No publish permission at all (canPublish: false), OR
+  // 2. User is regular guest (not host/cohost/speaker) AND setting is disabled
+  const micDisabled = !canPublish || (!canBypassSettings && !participantMicEnabled);
+  const cameraDisabled = !canPublish || (!canBypassSettings && !participantVideoEnabled);
 
   return (
     <div
@@ -242,7 +250,7 @@ export function ControlBar(props: ControlBarProps) {
             active={!isMuted}
             disabled={micDisabled}
             title={
-              !participantMicEnabled && canPublish
+              !participantMicEnabled && canPublish && !canManage
                 ? "Microphone disabled by host"
                 : isMuted
                   ? "Unmute"
@@ -258,7 +266,7 @@ export function ControlBar(props: ControlBarProps) {
             active={!isCameraOff}
             disabled={cameraDisabled}
             title={
-              !participantVideoEnabled && canPublish
+              !participantVideoEnabled && canPublish && !canManage
                 ? "Camera disabled by host"
                 : isCameraOff
                   ? "Turn on camera"
@@ -274,8 +282,14 @@ export function ControlBar(props: ControlBarProps) {
             <ControlButton
               onClick={onToggleRecording}
               active={isRecording}
-              disabled={recordingLoading}
-              title={isRecording ? "Stop recording" : "Start recording"}
+              disabled={recordingLoading || !recordingEnabled}
+              title={
+                !recordingEnabled
+                  ? "Recording disabled in settings"
+                  : isRecording
+                    ? "Stop recording"
+                    : "Start recording"
+              }
             >
               <RecordIcon recording={isRecording} loading={recordingLoading} />
               <Label>{isRecording ? "Stop Rec" : "Record"}</Label>
@@ -319,8 +333,8 @@ export function ControlBar(props: ControlBarProps) {
           <ControlButton
             onClick={onToggleScreenShare}
             active={isScreenSharing}
-            disabled={!canPublish}
-            title="Screen Share"
+            disabled={!canPublish || !canBypassSettings}
+            title={canBypassSettings ? "Screen Share" : "Screen sharing requires speaker or co-host role"}
           >
             <ScreenShareIcon />
             <Label>Share</Label>
@@ -355,7 +369,7 @@ export function ControlBar(props: ControlBarProps) {
           active={!isMuted}
           disabled={micDisabled}
           title={
-            !participantMicEnabled && canPublish
+            !participantMicEnabled && canPublish && !canManage
               ? "Microphone disabled by host"
               : isMuted
                 ? "Unmute"
@@ -371,7 +385,7 @@ export function ControlBar(props: ControlBarProps) {
           active={!isCameraOff}
           disabled={cameraDisabled}
           title={
-            !participantVideoEnabled && canPublish
+            !participantVideoEnabled && canPublish && !canManage
               ? "Camera disabled by host"
               : isCameraOff
                 ? "Turn on camera"
@@ -457,7 +471,7 @@ export function ControlBar(props: ControlBarProps) {
               onToggleScreenShare();
               setMoreOpen(false);
             }}
-            disabled={!canPublish}
+            disabled={!canPublish || !canBypassSettings}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
           >
             <ScreenShareIcon />

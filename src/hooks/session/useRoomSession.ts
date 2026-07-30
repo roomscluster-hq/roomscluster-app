@@ -59,9 +59,11 @@ export function useRoomSession() {
     makeCohost,
     removeCohost,
     isCohost,
+    isSpeaker,
     roomChatEnabled,
     roomVideoEnabled,
     roomMicEnabled,
+    roomRecordingEnabled,
   } = useRoom();
 
   const { data: session, isLoading } = useQuery({
@@ -170,8 +172,10 @@ export function useRoomSession() {
     roomChatEnabled,
     roomVideoEnabled,
     roomMicEnabled,
+    roomRecordingEnabled,
     socketRef,
     isCohost,
+    isSpeaker,
     
     // Actions
     formatElapsed,

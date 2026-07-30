@@ -34,6 +34,7 @@ export default function GuestJoinPage() {
       document.cookie = `guest_email=${encodeURIComponent(email)}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `guest_identity=${encodeURIComponent(tokenData.guestIdentity ?? "")}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `livekit_server_url=${encodeURIComponent(tokenData.serverUrl ?? "")}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      document.cookie = `guest_can_publish=${tokenData.canPublish}; path=/; max-age=${maxAge}; SameSite=Lax`;
 
       // ── Waiting room gate ────────────────────────────
       if (session?.id) {

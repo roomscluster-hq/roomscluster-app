@@ -19,6 +19,7 @@ export interface RoomSettings {
   chatEnabled?: boolean;
   participantVideoEnabled?: boolean;
   participantMicEnabled?: boolean;
+  recordingEnabled?: boolean;
 }
 
 export interface RoomState {
@@ -42,11 +43,13 @@ export interface RoomState {
 
   // Room settings
   isCohost: boolean;
+  isSpeaker: boolean; // Promoted speakers bypass settings restrictions
   participantVideoEnabled: boolean;
   participantMicEnabled: boolean;
   roomChatEnabled: boolean;
   roomVideoEnabled: boolean;
   roomMicEnabled: boolean;
+  roomRecordingEnabled: boolean;
 
   // Recording
   isRecording: boolean;
