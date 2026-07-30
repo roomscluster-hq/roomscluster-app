@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 const TAKE = 30;
 
-export function useFolderManagement() {
+export function useFolderManagement(statusFilter?: string) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -40,8 +40,8 @@ export function useFolderManagement() {
 
   // Fetch folder contents
   const { data: contents, isLoading, isFetching } = useQuery({
-    queryKey: ["folder-contents", currentFolderId, skip],
-    queryFn: () => foldersApi.getContents(currentFolderId, skip, TAKE),
+    queryKey: ["folder-contents", currentFolderId, skip, statusFilter],
+    queryFn: () => foldersApi.getContents(currentFolderId, skip, TAKE, statusFilter),
   });
 
   // Fetch breadcrumbs
@@ -66,16 +66,7 @@ export function useFolderManagement() {
     }, 0);
 
     return () => clearTimeout(t);
-  }, [contents]);
-  
-  // Reset skip when contents change
-  useEffect(() => {
-    if (skip !== 0) {
-      // Defer state update to avoid synchronous setState within effect body
-      const t = setTimeout(() => setSkip(0), 0);
-      return () => clearTimeout(t);
-    }
-  }, [contents]);
+  }, [contents, skip]);
 
   // Load more
   const loadMore = () => {

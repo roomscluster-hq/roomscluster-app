@@ -26,10 +26,11 @@ export const foldersApi = {
         return unwrap(res);
     },
 
-    getContents: async (folderId?: string, skip = 0, take = 30) => {
+    getContents: async (folderId?: string, skip = 0, take = 30, status?: string) => {
         const res = await client.get<{ data: FolderContents }>("/folders/contents", {
             params: {
                 ...(folderId ? { folderId } : {}),
+                ...(status && status !== "ALL" ? { status } : {}),
                 skip,
                 take,
             },

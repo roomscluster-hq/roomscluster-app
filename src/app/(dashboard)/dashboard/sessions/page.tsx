@@ -65,7 +65,7 @@ export default function SessionsExplorerPage() {
     handleDropOnFolder,
     cancelCreatingFolder,
     isCreatingFolder,
-  } = useFolderManagement();
+  } = useFolderManagement(statusFilter);
 
   const { moveSession, confirmDeleteSession } = useSessionManagement();
 
@@ -76,12 +76,15 @@ export default function SessionsExplorerPage() {
   });
   const activeOrg = organizations?.find((o) => o.isActive);
 
-  // Filter sessions by status
+  // Deduplicate sessions by id (backend now handles status filtering)
   const sessions = useMemo(() => {
-    return statusFilter === "ALL"
-      ? allSessions
-      : allSessions.filter((s) => s.status === statusFilter);
-  }, [allSessions, statusFilter]);
+    const seen = new Set<string>();
+    return allSessions.filter((s) => {
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    });
+  }, [allSessions]);
 
   const isEmpty = folders.length === 0 && allSessions.length === 0;
 
@@ -324,7 +327,9 @@ interface Session {
   scheduledAt?: string;
   _count?: {
     participants: number;
+    registrations: number;
     recordings: number;
+    attendance: number;
   };
 }
 
@@ -377,8 +382,8 @@ function SessionGrid({ sessions, onDragStart, currentFolderId, onMoveToRoot, onD
                 <span>
                   {session.scheduledAt ? formatDateTime(session.scheduledAt) : "Instant session"}
                 </span>
-                {(session._count?.participants ?? 0) > 0 && (
-                  <span>{session._count?.participants} participants</span>
+                {(session._count?.attendance ?? 0) > 0 && (
+                  <span>{session._count?.attendance} participants</span>
                 )}
               </div>
               {(session._count?.recordings ?? 0) > 0 && (

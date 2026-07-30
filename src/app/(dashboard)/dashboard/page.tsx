@@ -18,8 +18,8 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
 
   const { data: sessions, isLoading } = useQuery({
-    queryKey: ["sessions"],
-    queryFn: sessionsApi.getAll,
+    queryKey: ["sessions", "ALL"],
+    queryFn: () => sessionsApi.getAll("ALL"),
   });
 
   const { data: organizations } = useQuery({
@@ -32,16 +32,16 @@ export default function DashboardPage() {
     total: sessions?.length ?? 0,
     live: sessions?.filter((s) => s.status === "LIVE").length ?? 0,
     scheduled: sessions?.filter((s) => s.status === "SCHEDULED").length ?? 0,
-    participants: sessions?.reduce((sum, s) => sum + (s._count?.participants ?? 0), 0) ?? 0,
+    participants: sessions?.reduce((sum, s) => sum + (s._count?.attendance ?? 0), 0) ?? 0,
   };
 
   const recentSessions = sessions?.slice(0, 5) ?? [];
 
   const nextSession = useMemo(() => {
     if (!sessions) return null;
-    const now = Date.now();
+
     return sessions
-      .filter((s) => s.status === "SCHEDULED" && s.scheduledAt && new Date(s.scheduledAt).getTime() > now)
+      .filter((s) => s.status === "SCHEDULED" && s.scheduledAt)
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())[0] ?? null;
   }, [sessions]);
 
@@ -53,7 +53,7 @@ export default function DashboardPage() {
           Welcome back, {user?.name ?? "Host"} 👋
         </h1>
         <p className="text-ink-700/60 text-sm mt-1">
-          Here's what's happening with your sessions today.
+          Here&apos;s what&apos;s happening with your sessions today.
         </p>
       </div>
 
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                         <td className="px-6 py-4 text-ink-700/60">
                           {s.scheduledAt ? formatDateTime(s.scheduledAt) : "Instant session"}
                         </td>
-                        <td className="px-6 py-4 text-right text-ink-900">{s._count?.participants ?? 0}</td>
+                        <td className="px-6 py-4 text-right text-ink-900">{s._count?.attendance ?? 0}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -165,8 +165,8 @@ export default function DashboardPage() {
                       <p className="text-xs text-ink-700/50 mt-0.5">
                         {s.scheduledAt ? formatDateTime(s.scheduledAt) : "Instant session"}
                         {" · "}
-                        {s._count?.participants ?? 0} participant
-                        {(s._count?.participants ?? 0) !== 1 ? "s" : ""}
+                        {s._count?.attendance ?? 0} participant
+                        {(s._count?.attendance ?? 0) !== 1 ? "s" : ""}
                       </p>
                     </div>
                     <StatusBadge status={s.status} />
