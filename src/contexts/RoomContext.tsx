@@ -85,15 +85,20 @@ export function RoomProvider({
     }) => {
       // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
-      const myIdentity = room?.localParticipant?.identity ?? myIdentityRef.current;
-      
+      const myIdentity =
+        room?.localParticipant?.identity ?? myIdentityRef.current;
+
       if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast.success("You can now speak!");
         try {
+          if (room.state !== "disconnected") {
+            await room.disconnect();
+          }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
           liveKit.updateCanPublish(true);
+          liveKit.syncLocalParticipant();
           if (myIdentity.startsWith("guest_")) {
             const maxAge = 60 * 60 * 4;
             document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
@@ -113,17 +118,22 @@ export function RoomProvider({
     }) => {
       // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
-      const myIdentity = room?.localParticipant?.identity ?? myIdentityRef.current;
-      
+      const myIdentity =
+        room?.localParticipant?.identity ?? myIdentityRef.current;
+
       if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast("Your speaking access has been removed");
         try {
           await room.localParticipant.setMicrophoneEnabled(false);
           await room.localParticipant.setCameraEnabled(false);
+          if (room.state !== "disconnected") {
+            await room.disconnect();
+          }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
           liveKit.updateCanPublish(false);
+          liveKit.syncLocalParticipant();
         } catch (err) {
           console.error("[LiveKit] Failed to reconnect after demotion:", err);
         }
@@ -137,16 +147,20 @@ export function RoomProvider({
     }) => {
       // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
-      const myIdentity = room?.localParticipant?.identity ?? myIdentityRef.current;
-      
+      const myIdentity =
+        room?.localParticipant?.identity ?? myIdentityRef.current;
+
       if (myIdentity === data.userId) {
         setIsCohost(true);
       }
-      
+
       if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast.success("You are now a co-host!");
         try {
           const accessToken = localStorage.getItem("access_token");
+          if (room.state !== "disconnected") {
+            await room.disconnect();
+          }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
@@ -154,6 +168,7 @@ export function RoomProvider({
             localStorage.setItem("access_token", accessToken);
           }
           liveKit.updateCanPublish(true);
+          liveKit.syncLocalParticipant();
           if (myIdentity?.startsWith("guest_")) {
             const maxAge = 60 * 60 * 4;
             document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
@@ -172,21 +187,26 @@ export function RoomProvider({
     }) => {
       // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
-      const myIdentity = room?.localParticipant?.identity ?? myIdentityRef.current;
-      
+      const myIdentity =
+        room?.localParticipant?.identity ?? myIdentityRef.current;
+
       if (myIdentity === data.userId) {
         setIsCohost(false);
       }
-      
+
       if (myIdentity === data.userId && data.token && data.serverUrl && room) {
         toast("Your co-host access has been removed");
         try {
           await room.localParticipant.setMicrophoneEnabled(false);
           await room.localParticipant.setCameraEnabled(false);
+          if (room.state !== "disconnected") {
+            await room.disconnect();
+          }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
           liveKit.updateCanPublish(false);
+          liveKit.syncLocalParticipant();
         } catch (err) {
           console.error(
             "[LiveKit] Failed to reconnect after co-host removal:",
