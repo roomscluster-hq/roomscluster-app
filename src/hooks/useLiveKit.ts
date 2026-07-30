@@ -160,6 +160,14 @@ export function useLiveKit(joinCode: string) {
     setCanPublish(value);
   }, []);
 
+  // Sync local participant after reconnect (token refresh)
+  const syncLocalParticipant = useCallback(() => {
+    if (roomRef.current?.localParticipant) {
+      setLocalParticipant(roomRef.current.localParticipant);
+      setRemoteParticipants([...roomRef.current.remoteParticipants.values()]);
+    }
+  }, []);
+
   return {
     roomRef,
     localParticipant,
@@ -170,6 +178,7 @@ export function useLiveKit(joinCode: string) {
     isScreenSharing,
     canPublish,
     updateCanPublish,
+    syncLocalParticipant,
     error,
     toggleMic,
     toggleCamera,

@@ -70,9 +70,7 @@ function ScreenShareTile({
       (pub) => pub.track?.source === Track.Source.ScreenShare,
     )?.track;
     if (screenTrack && videoRef.current) screenTrack.attach(videoRef.current);
-    return () => {
-      screenTrack?.detach();
-    };
+    return () => { screenTrack?.detach(); };
   }, [participant]);
 
   useEffect(() => {
@@ -80,8 +78,7 @@ function ScreenShareTile({
       if (!document.fullscreenElement) setIsFullscreen(false);
     }
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   async function toggleFullscreen() {
@@ -112,49 +109,19 @@ function ScreenShareTile({
       )}
       style={isFullscreen ? {} : { aspectRatio: "16/9" }}
     >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="w-full h-full object-contain"
-      />
+      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/60 to-transparent">
         <div className="bg-primary-600 text-white text-xs px-2 py-0.5 rounded font-medium">
           {name} — Screen
         </div>
-        <button
-          onClick={toggleFullscreen}
-          className="bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition"
-          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-        >
+        <button onClick={toggleFullscreen} className="bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition">
           {isFullscreen ? (
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-              />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
             </svg>
           ) : (
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-              />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
             </svg>
           )}
         </button>
@@ -163,7 +130,7 @@ function ScreenShareTile({
   );
 }
 
-// ── Video tile ──────────────────────────────────────
+// ── Video tile — restored to working original approach ──
 interface VideoTileProps {
   participant: LocalParticipant | RemoteParticipant;
   isLocal?: boolean;
@@ -171,25 +138,25 @@ interface VideoTileProps {
   isSpeaking?: boolean;
 }
 
-function VideoTile({
-  participant,
-  isLocal,
-  hasRaisedHand,
-  isSpeaking,
-}: VideoTileProps) {
+function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const name = participant.name ?? participant.identity;
+
+  // ── Use participant.isCameraEnabled directly ──
+  // This is the original working approach — re-run effect when camera toggles
   const isCameraEnabled = participant.isCameraEnabled;
 
   useEffect(() => {
     if (!videoRef.current) return;
-    const pubs = [
-      ...participant.videoTrackPublications.values(),
-    ] as TrackPublication[];
-    const videoTrack = pubs.find(
-      (pub) => pub.track?.source === Track.Source.Camera,
+    const publications = [...participant.videoTrackPublications.values()] as TrackPublication[];
+    const videoTrack = publications.find(
+      (pub) => pub.track?.source === Track.Source.Camera
     )?.track;
-    if (videoTrack && videoRef.current) videoTrack.attach(videoRef.current);
+
+    if (videoTrack && videoRef.current) {
+      videoTrack.attach(videoRef.current);
+    }
+
     return () => {
       videoTrack?.detach();
     };
@@ -224,9 +191,7 @@ function VideoTile({
       {hasRaisedHand && (
         <div className="absolute top-1.5 left-1.5 bg-warning-500 rounded-full px-1.5 py-0.5 flex items-center gap-1 shadow">
           <span className="text-xs leading-none">✋</span>
-          <span className="text-white text-[10px] font-medium hidden sm:inline">
-            Hand raised
-          </span>
+          <span className="text-white text-[10px] font-medium hidden sm:inline">Hand raised</span>
         </div>
       )}
 
@@ -252,7 +217,6 @@ function VideoTile({
 }
 
 // ── Grid layout calculator ──────────────────────────
-// Desktop: fills viewport. Mobile: 1 or 2 cols max, scroll vertically.
 function getDesktopGridDimensions(count: number): [number, number] {
   if (count === 1) return [1, 1];
   if (count === 2) return [2, 1];
@@ -265,8 +229,7 @@ function getDesktopGridDimensions(count: number): [number, number] {
 
 function getMobileColumns(count: number): number {
   if (count === 1) return 1;
-  if (count <= 4) return 2;
-  return 2; // max 2 cols on mobile, scroll vertically for more
+  return 2;
 }
 
 const PAGE_SIZE = 12;
@@ -297,27 +260,12 @@ export function VideoGrid({
   );
 
   const allParticipants = [
-    ...(localParticipant
-      ? [
-          {
-            participant: localParticipant as
-              | LocalParticipant
-              | RemoteParticipant,
-            isLocal: true,
-          },
-        ]
-      : []),
-    ...remoteParticipants.map((p) => ({
-      participant: p as LocalParticipant | RemoteParticipant,
-      isLocal: false,
-    })),
+    ...(localParticipant ? [{ participant: localParticipant as LocalParticipant | RemoteParticipant, isLocal: true }] : []),
+    ...remoteParticipants.map((p) => ({ participant: p as LocalParticipant | RemoteParticipant, isLocal: false })),
   ];
 
   const totalPages = Math.ceil(allParticipants.length / PAGE_SIZE);
-  const paginated = allParticipants.slice(
-    page * PAGE_SIZE,
-    (page + 1) * PAGE_SIZE,
-  );
+  const paginated = allParticipants.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const [desktopCols, desktopRows] = getDesktopGridDimensions(paginated.length);
   const mobileCols = getMobileColumns(paginated.length);
 
@@ -345,7 +293,7 @@ export function VideoGrid({
         </div>
       )}
 
-      {/* ── Desktop grid — fills space, no scroll ── */}
+      {/* Desktop grid */}
       <div
         className="hidden md:grid gap-2"
         style={{
@@ -366,7 +314,7 @@ export function VideoGrid({
         ))}
       </div>
 
-      {/* ── Mobile grid — fixed aspect ratio cards, scroll vertically ── */}
+      {/* Mobile grid */}
       <div className="md:hidden flex-1 overflow-y-auto">
         <div
           style={{
@@ -397,17 +345,11 @@ export function VideoGrid({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm transition"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
-                clipRule="evenodd"
-              />
+              <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
             </svg>
             Prev
           </button>
-          <span className="text-white/60 text-xs">
-            Page {page + 1} of {totalPages}
-          </span>
+          <span className="text-white/60 text-xs">Page {page + 1} of {totalPages}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page === totalPages - 1}
@@ -415,11 +357,7 @@ export function VideoGrid({
           >
             Next
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                clipRule="evenodd"
-              />
+              <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
             </svg>
           </button>
         </div>
