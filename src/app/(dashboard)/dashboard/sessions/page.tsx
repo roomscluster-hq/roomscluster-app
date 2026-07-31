@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { FolderPlus, Video, Folder, GripVertical, CheckCircle } from "lucide-react";
+import { FolderPlus, Video, Folder as FolderIcon, GripVertical, CheckCircle } from "lucide-react";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { StatusBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -12,14 +12,17 @@ import { Spinner } from "@/components/ui/spinner";
 import { formatDateTime } from "@/lib/utils";
 import { SessionStatus } from "@/types";
 import { useFolderManagement, useSessionManagement } from "@/hooks/dashboard";
+import { useUserPreferencesStore } from "@/store/user-preferences.store";
 import {
   Breadcrumbs,
   ViewToggle,
   NewFolderForm,
   WorkspaceIndicator,
   EmptyState,
+  MoveToFolderModal,
 } from "@/components/dashboard/sessions";
 import { StatusFilterComponent } from "@/components/dashboard/sessions/StatusFilter";
+import type { FolderWithCount } from "@/components/dashboard/sessions/MoveToFolderModal";
 
 // Local alias for the StatusFilter type to avoid conflicts with a runtime export
 type StatusFilterType = "ALL" | SessionStatus;
@@ -33,8 +36,16 @@ const SESSION_CARD_STYLES: Record<SessionStatus, string> = {
 };
 
 export default function SessionsExplorerPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const { sessionsViewMode, setSessionsViewMode } = useUserPreferencesStore();
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("ALL");
+  
+  // Local state for view mode with fallback to stored preference
+  const viewMode = sessionsViewMode;
+
+  // State for Move to Folder modal
+  const [moveModalOpen, setMoveModalOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<{ id: string; title: string } | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
 
   const {
     currentFolderId,
@@ -68,6 +79,24 @@ export default function SessionsExplorerPage() {
   } = useFolderManagement(statusFilter);
 
   const { moveSession, confirmDeleteSession } = useSessionManagement();
+
+  // Handle opening move modal
+  const handleOpenMoveModal = (sessionId: string, sessionTitle: string) => {
+    setSelectedSession({ id: sessionId, title: sessionTitle });
+    setMoveModalOpen(true);
+  };
+
+  // Handle move session
+  const handleMoveSession = async (sessionId: string, folderId: string | null) => {
+    setIsMoving(true);
+    try {
+      await moveSession({ sessionId, folderId });
+      setMoveModalOpen(false);
+      setSelectedSession(null);
+    } finally {
+      setIsMoving(false);
+    }
+  };
 
   // Get active organization
   const { data: organizations } = useQuery({
@@ -110,7 +139,7 @@ export default function SessionsExplorerPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+          <ViewToggle viewMode={viewMode} onChange={setSessionsViewMode} />
           <Button variant="secondary" onClick={() => setCreatingFolder(true)} className="cursor-pointer">
             + New Folder
           </Button>
@@ -177,6 +206,7 @@ export default function SessionsExplorerPage() {
               onDragStart={handleDragStart}
               currentFolderId={currentFolderId}
               onMoveToRoot={(sessionId) => moveSession({ sessionId, folderId: null })}
+              onMoveToFolder={handleOpenMoveModal}
               onDeleteSession={confirmDeleteSession}
             />
           )}
@@ -198,6 +228,7 @@ export default function SessionsExplorerPage() {
           onDragStart={handleDragStart}
           currentFolderId={currentFolderId}
           onMoveToRoot={(sessionId) => moveSession({ sessionId, folderId: null })}
+          onMoveToFolder={handleOpenMoveModal}
           onDeleteSession={confirmDeleteSession}
         />
       )}
@@ -215,6 +246,18 @@ export default function SessionsExplorerPage() {
           </Button>
         </div>
       )}
+
+      {/* Move to Folder Modal */}
+      <MoveToFolderModal
+        isOpen={moveModalOpen}
+        onClose={() => setMoveModalOpen(false)}
+        sessionId={selectedSession?.id ?? ""}
+        sessionTitle={selectedSession?.title ?? ""}
+        currentFolderId={currentFolderId}
+        folders={folders as FolderWithCount[]}
+        onMove={handleMoveSession}
+        isMoving={isMoving}
+      />
     </div>
   );
 }
@@ -281,7 +324,7 @@ function FolderGrid({
 
             {renamingFolderId === folder.id ? (
               <form onSubmit={onRenameSubmit} onClick={(e) => e.stopPropagation()}>
-                <Folder size={40} className="text-primary-600 mb-3" />
+                <FolderIcon size={40} className="text-primary-600 mb-3" />
                 <input
                   autoFocus
                   value={renameValue}
@@ -295,7 +338,7 @@ function FolderGrid({
               </form>
             ) : (
               <div onClick={() => onOpenFolder(folder.id)} className="cursor-pointer">
-                <Folder size={40} className="text-primary-600 mb-3 group-hover:scale-105 transition-transform" />
+                <FolderIcon size={40} className="text-primary-600 mb-3 group-hover:scale-105 transition-transform" />
                 <p className="text-sm font-medium text-ink-900 truncate">{folder.name}</p>
                 <p className="text-xs text-ink-700/50 mt-1">
                   {folder._count.sessions} session{folder._count.sessions !== 1 ? "s" : ""}
@@ -338,10 +381,11 @@ interface SessionGridProps {
   onDragStart: (id: string) => void;
   currentFolderId?: string;
   onMoveToRoot: (id: string) => void;
+  onMoveToFolder: (id: string, title: string) => void;
   onDeleteSession: (id: string, title: string) => void;
 }
 
-function SessionGrid({ sessions, onDragStart, currentFolderId, onMoveToRoot, onDeleteSession }: SessionGridProps) {
+function SessionGrid({ sessions, onDragStart, currentFolderId, onMoveToRoot, onMoveToFolder, onDeleteSession }: SessionGridProps) {
   return (
     <div>
       <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900 mb-3">
@@ -371,7 +415,9 @@ function SessionGrid({ sessions, onDragStart, currentFolderId, onMoveToRoot, onD
             <SessionMenu
               currentFolderId={currentFolderId}
               onMoveToRoot={() => onMoveToRoot(session.id)}
+              onMoveToFolder={() => onMoveToFolder(session.id, session.title)}
               onDelete={() => onDeleteSession(session.id, session.title)}
+              variant="grid"
             />
 
             <Link href={`/dashboard/sessions/${session.id}`} className="block p-4">
@@ -414,6 +460,7 @@ interface SessionListProps {
   onDragStart: (id: string) => void;
   currentFolderId?: string;
   onMoveToRoot: (id: string) => void;
+  onMoveToFolder: (id: string, title: string) => void;
   onDeleteSession: (id: string, title: string) => void;
 }
 
@@ -430,6 +477,7 @@ function SessionList({
   onDragStart,
   currentFolderId,
   onMoveToRoot,
+  onMoveToFolder,
   onDeleteSession,
 }: SessionListProps) {
   return (
@@ -442,7 +490,7 @@ function SessionList({
           >
             {renamingFolderId === folder.id ? (
               <form onSubmit={onRenameSubmit} className="flex items-center gap-3 flex-1">
-                <Folder size={20} className="text-primary-600" />
+                <FolderIcon size={20} className="text-primary-600" />
                 <input
                   autoFocus
                   value={renameValue}
@@ -460,7 +508,7 @@ function SessionList({
                   onClick={() => onOpenFolder(folder.id)}
                   className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
                 >
-                  <Folder size={20} className="text-primary-600 shrink-0" />
+                  <FolderIcon size={20} className="text-primary-600 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink-900 truncate">{folder.name}</p>
                     <p className="text-xs text-ink-700/50">
@@ -482,7 +530,7 @@ function SessionList({
             key={session.id}
             draggable
             onDragStart={() => onDragStart(session.id)}
-            className="flex items-center justify-between gap-3 px-4 md:px-6 py-3.5 hover:bg-surface-50 transition-colors cursor-grab"
+            className="group flex items-center justify-between gap-3 px-4 md:px-6 py-3.5 hover:bg-surface-50 transition-colors cursor-grab"
           >
             <Link
               href={`/dashboard/sessions/${session.id}`}
@@ -503,7 +551,9 @@ function SessionList({
               <SessionMenu
                 currentFolderId={currentFolderId}
                 onMoveToRoot={() => onMoveToRoot(session.id)}
+                onMoveToFolder={() => onMoveToFolder(session.id, session.title)}
                 onDelete={() => onDeleteSession(session.id, session.title)}
+                variant="list"
               />
             </div>
           </div>
@@ -558,27 +608,48 @@ function FolderMenu({ onRename, onDelete }: { onRename: () => void; onDelete: ()
 function SessionMenu({
   currentFolderId,
   onMoveToRoot,
+  onMoveToFolder,
   onDelete,
+  variant = "grid",
 }: {
   currentFolderId?: string;
   onMoveToRoot: () => void;
+  onMoveToFolder: () => void;
   onDelete: () => void;
+  variant?: "grid" | "list";
 }) {
   const [open, setOpen] = useState(false);
 
+  const containerClasses = variant === "grid"
+    ? "absolute top-3 right-3 z-10"
+    : "relative";
+
+  const buttonClasses = variant === "grid" 
+    ? "text-white/70 hover:text-white"
+    : "text-ink-700/40 hover:text-ink-700 opacity-0 group-hover:opacity-100";
+
   return (
-    <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
+    <div className={containerClasses} onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setOpen(!open)}
-        className="text-white/70 hover:text-white p-1 cursor-pointer"
+        className={`${buttonClasses} p-1 cursor-pointer transition-opacity`}
       >
         ⋮
       </button>
       {open && (
         <div
           onMouseLeave={() => setOpen(false)}
-          className="absolute right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised w-40 py-1 z-10"
+          className="absolute right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised w-44 py-1 z-10"
         >
+          <button
+            onClick={() => {
+              onMoveToFolder();
+              setOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
+          >
+            Move to Folder...
+          </button>
           {currentFolderId && (
             <button
               onClick={() => {
@@ -590,6 +661,7 @@ function SessionMenu({
               Move to All Sessions
             </button>
           )}
+          <div className="border-t border-surface-200 my-1" />
           <button
             onClick={() => {
               onDelete();

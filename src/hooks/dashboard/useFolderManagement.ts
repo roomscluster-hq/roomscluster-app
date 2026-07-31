@@ -36,7 +36,7 @@ export function useFolderManagement(statusFilter?: string) {
     }, 0);
 
     return () => clearTimeout(t);
-  }, [currentFolderId]);
+  }, [currentFolderId, statusFilter]);
 
   // Fetch folder contents
   const { data: contents, isLoading, isFetching } = useQuery({
