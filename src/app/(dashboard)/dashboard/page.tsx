@@ -190,13 +190,21 @@ export default function DashboardPage() {
                 <p className="text-white/70 text-sm mb-5">
                   {formatDateTime(nextSession.scheduledAt!)}
                 </p>
-                <Link
-                  href={`/dashboard/sessions/${nextSession.id}`}
-                  className="inline-flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-50 transition-colors"
-                >
-                  View session
-                  <ArrowRight size={16} />
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={`/dashboard/sessions/${nextSession.id}`}
+                    className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition-colors"
+                  >
+                    View session
+                  </Link>
+                  <Link
+                    href={`/room/${nextSession.joinCode}`}
+                    className="inline-flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-50 transition-colors"
+                  >
+                    Join
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
               </div>
               <Activity className="absolute -right-4 -bottom-4 text-white/10" size={140} />
             </div>
