@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { formatDateTime } from "@/lib/utils";
 import { SessionStatus } from "@/types";
 import { useFolderManagement, useSessionManagement } from "@/hooks/dashboard";
+import { useUserPreferencesStore } from "@/store/user-preferences.store";
 import {
   Breadcrumbs,
   ViewToggle,
@@ -33,8 +34,11 @@ const SESSION_CARD_STYLES: Record<SessionStatus, string> = {
 };
 
 export default function SessionsExplorerPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const { sessionsViewMode, setSessionsViewMode } = useUserPreferencesStore();
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("ALL");
+  
+  // Local state for view mode with fallback to stored preference
+  const viewMode = sessionsViewMode;
 
   const {
     currentFolderId,
@@ -110,7 +114,7 @@ export default function SessionsExplorerPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+          <ViewToggle viewMode={viewMode} onChange={setSessionsViewMode} />
           <Button variant="secondary" onClick={() => setCreatingFolder(true)} className="cursor-pointer">
             + New Folder
           </Button>
