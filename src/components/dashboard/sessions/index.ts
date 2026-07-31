@@ -7,6 +7,7 @@ export { FolderCard } from "./FolderCard";
 export { SessionCard } from "./SessionCard";
 export { WorkspaceIndicator } from "./WorkspaceIndicator";
 export { EmptyState } from "./EmptyState";
+export { MoveToFolderModal } from "./MoveToFolderModal";
 
 // Session detail components
 export { SessionHeader } from "./SessionHeader";
