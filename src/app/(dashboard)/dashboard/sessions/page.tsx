@@ -417,6 +417,7 @@ function SessionGrid({ sessions, onDragStart, currentFolderId, onMoveToRoot, onM
               onMoveToRoot={() => onMoveToRoot(session.id)}
               onMoveToFolder={() => onMoveToFolder(session.id, session.title)}
               onDelete={() => onDeleteSession(session.id, session.title)}
+              variant="grid"
             />
 
             <Link href={`/dashboard/sessions/${session.id}`} className="block p-4">
@@ -529,7 +530,7 @@ function SessionList({
             key={session.id}
             draggable
             onDragStart={() => onDragStart(session.id)}
-            className="flex items-center justify-between gap-3 px-4 md:px-6 py-3.5 hover:bg-surface-50 transition-colors cursor-grab"
+            className="group flex items-center justify-between gap-3 px-4 md:px-6 py-3.5 hover:bg-surface-50 transition-colors cursor-grab"
           >
             <Link
               href={`/dashboard/sessions/${session.id}`}
@@ -552,6 +553,7 @@ function SessionList({
                 onMoveToRoot={() => onMoveToRoot(session.id)}
                 onMoveToFolder={() => onMoveToFolder(session.id, session.title)}
                 onDelete={() => onDeleteSession(session.id, session.title)}
+                variant="list"
               />
             </div>
           </div>
@@ -608,19 +610,25 @@ function SessionMenu({
   onMoveToRoot,
   onMoveToFolder,
   onDelete,
+  variant = "grid",
 }: {
   currentFolderId?: string;
   onMoveToRoot: () => void;
   onMoveToFolder: () => void;
   onDelete: () => void;
+  variant?: "grid" | "list";
 }) {
   const [open, setOpen] = useState(false);
 
+  const buttonClasses = variant === "grid" 
+    ? "text-white/70 hover:text-white"
+    : "text-ink-700/40 hover:text-ink-700 opacity-0 group-hover:opacity-100";
+
   return (
-    <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
+    <div className="relative" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setOpen(!open)}
-        className="text-white/70 hover:text-white p-1 cursor-pointer"
+        className={`${buttonClasses} p-1 cursor-pointer transition-opacity`}
       >
         ⋮
       </button>
