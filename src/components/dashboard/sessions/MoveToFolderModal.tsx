@@ -168,7 +168,7 @@ function FolderTreeItem({
         {hasChildren ? (
           <button
             onClick={handleToggle}
-            className="p-0.5 hover:bg-surface-200 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="p-0.5 hover:bg-surface-200 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer"
             aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
             type="button"
           >
@@ -314,7 +314,7 @@ export function MoveToFolderModal({
           <button
             onClick={handleClose}
             disabled={isMoving}
-            className="p-2 hover:bg-surface-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 hover:bg-surface-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             aria-label="Close modal"
             type="button"
           >

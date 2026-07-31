@@ -620,12 +620,16 @@ function SessionMenu({
 }) {
   const [open, setOpen] = useState(false);
 
+  const containerClasses = variant === "grid"
+    ? "absolute top-3 right-3 z-10"
+    : "relative";
+
   const buttonClasses = variant === "grid" 
     ? "text-white/70 hover:text-white"
     : "text-ink-700/40 hover:text-ink-700 opacity-0 group-hover:opacity-100";
 
   return (
-    <div className="relative" onClick={(e) => e.stopPropagation()}>
+    <div className={containerClasses} onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setOpen(!open)}
         className={`${buttonClasses} p-1 cursor-pointer transition-opacity`}
