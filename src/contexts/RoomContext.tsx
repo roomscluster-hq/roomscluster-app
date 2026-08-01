@@ -16,6 +16,7 @@ import { RoomContextValue } from "@/lib/room/types";
 import { toast } from "sonner";
 import { clearSessionCookies } from "@/lib/utils";
 import { Socket } from "socket.io-client";
+import { useAuthStore } from "@/store/auth.store";
 
 const RoomContext = createContext<RoomContextValue | null>(null);
 
@@ -31,6 +32,7 @@ export function RoomProvider({
   const liveKit = useLiveKit(joinCode);
   const socket = useSocket(joinCode);
   const settings = useRoomSettings(sessionId);
+  const { user } = useAuthStore();
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -81,6 +83,7 @@ export function RoomProvider({
       participantsLength: socket.participants.length,
       myIdentityRef: myIdentityRef.current,
       liveKitIdentity: liveKit.roomRef.current?.localParticipant?.identity,
+      authUserId: user?.id,
     });
     
     if (!socket.participants.length) {
@@ -88,9 +91,11 @@ export function RoomProvider({
       return;
     }
 
+    // Try multiple identity sources
     const myIdentity =
       myIdentityRef.current ??
-      liveKit.roomRef.current?.localParticipant?.identity;
+      liveKit.roomRef.current?.localParticipant?.identity ??
+      user?.id; // Fallback to auth user ID
     
     console.log('[RoomContext] Syncing isCohost from participants:', {
       myIdentity,
@@ -107,14 +112,23 @@ export function RoomProvider({
       return;
     }
 
-    const me = socket.participants.find(
+    // Try to find by LiveKit identity first, then by user ID
+    let me = socket.participants.find(
       (p) => (p.user?.id ?? p.userId) === myIdentity,
     );
+    
+    // If not found and we have auth user ID, try that too
+    if (!me && user?.id) {
+      me = socket.participants.find(
+        (p) => (p.user?.id ?? p.userId) === user.id,
+      );
+    }
 
     console.log('[RoomContext] Found me in participants:', { 
       found: !!me, 
       myRole: me?.role,
       myIdentity,
+      authUserId: user?.id,
       participantIds: socket.participants.map(p => p.user?.id ?? p.userId)
     });
 
@@ -122,7 +136,7 @@ export function RoomProvider({
       console.log('[RoomContext] Setting isCohost to TRUE based on participant role');
       setIsCohost(true);
     }
-  }, [socket.participants, liveKit.roomRef.current?.localParticipant?.identity]);
+  }, [socket.participants, liveKit.roomRef.current?.localParticipant?.identity, user?.id]);
 
   // Keep socketRef in sync
   useEffect(() => {
