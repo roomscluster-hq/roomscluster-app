@@ -143,6 +143,8 @@ export function useRoomSession() {
     }
   }
 
+    console.log('[RoomSession] isCohost:', isCohost, 'canPublish:', canPublish);
+
   return {
     joinCode,
     session,

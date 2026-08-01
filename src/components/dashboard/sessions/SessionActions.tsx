@@ -14,6 +14,7 @@ interface SessionActionsProps {
   isStarting: boolean;
   isEnding: boolean;
   isDeleting: boolean;
+  isCohost: boolean;
 }
 
 export function SessionActions({
@@ -25,6 +26,7 @@ export function SessionActions({
   isStarting,
   isEnding,
   isDeleting,
+  isCohost,
 }: SessionActionsProps) {
   const isLive = status === "LIVE";
   const isEnded = status === "ENDED";
@@ -34,7 +36,7 @@ export function SessionActions({
       {!isEnded && (
         <>
           {isLive ? (
-            <Link href={`/room/${joinCode}`}>
+            <Link href={`/room/${joinCode}`} target="_blank" rel="noopener noreferrer">
               <Button className="cursor-pointer gap-2">
                 <Video size={18} />
                 <span className="hidden sm:inline">Join</span>
@@ -65,16 +67,18 @@ export function SessionActions({
         </>
       )}
 
-      <Button
-        variant="danger"
-        onClick={onDelete}
-        loading={isDeleting}
-        className="cursor-pointer gap-2"
-        title="Delete session"
-      >
-        <Trash2 size={18} />
-        <span className="hidden sm:inline">Delete</span>
-      </Button>
+      {!isCohost && (
+        <Button
+          variant="danger"
+          onClick={onDelete}
+          loading={isDeleting}
+          className="cursor-pointer gap-2"
+          title="Delete session"
+        >
+          <Trash2 size={18} />
+          <span className="hidden sm:inline">Delete</span>
+        </Button>
+      )}
     </div>
   );
 }

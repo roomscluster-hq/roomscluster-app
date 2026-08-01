@@ -10,15 +10,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { RecurrenceForm, RecurrenceOptions } from "@/components/dashboard/sessions/RecurrenceForm";
+import {
+  RecurrenceForm,
+  RecurrenceOptions,
+} from "@/components/dashboard/sessions/RecurrenceForm";
+import { useAuthStore } from "@/store/auth.store";
+import {
+  CoHostSelector,
+  SelectedCoHost,
+} from "@/components/session/CoHostSelector";
 
 export default function NewSessionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   const folderId = searchParams.get("folder") ?? undefined;
 
+  const [cohosts, setCohosts] = useState<SelectedCoHost[]>([]);
+  const [notifyCohosts, setNotifyCohosts] = useState(true);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
@@ -41,7 +52,9 @@ export default function NewSessionPage() {
   const createMutation = useMutation({
     mutationFn: sessionsApi.create,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["folder-contents", folderId] });
+      queryClient.invalidateQueries({
+        queryKey: ["folder-contents", folderId],
+      });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       toast.success("Session created");
       router.push(`/dashboard/sessions/${data.id}`);
@@ -60,7 +73,9 @@ export default function NewSessionPage() {
       router.push("/dashboard/sessions");
     },
     onError: (err: AxiosError<{ message?: string }>) => {
-      toast.error(err.response?.data?.message ?? "Failed to create recurring sessions");
+      toast.error(
+        err.response?.data?.message ?? "Failed to create recurring sessions",
+      );
     },
   });
 
@@ -90,6 +105,7 @@ export default function NewSessionPage() {
           endDate: recurrence.endDate,
           endCount: recurrence.endCount,
         },
+        coHostUserIds: cohosts.map((c) => c.userId),
       });
     } else {
       // Single session
@@ -99,20 +115,27 @@ export default function NewSessionPage() {
         scheduledAt: scheduledAt || undefined,
         passcode: passcode || undefined,
         folderId,
+        coHostUserIds: cohosts.map((c) => c.userId),
       });
     }
   }
 
-  const isPending = createMutation.isPending || createRecurringMutation.isPending;
+  const isPending =
+    createMutation.isPending || createRecurringMutation.isPending;
 
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-xl md:text-2xl font-bold text-ink-900">Create New Session</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-ink-900">
+          Create New Session
+        </h1>
         <p className="text-ink-700/60 text-sm mt-1">
           Set up a new webinar or virtual classroom
           {folderId && (
-            <span className="text-primary-600"> · will be created inside this folder</span>
+            <span className="text-primary-600">
+              {" "}
+              · will be created inside this folder
+            </span>
           )}
         </p>
       </div>
@@ -126,11 +149,14 @@ export default function NewSessionPage() {
             <p className="text-sm text-ink-700">
               Creating in{" "}
               <strong>
-                {activeOrg.isPersonal ? "your Personal Workspace" : activeOrg.name}
+                {activeOrg.isPersonal
+                  ? "your Personal Workspace"
+                  : activeOrg.name}
               </strong>
             </p>
             <p className="text-xs text-ink-700/50">
-              Wrong workspace? Switch it from the menu in the top bar before creating.
+              Wrong workspace? Switch it from the menu in the top bar before
+              creating.
             </p>
           </div>
         </div>
@@ -163,7 +189,9 @@ export default function NewSessionPage() {
 
             <div>
               <label className="block text-sm font-medium text-ink-700 mb-1">
-                {recurrence.enabled ? "Start Date & Time *" : "Schedule Date & Time"}
+                {recurrence.enabled
+                  ? "Start Date & Time *"
+                  : "Schedule Date & Time"}
               </label>
               <input
                 type="datetime-local"
@@ -190,18 +218,50 @@ export default function NewSessionPage() {
               />
             )}
 
+            {/* Co-hosts */}
+            {activeOrg && !activeOrg.isPersonal && (
+              <div className="border-t border-surface-200 pt-5">
+                <CoHostSelector
+                  organizationId={activeOrg.id}
+                  currentUserId={user?.id ?? ""}
+                  value={cohosts}
+                  onChange={setCohosts}
+                />
+              </div>
+            )}
+            {cohosts.length > 0 && (
+              <label className="flex items-center gap-2.5 cursor-pointer mt-2">
+                <input
+                  type="checkbox"
+                  checked={notifyCohosts}
+                  onChange={(e) => setNotifyCohosts(e.target.checked)}
+                  className="w-4 h-4 rounded border-surface-200 text-primary-600 focus:ring-primary-600"
+                />
+                <span className="text-sm text-ink-700">
+                  Notify co-hosts by email
+                </span>
+              </label>
+            )}
             {/* Divider */}
             <div className="border-t border-surface-200 pt-5">
               <RecurrenceForm value={recurrence} onChange={setRecurrence} />
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-              <Button type="button" variant="secondary" onClick={() => router.back()}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => router.back()}
+              >
                 Cancel
               </Button>
-              <Button type="submit" loading={isPending} className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                loading={isPending}
+                className="w-full sm:w-auto"
+              >
                 {recurrence.enabled
-                  ? `Create ${recurrence.endType === "COUNT" ? recurrence.endCount ?? "" : ""} Sessions`
+                  ? `Create ${recurrence.endType === "COUNT" ? (recurrence.endCount ?? "") : ""} Sessions`
                   : "Create Session"}
               </Button>
             </div>

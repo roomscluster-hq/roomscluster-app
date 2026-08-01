@@ -66,11 +66,13 @@ export function useLiveKit(joinCode: string) {
           token = guestToken;
           serverUrl = decodeURIComponent(guestServerUrl);
           publish = getCookie("guest_can_publish") === "true";
+          console.log('[useLiveKit] Guest token found, canPublish:', publish);
         } else {
           const data = await livekitApi.getToken(joinCode);
           token = data.token;
           serverUrl = data.serverUrl;
           publish = data.canPublish;
+          console.log('[useLiveKit] Token from API, canPublish:', publish, 'isHost:', data.isHost, 'isGuest:', data.isGuest);
         }
 
         // Don't connect if component was unmounted
@@ -79,13 +81,16 @@ export function useLiveKit(joinCode: string) {
         roomRef.current = newRoom;
         setCanPublish(publish);
         canPublishRef.current = publish;
+        console.log('[useLiveKit] Connecting with canPublish:', publish);
         await newRoom.connect(serverUrl, token);
         setLocalParticipant(newRoom.localParticipant);
         setRemoteParticipants([...newRoom.remoteParticipants.values()]);
         setIsConnected(true);
+        console.log('[useLiveKit] Connected successfully');
       } catch (err: any) {
         connectingRef.current = false;
         setError(err.message ?? "Failed to connect to room");
+        console.error('[useLiveKit] Connection error:', err);
       }
     }
 

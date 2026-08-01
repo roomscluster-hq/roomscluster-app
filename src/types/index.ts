@@ -28,6 +28,13 @@ export interface OrganizationUser {
 }
 
 // ── Session ────────────────────────────────────────────
+export interface SessionParticipant {
+  id: string;
+  role: ParticipantRole;
+  userId: string;
+  user: User;
+}
+
 export interface Session {
   id: string;
   title: string;
@@ -44,6 +51,7 @@ export interface Session {
   createdAt: string;
   updatedAt: string;
   host?: User;
+  participants?: SessionParticipant[];
   _count?: {
     participants: number;
     registrations: number;
