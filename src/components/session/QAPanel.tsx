@@ -3,7 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { getCookie } from "@/lib/cookies";
-import { ThumbsUp, ThumbsDown, CheckCircle, Trash2, Send, MessageSquarePlus, HelpCircle } from "lucide-react";
+import {
+  ThumbsUp,
+  ThumbsDown,
+  CheckCircle,
+  Trash2,
+  Send,
+  MessageSquarePlus,
+  HelpCircle,
+} from "lucide-react";
 import { formatRelative } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Socket } from "socket.io-client";
@@ -19,7 +27,7 @@ interface Question {
   askerName: string;
   askerEmail: string;
   createdAt: string;
-  myVote: 'UP' | 'DOWN' | null;
+  myVote: "UP" | "DOWN" | null;
 }
 
 interface QAPanelProps {
@@ -29,23 +37,25 @@ interface QAPanelProps {
   onQuestionCountChange?: (openCount: number, answeredCount: number) => void;
 }
 
-export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange }: QAPanelProps) {
+export function QAPanel({
+  joinCode,
+  socketRef,
+  canManage,
+  onQuestionCountChange,
+}: QAPanelProps) {
   const { user } = useAuthStore();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [input, setInput] = useState("");
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerInput, setAnswerInput] = useState("");
-  const [activeTab, setActiveTab] = useState<'open' | 'answered'>('open');
-
-  const myEmail = user?.email ?? getCookie("guest_email") ?? "";
-  const myName = user?.name ?? getCookie("guest_name") ?? "Guest";
+  const [activeTab, setActiveTab] = useState<"open" | "answered">("open");
 
   // Load questions on mount
   useEffect(() => {
     const sock = socketRef.current;
     if (!sock) return;
 
-    sock.emit('qa:load', { joinCode });
+    sock.emit("qa:load", { joinCode });
 
     const handleQuestions = (data: Question[]) => setQuestions(data);
     const handleNewQuestion = (q: Question) => {
@@ -56,88 +66,114 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
     };
     const handleUpdated = (q: Question) => {
       setQuestions((prev) =>
-        prev.map((p) => (p.id === q.id ? { ...q, myVote: p.myVote } : p))
+        prev.map((p) => (p.id === q.id ? { ...q, myVote: p.myVote } : p)),
       );
     };
     const handleDeleted = ({ questionId }: { questionId: string }) => {
       setQuestions((prev) => prev.filter((p) => p.id !== questionId));
     };
 
-    sock.on('qa:questions', handleQuestions);
-    sock.on('qa:new-question', handleNewQuestion);
-    sock.on('qa:question-updated', handleUpdated);
-    sock.on('qa:question-deleted', handleDeleted);
+    sock.on("qa:questions", handleQuestions);
+    sock.on("qa:new-question", handleNewQuestion);
+    sock.on("qa:question-updated", handleUpdated);
+    sock.on("qa:question-deleted", handleDeleted);
 
     return () => {
-      sock.off('qa:questions', handleQuestions);
-      sock.off('qa:new-question', handleNewQuestion);
-      sock.off('qa:question-updated', handleUpdated);
-      sock.off('qa:question-deleted', handleDeleted);
+      sock.off("qa:questions", handleQuestions);
+      sock.off("qa:new-question", handleNewQuestion);
+      sock.off("qa:question-updated", handleUpdated);
+      sock.off("qa:question-deleted", handleDeleted);
     };
   }, [joinCode, socketRef]);
 
   // Notify parent of count changes
   useEffect(() => {
-    const openCount = questions.filter(q => !q.isAnswered).length;
-    const answeredCount = questions.filter(q => q.isAnswered).length;
+    const openCount = questions.filter((q) => !q.isAnswered).length;
+    const answeredCount = questions.filter((q) => q.isAnswered).length;
     onQuestionCountChange?.(openCount, answeredCount);
   }, [questions, onQuestionCountChange]);
 
-  const submitQuestion = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    socketRef.current?.emit('qa:submit', { content: input.trim() });
-    setInput("");
-  }, [input, socketRef]);
+  const submitQuestion = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!input.trim()) return;
+      socketRef.current?.emit("qa:submit", { content: input.trim() });
+      setInput("");
+    },
+    [input, socketRef],
+  );
 
-  const vote = useCallback((questionId: string, type: 'UP' | 'DOWN') => {
-    const q = questions.find((q) => q.id === questionId);
-    if (!q) return;
+  const vote = useCallback(
+    (questionId: string, type: "UP" | "DOWN") => {
+      const q = questions.find((q) => q.id === questionId);
+      if (!q) return;
 
-    // Optimistic update
-    setQuestions((prev) =>
-      prev.map((p) => {
-        if (p.id !== questionId) return p;
-        const removing = p.myVote === type;
-        const switching = p.myVote && p.myVote !== type;
-        return {
-          ...p,
-          myVote: removing ? null : type,
-          upvotes: type === 'UP'
-            ? removing ? p.upvotes - 1 : switching ? p.upvotes + 1 : p.upvotes + 1
-            : switching ? p.upvotes - 1 : p.upvotes,
-          downvotes: type === 'DOWN'
-            ? removing ? p.downvotes - 1 : switching ? p.downvotes + 1 : p.downvotes + 1
-            : switching ? p.downvotes - 1 : p.downvotes,
-        };
-      })
-    );
+      // Optimistic update
+      setQuestions((prev) =>
+        prev.map((p) => {
+          if (p.id !== questionId) return p;
+          const removing = p.myVote === type;
+          const switching = p.myVote && p.myVote !== type;
+          return {
+            ...p,
+            myVote: removing ? null : type,
+            upvotes:
+              type === "UP"
+                ? removing
+                  ? p.upvotes - 1
+                  : switching
+                    ? p.upvotes + 1
+                    : p.upvotes + 1
+                : switching
+                  ? p.upvotes - 1
+                  : p.upvotes,
+            downvotes:
+              type === "DOWN"
+                ? removing
+                  ? p.downvotes - 1
+                  : switching
+                    ? p.downvotes + 1
+                    : p.downvotes + 1
+                : switching
+                  ? p.downvotes - 1
+                  : p.downvotes,
+          };
+        }),
+      );
 
-    socketRef.current?.emit('qa:vote', { questionId, type });
-  }, [questions, socketRef]);
+      socketRef.current?.emit("qa:vote", { questionId, type });
+    },
+    [questions, socketRef],
+  );
 
-  const answerQuestion = useCallback((questionId: string) => {
-    socketRef.current?.emit('qa:answer', {
-      questionId,
-      answer: answerInput.trim() || undefined,
-    });
-    setAnsweringId(null);
-    setAnswerInput("");
-    toast.success("Question marked as answered");
-  }, [answerInput, socketRef]);
+  const answerQuestion = useCallback(
+    (questionId: string) => {
+      socketRef.current?.emit("qa:answer", {
+        questionId,
+        answer: answerInput.trim() || undefined,
+      });
+      setAnsweringId(null);
+      setAnswerInput("");
+      toast.success("Question marked as answered");
+    },
+    [answerInput, socketRef],
+  );
 
-  const deleteQuestion = useCallback((questionId: string) => {
-    socketRef.current?.emit('qa:delete', { questionId });
-  }, [socketRef]);
+  const deleteQuestion = useCallback(
+    (questionId: string) => {
+      socketRef.current?.emit("qa:delete", { questionId });
+    },
+    [socketRef],
+  );
 
   // Sort: by net votes descending
   const sortedQuestions = [...questions].sort(
-    (a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes)
+    (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes),
   );
 
   const openQuestions = sortedQuestions.filter((q) => !q.isAnswered);
   const answeredQuestions = sortedQuestions.filter((q) => q.isAnswered);
-  const displayed = activeTab === 'open' ? openQuestions : answeredQuestions;
+  const displayed = activeTab === "open" ? openQuestions : answeredQuestions;
 
   return (
     <div className="flex flex-col h-full bg-ink-900">
@@ -147,18 +183,20 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
           <HelpCircle size={16} className="text-primary-400" />
           <h3 className="font-semibold text-white text-sm">Q&A</h3>
         </div>
-        <p className="text-xs text-gray-400 mt-0.5">{openQuestions.length} open · {answeredQuestions.length} answered</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {openQuestions.length} open · {answeredQuestions.length} answered
+        </p>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-white/10 shrink-0">
         <button
-          onClick={() => setActiveTab('open')}
+          onClick={() => setActiveTab("open")}
           className={cn(
             "flex-1 py-2.5 text-xs font-medium transition flex items-center justify-center gap-1.5",
-            activeTab === 'open'
+            activeTab === "open"
               ? "text-white border-b-2 border-primary-500 bg-white/5"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
+              : "text-gray-400 hover:text-white hover:bg-white/5",
           )}
         >
           Open
@@ -169,12 +207,12 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
           )}
         </button>
         <button
-          onClick={() => setActiveTab('answered')}
+          onClick={() => setActiveTab("answered")}
           className={cn(
             "flex-1 py-2.5 text-xs font-medium transition flex items-center justify-center gap-1.5",
-            activeTab === 'answered'
+            activeTab === "answered"
               ? "text-white border-b-2 border-success-500 bg-white/5"
-              : "text-gray-400 hover:text-white hover:bg-white/5"
+              : "text-gray-400 hover:text-white hover:bg-white/5",
           )}
         >
           Answered
@@ -194,7 +232,7 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
               <MessageSquarePlus size={24} className="text-white/30" />
             </div>
             <p className="text-xs text-gray-400">
-              {activeTab === 'open'
+              {activeTab === "open"
                 ? "No questions yet. Be the first to ask!"
                 : "No answered questions yet."}
             </p>
@@ -207,13 +245,13 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
                 "rounded-xl p-3 border transition-all",
                 q.isAnswered
                   ? "bg-success-900/10 border-success-500/30"
-                  : "bg-white/5 border-white/10 hover:border-white/20"
+                  : "bg-white/5 border-white/10 hover:border-white/20",
               )}
             >
               {/* Question header with author */}
               <div className="flex items-start gap-2 mb-2">
                 <div className="w-6 h-6 rounded-full bg-primary-600/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[10px] font-medium text-primary-400">
+                  <span className="text-[10px] font-medium text-white">
                     {q.askerName.charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -229,10 +267,12 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
               {q.isAnswered && q.answer && (
                 <div className="mt-2 pt-2 border-t border-success-500/20 ml-8">
                   <div className="flex items-center gap-1.5 mb-1">
-                    <CheckCircle size={10} className="text-success-400" />
-                    <p className="text-[10px] text-success-400 font-medium">Answer</p>
+                    <CheckCircle size={10} className="text-success-600" />
+                    <p className="text-[10px] text-success-600 font-medium">
+                      Answer
+                    </p>
                   </div>
-                  <p className="text-sm text-white/80">{q.answer}</p>
+                  <p className="text-sm text-white">{q.answer}</p>
                 </div>
               )}
 
@@ -251,10 +291,15 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
                       onClick={() => answerQuestion(q.id)}
                       className="flex-1 text-xs bg-success-600 hover:bg-success-500 text-white rounded-lg py-1.5 transition font-medium"
                     >
-                      {answerInput.trim() ? "Answer & Mark Done" : "Mark as Answered"}
+                      {answerInput.trim()
+                        ? "Answer & Mark Done"
+                        : "Mark as Answered"}
                     </button>
                     <button
-                      onClick={() => { setAnsweringId(null); setAnswerInput(""); }}
+                      onClick={() => {
+                        setAnsweringId(null);
+                        setAnswerInput("");
+                      }}
                       className="text-xs text-gray-400 hover:text-white px-3 py-1.5 transition hover:bg-white/5 rounded-lg"
                     >
                       Cancel
@@ -267,29 +312,35 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
               <div className="flex items-center gap-2 mt-3 ml-8">
                 {/* Upvote */}
                 <button
-                  onClick={() => vote(q.id, 'UP')}
+                  onClick={() => vote(q.id, "UP")}
                   className={cn(
-                    "flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg transition font-medium",
-                    q.myVote === 'UP'
-                      ? "bg-primary-500/20 text-primary-300 border border-primary-500/30"
-                      : "text-gray-400 hover:text-primary-300 hover:bg-primary-500/10 border border-transparent"
+                    "flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition font-medium border",
+                    q.myVote === "UP"
+                      ? "bg-primary-500/30 text-primary-300 border-primary-500/50"
+                      : "text-white/70 hover:text-primary-300 hover:bg-primary-500/20 border-white/20 hover:border-primary-500/40",
                   )}
                 >
-                  <ThumbsUp size={13} className={q.myVote === 'UP' ? "fill-primary-400" : ""} />
+                  <ThumbsUp
+                    size={15}
+                    className={q.myVote === "UP" ? "fill-primary-300" : ""}
+                  />
                   <span>{q.upvotes}</span>
                 </button>
 
                 {/* Downvote */}
                 <button
-                  onClick={() => vote(q.id, 'DOWN')}
+                  onClick={() => vote(q.id, "DOWN")}
                   className={cn(
-                    "flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg transition font-medium",
-                    q.myVote === 'DOWN'
-                      ? "bg-danger-500/20 text-danger-300 border border-danger-500/30"
-                      : "text-gray-400 hover:text-danger-300 hover:bg-danger-500/10 border border-transparent"
+                    "flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition font-medium border",
+                    q.myVote === "DOWN"
+                      ? "bg-danger-600/30 text-danger-600 border-danger-600/50"
+                      : "text-white/70 hover:text-white hover:bg-white/10 border-white/20 hover:border-white/30",
                   )}
                 >
-                  <ThumbsDown size={13} className={q.myVote === 'DOWN' ? "fill-danger-400" : ""} />
+                  <ThumbsDown
+                    size={15}
+                    className={q.myVote === "DOWN" ? "fill-danger-600" : ""}
+                  />
                   <span>{q.downvotes}</span>
                 </button>
 
@@ -299,7 +350,7 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
                 {canManage && !q.isAnswered && answeringId !== q.id && (
                   <button
                     onClick={() => setAnsweringId(q.id)}
-                    className="flex items-center gap-1.5 text-xs text-success-400 hover:text-success-300 px-2 py-1 rounded-lg hover:bg-success-500/10 transition font-medium"
+                    className="flex items-center gap-1.5 text-xs text-success-600 hover:text-success-300 px-2 py-1 rounded-lg hover:bg-success-500/10 transition font-medium"
                   >
                     <CheckCircle size={13} />
                     Answer
@@ -322,7 +373,10 @@ export function QAPanel({ joinCode, socketRef, canManage, onQuestionCountChange 
       </div>
 
       {/* Submit question input */}
-      <form onSubmit={submitQuestion} className="px-4 py-3 border-t border-white/10 shrink-0 bg-ink-900">
+      <form
+        onSubmit={submitQuestion}
+        className="px-4 py-3 border-t border-white/10 shrink-0 bg-ink-900"
+      >
         <div className="relative">
           <input
             type="text"
