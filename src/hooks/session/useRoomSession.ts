@@ -64,6 +64,8 @@ export function useRoomSession() {
     roomVideoEnabled,
     roomMicEnabled,
     roomRecordingEnabled,
+    isLocked,
+    toggleLock,
   } = useRoom();
 
   const { data: session, isLoading } = useQuery({
@@ -176,6 +178,7 @@ export function useRoomSession() {
     socketRef,
     isCohost,
     isSpeaker,
+    isLocked,
     
     // Actions
     formatElapsed,
@@ -197,5 +200,6 @@ export function useRoomSession() {
     removeCohost,
     setOnWhiteboardDraw,
     setOnWhiteboardClear,
+    toggleLock,
   };
 }

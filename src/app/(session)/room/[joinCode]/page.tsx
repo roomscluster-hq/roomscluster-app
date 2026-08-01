@@ -78,6 +78,8 @@ function RoomContent({ joinCode }: RoomContentProps) {
     roomMicEnabled,
     roomRecordingEnabled,
     socketRef,
+    isLocked,
+    toggleLock,
     formatElapsed,
     handleRaiseHand,
     handleToggleRecording,
@@ -304,6 +306,8 @@ function RoomContent({ joinCode }: RoomContentProps) {
           onOpenPeople={() => openPanel("participants")}
           onEndSession={handleEndSession}
           onLeave={handleLeave}
+          onToggleLock={toggleLock}
+          isLocked={isLocked}
         />
       </footer>
     </div>

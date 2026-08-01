@@ -42,11 +42,10 @@ function ToggleRow({ label, description, checked, onChange, disabled, dark }: To
 
 interface SessionSettingsPanelProps {
   sessionId: string;
-  joinCode?: string;  // when provided, uses socket instead of HTTP (supports guest co-hosts)
+  joinCode?: string;
   compact?: boolean;
 }
 
-// Helper to update settings via socket with promise-based response handling
 function updateSettingsViaSocket(
   socket: Socket,
   joinCode: string,
@@ -82,16 +81,21 @@ function updateSettingsViaSocket(
 export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: SessionSettingsPanelProps) {
   const queryClient = useQueryClient();
 
-  // socketRef is only available inside RoomProvider — outside the room
-  // (session detail page), useRoom() will throw, so we guard it.
+  // These are only available inside RoomProvider (live room)
+  // Outside the room (session detail page), useRoom() throws — guard with try/catch
   let socketRef: React.RefObject<Socket | null> | null = null;
   let isSocketConnected = false;
+  let isLocked = false;
+  let toggleLock: (() => void) | null = null;
+
   try {
     const room = useRoom();
     socketRef = room.socketRef;
     isSocketConnected = room.isSocketConnected;
+    isLocked = room.isLocked;
+    toggleLock = room.toggleLock;
   } catch {
-    // Not inside RoomProvider — session detail page usage, no socket needed
+    // Not inside RoomProvider — session detail page usage
   }
 
   const { data: settings, isLoading } = useQuery({
@@ -99,17 +103,13 @@ export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: S
     queryFn: () => sessionSettingsApi.get(sessionId),
   });
 
-  // Determine if we should use socket (inside room with active connection) or HTTP
   const shouldUseSocket = Boolean(joinCode && socketRef?.current && isSocketConnected);
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Omit<SessionSettings, "id" | "sessionId">>) => {
       if (shouldUseSocket && socketRef?.current) {
-        // Use socket for guests and co-hosts inside the room
-        // This bypasses JWT requirement - server validates via socket map
         return updateSettingsViaSocket(socketRef.current, joinCode!, data);
       } else {
-        // Fallback to HTTP for session detail page (host only, has JWT)
         return sessionSettingsApi.update(sessionId, data);
       }
     },
@@ -168,6 +168,18 @@ export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: S
 
   return (
     <div className={compact ? "divide-y divide-white/10" : "divide-y divide-surface-200"}>
+      {/* ── Lock session toggle — only shown inside live room ── */}
+      {toggleLock && (
+        <ToggleRow
+          label="Lock Session"
+          description="Prevent new participants from joining"
+          checked={isLocked}
+          onChange={toggleLock}
+          dark={compact}
+        />
+      )}
+
+      {/* ── Standard settings rows ── */}
       {rows.map((row) => (
         <ToggleRow
           key={row.key}
