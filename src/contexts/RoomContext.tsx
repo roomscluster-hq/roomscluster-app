@@ -77,21 +77,52 @@ export function RoomProvider({
 
   // Sync isCohost from participants list on initial load
   useEffect(() => {
-    if (!socket.participants.length) return;
+    console.log('[RoomContext] isCohost sync effect triggered:', {
+      participantsLength: socket.participants.length,
+      myIdentityRef: myIdentityRef.current,
+      liveKitIdentity: liveKit.roomRef.current?.localParticipant?.identity,
+    });
+    
+    if (!socket.participants.length) {
+      console.log('[RoomContext] No participants yet, skipping');
+      return;
+    }
 
     const myIdentity =
       myIdentityRef.current ??
       liveKit.roomRef.current?.localParticipant?.identity;
-    if (!myIdentity) return;
+    
+    console.log('[RoomContext] Syncing isCohost from participants:', {
+      myIdentity,
+      participantsCount: socket.participants.length,
+      participants: socket.participants.map(p => ({ 
+        id: p.user?.id ?? p.userId, 
+        role: p.role,
+        name: p.name || p.user?.name
+      })),
+    });
+    
+    if (!myIdentity) {
+      console.log('[RoomContext] No myIdentity found, skipping sync');
+      return;
+    }
 
     const me = socket.participants.find(
       (p) => (p.user?.id ?? p.userId) === myIdentity,
     );
 
+    console.log('[RoomContext] Found me in participants:', { 
+      found: !!me, 
+      myRole: me?.role,
+      myIdentity,
+      participantIds: socket.participants.map(p => p.user?.id ?? p.userId)
+    });
+
     if (me?.role === "COHOST") {
+      console.log('[RoomContext] Setting isCohost to TRUE based on participant role');
       setIsCohost(true);
     }
-  }, [socket.participants]);
+  }, [socket.participants, liveKit.roomRef.current?.localParticipant?.identity]);
 
   // Keep socketRef in sync
   useEffect(() => {
