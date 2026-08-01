@@ -3,7 +3,13 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { FolderPlus, Video, Folder as FolderIcon, GripVertical, CheckCircle } from "lucide-react";
+import {
+  FolderPlus,
+  Video,
+  Folder as FolderIcon,
+  GripVertical,
+  CheckCircle,
+} from "lucide-react";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { StatusBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -23,11 +29,10 @@ import {
 } from "@/components/dashboard/sessions";
 import { StatusFilterComponent } from "@/components/dashboard/sessions/StatusFilter";
 import type { FolderWithCount } from "@/components/dashboard/sessions/MoveToFolderModal";
+import { RecurringSeriesGroup } from "@/components/dashboard/sessions/RecurringSeriesGroup";
 
 // Local alias for the StatusFilter type to avoid conflicts with a runtime export
 type StatusFilterType = "ALL" | SessionStatus;
-
-type ViewMode = "grid" | "list";
 
 const SESSION_CARD_STYLES: Record<SessionStatus, string> = {
   LIVE: "bg-linear-to-br from-success-600 to-ink-900",
@@ -38,13 +43,16 @@ const SESSION_CARD_STYLES: Record<SessionStatus, string> = {
 export default function SessionsExplorerPage() {
   const { sessionsViewMode, setSessionsViewMode } = useUserPreferencesStore();
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("ALL");
-  
+
   // Local state for view mode with fallback to stored preference
   const viewMode = sessionsViewMode;
 
   // State for Move to Folder modal
   const [moveModalOpen, setMoveModalOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<{ id: string; title: string } | null>(null);
+  const [selectedSession, setSelectedSession] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [isMoving, setIsMoving] = useState(false);
 
   const {
@@ -87,7 +95,10 @@ export default function SessionsExplorerPage() {
   };
 
   // Handle move session
-  const handleMoveSession = async (sessionId: string, folderId: string | null) => {
+  const handleMoveSession = async (
+    sessionId: string,
+    folderId: string | null,
+  ) => {
     setIsMoving(true);
     try {
       await moveSession({ sessionId, folderId });
@@ -115,6 +126,29 @@ export default function SessionsExplorerPage() {
     });
   }, [allSessions]);
 
+  // Group sessions by recurrenceRuleId
+  const { standaloneSessions, seriesGroups } = useMemo(() => {
+    const groups = new Map<string, typeof sessions>();
+    const standalone: typeof sessions = [];
+
+    sessions.forEach((s) => {
+      if (s.recurrenceRuleId) {
+        const existing = groups.get(s.recurrenceRuleId) ?? [];
+        groups.set(s.recurrenceRuleId, [...existing, s]);
+      } else {
+        standalone.push(s);
+      }
+    });
+
+    return {
+      standaloneSessions: standalone,
+      seriesGroups: Array.from(groups.entries()).map(([ruleId, sessions]) => ({
+        recurrenceRuleId: ruleId,
+        sessions,
+      })),
+    };
+  }, [sessions]);
+
   const isEmpty = folders.length === 0 && allSessions.length === 0;
 
   if (isLoading) {
@@ -130,7 +164,9 @@ export default function SessionsExplorerPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold text-ink-900">Sessions</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-ink-900">
+            Sessions
+          </h1>
           <Breadcrumbs
             breadcrumbs={breadcrumbs}
             onGoToRoot={goToRoot}
@@ -140,7 +176,11 @@ export default function SessionsExplorerPage() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <ViewToggle viewMode={viewMode} onChange={setSessionsViewMode} />
-          <Button variant="secondary" onClick={() => setCreatingFolder(true)} className="cursor-pointer">
+          <Button
+            variant="secondary"
+            onClick={() => setCreatingFolder(true)}
+            className="cursor-pointer"
+          >
             + New Folder
           </Button>
           <Link
@@ -152,7 +192,10 @@ export default function SessionsExplorerPage() {
       </div>
 
       {/* Status filter */}
-      <StatusFilterComponent currentFilter={statusFilter} onChange={setStatusFilter} />
+      <StatusFilterComponent
+        currentFilter={statusFilter}
+        onChange={setStatusFilter}
+      />
 
       {/* Workspace indicator */}
       <WorkspaceIndicator organization={activeOrg} />
@@ -170,7 +213,10 @@ export default function SessionsExplorerPage() {
 
       {/* Empty state */}
       {isEmpty && !creatingFolder && (
-        <EmptyState currentFolderId={currentFolderId} onCreateFolder={() => setCreatingFolder(true)} />
+        <EmptyState
+          currentFolderId={currentFolderId}
+          onCreateFolder={() => setCreatingFolder(true)}
+        />
       )}
 
       {/* Grid view */}
@@ -200,15 +246,44 @@ export default function SessionsExplorerPage() {
           )}
 
           {/* Sessions */}
-          {sessions.length > 0 && (
-            <SessionGrid
-              sessions={sessions}
-              onDragStart={handleDragStart}
-              currentFolderId={currentFolderId}
-              onMoveToRoot={(sessionId) => moveSession({ sessionId, folderId: null })}
-              onMoveToFolder={handleOpenMoveModal}
-              onDeleteSession={confirmDeleteSession}
-            />
+          {(seriesGroups.length > 0 || standaloneSessions.length > 0) && (
+            <div className="space-y-6">
+              {/* Recurring Series Groups - Full width section */}
+              {seriesGroups.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+                    Recurring Series
+                    <span className="text-xs bg-surface-200 text-ink-700 px-2 py-0.5 rounded-full">
+                      {seriesGroups.length} series
+                    </span>
+                  </h3>
+                  <div className="space-y-3">
+                    {seriesGroups.map((group) => (
+                      <RecurringSeriesGroup
+                        key={group.recurrenceRuleId}
+                        recurrenceRuleId={group.recurrenceRuleId}
+                        sessions={group.sessions}
+                        onDeleteSession={confirmDeleteSession}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Standalone Sessions Grid */}
+              {standaloneSessions.length > 0 && (
+                <SessionGrid
+                  sessions={standaloneSessions}
+                  onDragStart={handleDragStart}
+                  currentFolderId={currentFolderId}
+                  onMoveToRoot={(sessionId) =>
+                    moveSession({ sessionId, folderId: null })
+                  }
+                  onMoveToFolder={handleOpenMoveModal}
+                  onDeleteSession={confirmDeleteSession}
+                />
+              )}
+            </div>
           )}
         </div>
       )}
@@ -227,7 +302,9 @@ export default function SessionsExplorerPage() {
           onDeleteFolder={confirmDeleteFolder}
           onDragStart={handleDragStart}
           currentFolderId={currentFolderId}
-          onMoveToRoot={(sessionId) => moveSession({ sessionId, folderId: null })}
+          onMoveToRoot={(sessionId) =>
+            moveSession({ sessionId, folderId: null })
+          }
           onMoveToFolder={handleOpenMoveModal}
           onDeleteSession={confirmDeleteSession}
         />
@@ -323,7 +400,10 @@ function FolderGrid({
             />
 
             {renamingFolderId === folder.id ? (
-              <form onSubmit={onRenameSubmit} onClick={(e) => e.stopPropagation()}>
+              <form
+                onSubmit={onRenameSubmit}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <FolderIcon size={40} className="text-primary-600 mb-3" />
                 <input
                   autoFocus
@@ -337,11 +417,20 @@ function FolderGrid({
                 />
               </form>
             ) : (
-              <div onClick={() => onOpenFolder(folder.id)} className="cursor-pointer">
-                <FolderIcon size={40} className="text-primary-600 mb-3 group-hover:scale-105 transition-transform" />
-                <p className="text-sm font-medium text-ink-900 truncate">{folder.name}</p>
+              <div
+                onClick={() => onOpenFolder(folder.id)}
+                className="cursor-pointer"
+              >
+                <FolderIcon
+                  size={40}
+                  className="text-primary-600 mb-3 group-hover:scale-105 transition-transform"
+                />
+                <p className="text-sm font-medium text-ink-900 truncate">
+                  {folder.name}
+                </p>
                 <p className="text-xs text-ink-700/50 mt-1">
-                  {folder._count.sessions} session{folder._count.sessions !== 1 ? "s" : ""}
+                  {folder._count.sessions} session
+                  {folder._count.sessions !== 1 ? "s" : ""}
                   {folder._count.subFolders > 0 &&
                     ` · ${folder._count.subFolders} folder${folder._count.subFolders !== 1 ? "s" : ""}`}
                 </p>
@@ -385,11 +474,18 @@ interface SessionGridProps {
   onDeleteSession: (id: string, title: string) => void;
 }
 
-function SessionGrid({ sessions, onDragStart, currentFolderId, onMoveToRoot, onMoveToFolder, onDeleteSession }: SessionGridProps) {
+function SessionGrid({
+  sessions,
+  onDragStart,
+  currentFolderId,
+  onMoveToRoot,
+  onMoveToFolder,
+  onDeleteSession,
+}: SessionGridProps) {
   return (
     <div>
       <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900 mb-3">
-        Sessions
+        Individual Sessions
         <span className="text-xs bg-surface-200 text-ink-700 px-2 py-0.5 rounded-full">
           {sessions.length}
         </span>
@@ -402,7 +498,9 @@ function SessionGrid({ sessions, onDragStart, currentFolderId, onMoveToRoot, onM
             onDragStart={() => onDragStart(session.id)}
             className="group relative border border-surface-200 rounded-card overflow-hidden bg-surface-0 hover:shadow-raised transition-shadow cursor-grab active:cursor-grabbing"
           >
-            <div className={`relative h-24 flex items-center justify-center ${SESSION_CARD_STYLES[session.status]}`}>
+            <div
+              className={`relative h-24 flex items-center justify-center ${SESSION_CARD_STYLES[session.status]}`}
+            >
               <Video size={32} className="text-white/30" />
               <div className="absolute top-2.5 left-2.5">
                 <StatusBadge status={session.status} className="bg-white/90" />
@@ -420,13 +518,18 @@ function SessionGrid({ sessions, onDragStart, currentFolderId, onMoveToRoot, onM
               variant="grid"
             />
 
-            <Link href={`/dashboard/sessions/${session.id}`} className="block p-4">
+            <Link
+              href={`/dashboard/sessions/${session.id}`}
+              className="block p-4"
+            >
               <p className="text-sm font-medium text-ink-900 truncate pr-6">
                 {session.title}
               </p>
               <div className="flex items-center gap-3 text-xs text-ink-700/50 mt-1.5">
                 <span>
-                  {session.scheduledAt ? formatDateTime(session.scheduledAt) : "Instant session"}
+                  {session.scheduledAt
+                    ? formatDateTime(session.scheduledAt)
+                    : "Instant session"}
                 </span>
                 {(session._count?.attendance ?? 0) > 0 && (
                   <span>{session._count?.attendance} participants</span>
@@ -489,7 +592,10 @@ function SessionList({
             className="flex items-center justify-between px-4 md:px-6 py-3.5 hover:bg-surface-50 transition-colors"
           >
             {renamingFolderId === folder.id ? (
-              <form onSubmit={onRenameSubmit} className="flex items-center gap-3 flex-1">
+              <form
+                onSubmit={onRenameSubmit}
+                className="flex items-center gap-3 flex-1"
+              >
                 <FolderIcon size={20} className="text-primary-600" />
                 <input
                   autoFocus
@@ -510,9 +616,12 @@ function SessionList({
                 >
                   <FolderIcon size={20} className="text-primary-600 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink-900 truncate">{folder.name}</p>
+                    <p className="text-sm font-medium text-ink-900 truncate">
+                      {folder.name}
+                    </p>
                     <p className="text-xs text-ink-700/50">
-                      {folder._count.sessions} session{folder._count.sessions !== 1 ? "s" : ""}
+                      {folder._count.sessions} session
+                      {folder._count.sessions !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
@@ -538,7 +647,9 @@ function SessionList({
             >
               <Video size={18} className="text-primary-600 shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-ink-900 truncate">{session.title}</p>
+                <p className="text-sm font-medium text-ink-900 truncate">
+                  {session.title}
+                </p>
                 <p className="text-xs text-ink-700/50">
                   {session.scheduledAt
                     ? formatDateTime(session.scheduledAt)
@@ -564,11 +675,20 @@ function SessionList({
 }
 
 // ── Three-dot menu for folders ────────────────────────────────────────────
-function FolderMenu({ onRename, onDelete }: { onRename: () => void; onDelete: () => void }) {
+function FolderMenu({
+  onRename,
+  onDelete,
+}: {
+  onRename: () => void;
+  onDelete: () => void;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="absolute top-3 right-3 z-10"
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         onClick={() => setOpen(!open)}
         className="text-ink-700/40 hover:text-ink-700 opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
@@ -620,13 +740,13 @@ function SessionMenu({
 }) {
   const [open, setOpen] = useState(false);
 
-  const containerClasses = variant === "grid"
-    ? "absolute top-3 right-3 z-10"
-    : "relative";
+  const containerClasses =
+    variant === "grid" ? "absolute top-3 right-3 z-10" : "relative";
 
-  const buttonClasses = variant === "grid" 
-    ? "text-white/70 hover:text-white"
-    : "text-ink-700/40 hover:text-ink-700 opacity-0 group-hover:opacity-100";
+  const buttonClasses =
+    variant === "grid"
+      ? "text-white/70 hover:text-white"
+      : "text-ink-700/40 hover:text-ink-700 opacity-0 group-hover:opacity-100";
 
   return (
     <div className={containerClasses} onClick={(e) => e.stopPropagation()}>

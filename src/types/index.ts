@@ -51,6 +51,8 @@ export interface Session {
   createdAt: string;
   updatedAt: string;
   host?: User;
+  recurrenceRuleId?: string | null;
+  occurrenceIndex?: number | null;
   participants?: SessionParticipant[];
   _count?: {
     participants: number;
