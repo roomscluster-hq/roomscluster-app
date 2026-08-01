@@ -35,6 +35,7 @@ export default function SessionDetailPage() {
     isStarting,
     isEnding,
     isDeleting,
+    isCohost,
   } = useSessionDetail();
 
   if (isLoading) {
@@ -67,6 +68,7 @@ export default function SessionDetailPage() {
           isStarting={isStarting}
           isEnding={isEnding}
           isDeleting={isDeleting}
+          isCohost={isCohost ?? false}
         />
       </div>
 

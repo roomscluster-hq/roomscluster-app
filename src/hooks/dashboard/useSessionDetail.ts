@@ -6,11 +6,13 @@ import { sessionsApi } from "@/lib/api";
 import { recordingApi } from "@/lib/api/recording.api";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth.store";
 
 export function useSessionDetail() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   // Queries
   const { data: session, isLoading } = useQuery({
@@ -30,6 +32,10 @@ export function useSessionDetail() {
     enabled: !!session,
   });
 
+  const isCohost = session?.participants?.some(
+    (p) => p.user?.id === user?.id && p.role === "COHOST",
+  );
+  const isHost = session?.hostId === user?.id;
   // Mutations
   const startMutation = useMutation({
     mutationFn: () => sessionsApi.start(id),
@@ -91,7 +97,11 @@ export function useSessionDetail() {
   };
 
   // Download helpers
-  const triggerDownload = (content: string, filename: string, mimeType: string) => {
+  const triggerDownload = (
+    content: string,
+    filename: string,
+    mimeType: string,
+  ) => {
     const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -127,9 +137,13 @@ export function useSessionDetail() {
       if (format === "txt") {
         const lines = messages.map(
           (m) =>
-            `[${formatDateTime(m.createdAt)}] ${m.senderName} (${m.senderEmail}): ${m.content}`
+            `[${formatDateTime(m.createdAt)}] ${m.senderName} (${m.senderEmail}): ${m.content}`,
         );
-        triggerDownload(lines.join("\n"), `${base}_transcript.txt`, "text/plain");
+        triggerDownload(
+          lines.join("\n"),
+          `${base}_transcript.txt`,
+          "text/plain",
+        );
       } else {
         const header = "Timestamp,Sender Name,Sender Email,Message";
         const rows = messages.map((m) =>
@@ -138,9 +152,13 @@ export function useSessionDetail() {
             csvEscape(m.senderName),
             csvEscape(m.senderEmail),
             csvEscape(m.content),
-          ].join(",")
+          ].join(","),
         );
-        triggerDownload([header, ...rows].join("\n"), `${base}_transcript.csv`, "text/csv");
+        triggerDownload(
+          [header, ...rows].join("\n"),
+          `${base}_transcript.csv`,
+          "text/csv",
+        );
       }
 
       toast.success(`Transcript downloaded as ${format.toUpperCase()}`);
@@ -166,15 +184,19 @@ export function useSessionDetail() {
           csvEscape(a.role),
           csvEscape(formatDateTime(a.joinedAt)),
           csvEscape(a.leftAt ? formatDateTime(a.leftAt) : ""),
-        ].join(",")
+        ].join(","),
       );
-      triggerDownload([header, ...rows].join("\n"), `${base}_attendance.csv`, "text/csv");
+      triggerDownload(
+        [header, ...rows].join("\n"),
+        `${base}_attendance.csv`,
+        "text/csv",
+      );
     } else {
       const lines = attendance.map(
         (a) =>
           `${a.name} (${a.email}) — ${a.role} — Joined: ${formatDateTime(a.joinedAt)}${
             a.leftAt ? `, Left: ${formatDateTime(a.leftAt)}` : ""
-          }`
+          }`,
       );
       triggerDownload(lines.join("\n"), `${base}_attendance.txt`, "text/plain");
     }
@@ -204,7 +226,9 @@ export function useSessionDetail() {
     isLoading,
     attendanceLoading,
     recordingsLoading,
-    
+    isCohost,
+    isHost,
+
     // Actions
     startSession: startMutation.mutate,
     endSession: endMutation.mutate,
@@ -212,11 +236,11 @@ export function useSessionDetail() {
     handleDownloadRecording,
     handleDownloadTranscript,
     handleDownloadAttendance,
-    
+
     // Format helpers
     formatDuration,
     formatFileSize,
-    
+
     // Loading states
     isStarting: startMutation.isPending,
     isEnding: endMutation.isPending,

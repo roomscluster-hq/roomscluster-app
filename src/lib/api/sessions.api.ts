@@ -20,6 +20,7 @@ export const sessionsApi = {
     scheduledAt?: string;
     passcode?: string;
     folderId?: string;
+    coHostUserIds?: string[];
   }) => {
     const res = await client.post<{ data: Session }>("/sessions", data);
     return unwrap(res);
@@ -114,6 +115,7 @@ export const sessionsApi = {
       endDate?: string;
       endCount?: number;
     };
+    coHostUserIds?: string[];
   }) => {
     const res = await client.post<{
       data: {

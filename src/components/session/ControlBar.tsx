@@ -246,6 +246,16 @@ export function ControlBar(props: ControlBarProps) {
     onToggleLock,
   } = props;
 
+  // Debug logging for co-host controls issue
+  console.log('[ControlBar Debug]', {
+    isHost,
+    isCohost,
+    isSpeaker,
+    canPublish,
+    recordingEnabled,
+    canManage: isHost || isCohost,
+  });
+
   const [moreOpen, setMoreOpen] = useState(false);
 
   const canManage = isHost || isCohost;

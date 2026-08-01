@@ -75,6 +75,24 @@ export function RoomProvider({
     }
   }, [liveKit.localParticipant]);
 
+  // Sync isCohost from participants list on initial load
+  useEffect(() => {
+    if (!socket.participants.length) return;
+
+    const myIdentity =
+      myIdentityRef.current ??
+      liveKit.roomRef.current?.localParticipant?.identity;
+    if (!myIdentity) return;
+
+    const me = socket.participants.find(
+      (p) => (p.user?.id ?? p.userId) === myIdentity,
+    );
+
+    if (me?.role === "COHOST") {
+      setIsCohost(true);
+    }
+  }, [socket.participants]);
+
   // Keep socketRef in sync
   useEffect(() => {
     socketRef.current = socket.socketRef.current;
@@ -166,10 +184,22 @@ export function RoomProvider({
       token?: string;
       serverUrl?: string;
     }) => {
+      console.log('[RoomContext] participant:became-cohost received:', data);
+      
       // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
       const myIdentity =
         room?.localParticipant?.identity ?? myIdentityRef.current;
+
+      console.log('[RoomContext] handleBecameCohost:', {
+        myIdentity,
+        dataUserId: data.userId,
+        isMatch: myIdentity === data.userId,
+        hasToken: !!data.token,
+        hasServerUrl: !!data.serverUrl,
+        hasRoom: !!room,
+        roomState: room?.state,
+      });
 
       if (myIdentity === data.userId) {
         setIsCohost(true);
@@ -180,17 +210,20 @@ export function RoomProvider({
         toast.success("You are now a co-host!");
         try {
           const accessToken = localStorage.getItem("access_token");
+          console.log('[RoomContext] Reconnecting as co-host...');
           if (room.state !== "disconnected") {
             await room.disconnect();
           }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
+          console.log('[RoomContext] Reconnected successfully, updating canPublish');
           if (accessToken && !localStorage.getItem("access_token")) {
             localStorage.setItem("access_token", accessToken);
           }
           liveKit.updateCanPublish(true);
           liveKit.syncLocalParticipant();
+          console.log('[RoomContext] canPublish updated to true');
           if (myIdentity?.startsWith("guest_")) {
             const maxAge = 60 * 60 * 4;
             document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
@@ -371,7 +404,7 @@ export function RoomProvider({
       sock.off("whiteboard:cleared", handleWhiteboardClear);
       sock.off("recording:started", handleRecordingStarted);
       sock.off("recording:stopped", handleRecordingStopped);
-      sock.off('session:lock-toggled', handleLockToggled);
+      sock.off("session:lock-toggled", handleLockToggled);
     };
   }, [socket.isConnected]); // ← only re-run when connection status changes
 
@@ -471,7 +504,7 @@ export function RoomProvider({
     setOnPromoted,
 
     isLocked,
-    toggleLock, 
+    toggleLock,
   };
 
   return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;
