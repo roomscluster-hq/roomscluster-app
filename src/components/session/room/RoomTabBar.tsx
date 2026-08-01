@@ -1,6 +1,11 @@
 "use client";
 
-export type SidebarTab = "chat" | "participants" | "waiting" | "settings";
+export type SidebarTab =
+  | "chat"
+  | "participants"
+  | "waiting"
+  | "settings"
+  | "qa";
 
 interface RoomTabBarProps {
   activeTab: SidebarTab;
@@ -11,6 +16,7 @@ interface RoomTabBarProps {
   participantCount: number;
   waitingCount: number;
   canManage: boolean;
+  qaCount: number;
 }
 
 export function RoomTabBar({
@@ -22,6 +28,7 @@ export function RoomTabBar({
   participantCount,
   waitingCount,
   canManage,
+  qaCount,
 }: RoomTabBarProps) {
   const btnClass = (tab: SidebarTab) =>
     `flex-1 ${mobile ? "py-2.5 text-sm" : "py-2 text-xs"} font-medium transition ${
@@ -40,14 +47,20 @@ export function RoomTabBar({
           </span>
         )}
       </button>
-      <button onClick={() => onChange("participants")} className={btnClass("participants")}>
+      <button
+        onClick={() => onChange("participants")}
+        className={btnClass("participants")}
+      >
         People
         <span className="ml-1 bg-ink-700 text-white text-xs px-1.5 rounded-full">
           {participantCount}
         </span>
       </button>
       {canManage && (
-        <button onClick={() => onChange("waiting")} className={btnClass("waiting")}>
+        <button
+          onClick={() => onChange("waiting")}
+          className={btnClass("waiting")}
+        >
           Waiting
           {waitingCount > 0 && (
             <span className="ml-1 bg-warning-500 text-white text-xs px-1.5 rounded-full animate-pulse">
@@ -57,10 +70,22 @@ export function RoomTabBar({
         </button>
       )}
       {canManage && (
-        <button onClick={() => onChange("settings")} className={btnClass("settings")}>
+        <button
+          onClick={() => onChange("settings")}
+          className={btnClass("settings")}
+        >
           Settings
         </button>
       )}
+
+      <button onClick={() => onChange("qa")} className={btnClass("qa")}>
+        Q&A
+        {qaCount > 0 && (
+          <span className="ml-1 bg-primary-600 text-white text-xs px-1.5 rounded-full">
+            {qaCount}
+          </span>
+        )}
+      </button>
 
       {/* Close button — desktop only */}
       {!mobile && onClose && (

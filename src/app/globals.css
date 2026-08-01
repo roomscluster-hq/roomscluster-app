@@ -65,3 +65,37 @@ body {
   outline: 2px solid var(--color-primary-600);
   outline-offset: 2px;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+.overflow-y-auto,
+.overflow-y-scroll {
+  scroll-behavior: smooth;
+}
+
+/* ── Custom scrollbar ─────────────────────────── */
+::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}

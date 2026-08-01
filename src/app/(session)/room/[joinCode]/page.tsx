@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { sessionsApi } from "@/lib/api";
@@ -26,6 +26,7 @@ import {
 } from "@/components/session/room";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { QAPanel } from "@/components/session/QAPanel";
 
 type MainView = "video" | "whiteboard";
 
@@ -45,6 +46,11 @@ function RoomContent({ joinCode }: RoomContentProps) {
 
   const remoteDrawRef = useRef<WhiteboardDrawCallback | null>(null);
   const remoteClearRef = useRef<WhiteboardClearCallback | null>(null);
+
+  const [qaCount, setQaCount] = useState(0);
+  const handleQuestionCountChange = useCallback((openCount: number, answeredCount: number) => {
+    setQaCount(openCount + answeredCount);
+  }, []);
 
   const {
     session,
@@ -100,18 +106,33 @@ function RoomContent({ joinCode }: RoomContentProps) {
 
   // Debug logging for co-host controls issue
   useEffect(() => {
-    console.log('[RoomSession Debug]', {
+    console.log("[RoomSession Debug]", {
       isHost,
       isCohost,
       isSpeaker,
       canPublish,
       canManage,
       isGuest,
-      currentUserId: currentUserId?.slice(0, 8) + '...',
+      currentUserId: currentUserId?.slice(0, 8) + "...",
     });
-  }, [isHost, isCohost, isSpeaker, canPublish, canManage, isGuest, currentUserId]);
+  }, [
+    isHost,
+    isCohost,
+    isSpeaker,
+    canPublish,
+    canManage,
+    isGuest,
+    currentUserId,
+  ]);
 
-  console.log('[ControlBar props] isCohost:', isCohost, 'isHost:', isHost, 'canPublish:', canPublish);
+  console.log(
+    "[ControlBar props] isCohost:",
+    isCohost,
+    "isHost:",
+    isHost,
+    "canPublish:",
+    canPublish,
+  );
   // Register whiteboard callbacks
   useEffect(() => {
     setOnWhiteboardDraw((event) => remoteDrawRef.current?.(event));
@@ -183,7 +204,19 @@ function RoomContent({ joinCode }: RoomContentProps) {
   const sidebarContent = (
     <>
       {sidebarTab === "chat" && (
-        <ChatPanel messages={messages} onSend={sendMessage} chatEnabled={roomChatEnabled} />
+        <ChatPanel
+          messages={messages}
+          onSend={sendMessage}
+          chatEnabled={roomChatEnabled}
+        />
+      )}
+      {sidebarTab === "qa" && session && (
+        <QAPanel
+          joinCode={joinCode}
+          socketRef={socketRef}
+          canManage={canManage}
+          onQuestionCountChange={handleQuestionCountChange}
+        />
       )}
       {sidebarTab === "participants" && (
         <ParticipantsPanel
@@ -207,7 +240,11 @@ function RoomContent({ joinCode }: RoomContentProps) {
       )}
       {sidebarTab === "settings" && canManage && session && (
         <div className="overflow-y-auto h-full px-4 py-2">
-          <SessionSettingsPanel sessionId={session.id} joinCode={joinCode} compact />
+          <SessionSettingsPanel
+            sessionId={session.id}
+            joinCode={joinCode}
+            compact
+          />
         </div>
       )}
     </>
@@ -269,14 +306,21 @@ function RoomContent({ joinCode }: RoomContentProps) {
               participantCount={participants.length}
               waitingCount={waitingParticipants.length}
               canManage={canManage}
+              qaCount={qaCount}
             />
-            <div className="flex-1 min-h-0 overflow-hidden">{sidebarContent}</div>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {sidebarContent}
+            </div>
           </div>
         )}
       </div>
 
       {/* Mobile bottom sheet */}
-      <BottomSheet open={mobileSheetOpen} onClose={() => setMobileSheetOpen(false)} height="tall">
+      <BottomSheet
+        open={mobileSheetOpen}
+        onClose={() => setMobileSheetOpen(false)}
+        height="tall"
+      >
         <div className="flex flex-col h-full">
           <RoomTabBar
             activeTab={sidebarTab}
@@ -286,6 +330,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
             participantCount={participants.length}
             waitingCount={waitingParticipants.length}
             canManage={canManage}
+            qaCount={qaCount}
           />
           <div className="flex-1 min-h-0 overflow-hidden">{sidebarContent}</div>
         </div>
@@ -315,7 +360,9 @@ function RoomContent({ joinCode }: RoomContentProps) {
           onToggleScreenShare={toggleScreenShare}
           onRaiseHand={handleRaiseHand}
           onToggleRecording={handleToggleRecording}
-          onToggleWhiteboard={() => setMainView((v) => (v === "whiteboard" ? "video" : "whiteboard"))}
+          onToggleWhiteboard={() =>
+            setMainView((v) => (v === "whiteboard" ? "video" : "whiteboard"))
+          }
           onOpenChat={() => openPanel("chat")}
           onOpenPeople={() => openPanel("participants")}
           onEndSession={handleEndSession}
