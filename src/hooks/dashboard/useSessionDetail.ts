@@ -43,7 +43,7 @@ export function useSessionDetail() {
       queryClient.invalidateQueries({ queryKey: ["session", id] });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       toast.success("Session started");
-      router.push(`/room/${data.joinCode}`);
+      window.open(`/room/${data.joinCode}`, "_blank");
     },
     onError: () => toast.error("Failed to start session"),
   });

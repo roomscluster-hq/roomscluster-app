@@ -36,7 +36,7 @@ export function SessionActions({
       {!isEnded && (
         <>
           {isLive ? (
-            <Link href={`/room/${joinCode}`}>
+            <Link href={`/room/${joinCode}`} target="_blank" rel="noopener noreferrer">
               <Button className="cursor-pointer gap-2">
                 <Video size={18} />
                 <span className="hidden sm:inline">Join</span>

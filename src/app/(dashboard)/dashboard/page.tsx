@@ -199,6 +199,8 @@ export default function DashboardPage() {
                   </Link>
                   <Link
                     href={`/room/${nextSession.joinCode}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-50 transition-colors"
                   >
                     Join
