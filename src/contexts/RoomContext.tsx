@@ -38,10 +38,12 @@ export function RoomProvider({
 
   // isCohost as explicit state — set from socket events, not derived from participants
   const [isCohost, setIsCohost] = useState(false);
-  
+
   // isSpeaker as explicit state — set when user is promoted to speaker
   // Speakers bypass settings restrictions (like co-hosts)
   const [isSpeaker, setIsSpeaker] = useState(false);
+
+  const [isLocked, setIsLocked] = useState(false);
 
   // Refs
   const onWhiteboardDrawRef = useRef<((event: any) => void) | null>(null);
@@ -49,6 +51,10 @@ export function RoomProvider({
   const onPromotedRef = useRef<((userId: string) => void) | null>(null);
   const myIdentityRef = useRef<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
+
+  const toggleLock = useCallback(() => {
+    socketRef.current?.emit("session:lock-toggle");
+  }, []);
 
   // Add this helper inside RoomProvider, before the useEffect
   const getRoom = useCallback(async () => {
@@ -290,18 +296,24 @@ export function RoomProvider({
       serverUrl: string;
       canPublish: boolean;
     }) => {
-      console.log('[Socket] settings:token-updated received:', data);
+      console.log("[Socket] settings:token-updated received:", data);
       const myIdentity =
         myIdentityRef.current ??
         liveKit.roomRef.current?.localParticipant?.identity;
-      console.log('[Socket] My identity:', myIdentity, 'Event userId:', data.userId);
-      
+      console.log(
+        "[Socket] My identity:",
+        myIdentity,
+        "Event userId:",
+        data.userId,
+      );
+
       // Check if this event is for us - match by identity or email (for guests)
-      const isForMe = myIdentity === data.userId || 
-        (myIdentity?.startsWith('guest_') && data.userId?.includes('@'));
-      
+      const isForMe =
+        myIdentity === data.userId ||
+        (myIdentity?.startsWith("guest_") && data.userId?.includes("@"));
+
       if (!isForMe) {
-        console.log('[Socket] Event not for me, skipping');
+        console.log("[Socket] Event not for me, skipping");
         return;
       }
 
@@ -309,17 +321,33 @@ export function RoomProvider({
       if (!room) return;
 
       try {
-        console.log('[LiveKit] Reconnecting with new token, canPublish:', data.canPublish);
+        console.log(
+          "[LiveKit] Reconnecting with new token, canPublish:",
+          data.canPublish,
+        );
         await room.disconnect(false);
         await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
         liveKit.updateCanPublish(data.canPublish);
-        console.log('[LiveKit] Token update complete, canPublish set to:', data.canPublish);
+        console.log(
+          "[LiveKit] Token update complete, canPublish set to:",
+          data.canPublish,
+        );
         // No toast — silent update
       } catch (err) {
         console.error("[LiveKit] Failed to update token from settings:", err);
       }
     };
 
+    const handleLockToggled = (data: { isLocked: boolean }) => {
+      setIsLocked(data.isLocked);
+      toast(
+        data.isLocked
+          ? "Session locked — no new participants can join"
+          : "Session unlocked",
+      );
+    };
+
+    sock.on("session:lock-toggled", handleLockToggled);
     sock.on("settings:token-updated", handleSettingsTokenUpdated);
     sock.on("participant:promoted", handlePromoted);
     sock.on("participant:demoted", handleDemoted);
@@ -343,6 +371,7 @@ export function RoomProvider({
       sock.off("whiteboard:cleared", handleWhiteboardClear);
       sock.off("recording:started", handleRecordingStarted);
       sock.off("recording:stopped", handleRecordingStopped);
+      sock.off('session:lock-toggled', handleLockToggled);
     };
   }, [socket.isConnected]); // ← only re-run when connection status changes
 
@@ -440,6 +469,9 @@ export function RoomProvider({
     setOnWhiteboardDraw,
     setOnWhiteboardClear,
     setOnPromoted,
+
+    isLocked,
+    toggleLock, 
   };
 
   return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;

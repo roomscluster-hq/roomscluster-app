@@ -90,6 +90,9 @@ export interface RoomActions {
   setOnWhiteboardDraw: (fn: ((event: any) => void) | null) => void;
   setOnWhiteboardClear: (fn: (() => void) | null) => void;
   setOnPromoted: (fn: ((userId: string) => void) | null) => void;
+
+  isLocked: boolean;
+  toggleLock: () => void;
 }
 
 export interface RoomContextValue extends RoomState, RoomActions {

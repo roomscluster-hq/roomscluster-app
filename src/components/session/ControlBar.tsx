@@ -32,6 +32,8 @@ interface ControlBarProps {
   onOpenPeople: () => void;
   onEndSession: () => void;
   onLeave: () => void;
+  isLocked: boolean;
+  onToggleLock: () => void;
 }
 
 function ControlButton({
@@ -193,6 +195,25 @@ const MoreIcon = () => (
   </svg>
 );
 
+const LockIcon = ({ locked }: { locked: boolean }) =>
+  locked ? (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+      <path
+        fillRule="evenodd"
+        d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+        clipRule="evenodd"
+      />
+    </svg>
+  ) : (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+      <path
+        fillRule="evenodd"
+        d="M14.5 1A4.5 4.5 0 0010 5.5V9H3a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-1.5V5.5a3 3 0 116 0v2.75a.75.75 0 001.5 0V5.5A4.5 4.5 0 0014.5 1z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+
 export function ControlBar(props: ControlBarProps) {
   const {
     isMuted,
@@ -221,6 +242,8 @@ export function ControlBar(props: ControlBarProps) {
     onOpenPeople,
     onEndSession,
     onLeave,
+    isLocked,
+    onToggleLock,
   } = props;
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -234,8 +257,10 @@ export function ControlBar(props: ControlBarProps) {
   // Mic/Camera disabled if:
   // 1. No publish permission at all (canPublish: false), OR
   // 2. User is regular guest (not host/cohost/speaker) AND setting is disabled
-  const micDisabled = !canPublish || (!canBypassSettings && !participantMicEnabled);
-  const cameraDisabled = !canPublish || (!canBypassSettings && !participantVideoEnabled);
+  const micDisabled =
+    !canPublish || (!canBypassSettings && !participantMicEnabled);
+  const cameraDisabled =
+    !canPublish || (!canBypassSettings && !participantVideoEnabled);
 
   return (
     <div
@@ -257,7 +282,11 @@ export function ControlBar(props: ControlBarProps) {
                   : "Mute"
             }
           >
-            {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isMuted ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
             <Label>{isMuted ? "Unmute" : "Mute"}</Label>
           </ControlButton>
 
@@ -273,7 +302,11 @@ export function ControlBar(props: ControlBarProps) {
                   : "Turn off camera"
             }
           >
-            {isCameraOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            {isCameraOff ? (
+              <VideoOff className="w-5 h-5" />
+            ) : (
+              <Video className="w-5 h-5" />
+            )}
             <Label>{isCameraOff ? "Start" : "Stop"}</Label>
           </ControlButton>
 
@@ -302,6 +335,17 @@ export function ControlBar(props: ControlBarProps) {
             >
               <Hand className="w-5 h-5" />
               <Label>{handRaised ? "Lower" : "Raise"}</Label>
+            </ControlButton>
+          )}
+
+          {canManage && (
+            <ControlButton
+              onClick={onToggleLock}
+              active={isLocked}
+              title={isLocked ? "Unlock session" : "Lock session"}
+            >
+              <LockIcon locked={isLocked} />
+              <Label>{isLocked ? "Unlock" : "Lock"}</Label>
             </ControlButton>
           )}
         </div>
@@ -334,7 +378,11 @@ export function ControlBar(props: ControlBarProps) {
             onClick={onToggleScreenShare}
             active={isScreenSharing}
             disabled={!canPublish || !canBypassSettings}
-            title={canBypassSettings ? "Screen Share" : "Screen sharing requires speaker or co-host role"}
+            title={
+              canBypassSettings
+                ? "Screen Share"
+                : "Screen sharing requires speaker or co-host role"
+            }
           >
             <ScreenShareIcon />
             <Label>Share</Label>
@@ -376,7 +424,11 @@ export function ControlBar(props: ControlBarProps) {
                 : "Mute"
           }
         >
-          {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          {isMuted ? (
+            <MicOff className="w-5 h-5" />
+          ) : (
+            <Mic className="w-5 h-5" />
+          )}
         </ControlButton>
 
         <ControlButton
@@ -392,7 +444,11 @@ export function ControlBar(props: ControlBarProps) {
                 : "Turn off camera"
           }
         >
-          {isCameraOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+          {isCameraOff ? (
+            <VideoOff className="w-5 h-5" />
+          ) : (
+            <Video className="w-5 h-5" />
+          )}
         </ControlButton>
 
         {canManage ? (
@@ -477,6 +533,19 @@ export function ControlBar(props: ControlBarProps) {
             <ScreenShareIcon />
             {isScreenSharing ? "Stop screen share" : "Share screen"}
           </button>
+
+          {canManage && (
+            <button
+              onClick={() => {
+                onToggleLock();
+                setMoreOpen(false);
+              }}
+              className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5"
+            >
+              <LockIcon locked={isLocked} />
+              {isLocked ? "Unlock session" : "Lock session"}
+            </button>
+          )}
 
           {canManage && (
             <button

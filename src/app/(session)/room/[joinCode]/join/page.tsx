@@ -14,6 +14,7 @@ export default function GuestJoinPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSessionLocked, setIsSessionLocked] = useState(false);
 
   const { data: session, isLoading } = useQuery({
     queryKey: ["session-public", joinCode],
@@ -36,7 +37,7 @@ export default function GuestJoinPage() {
       document.cookie = `livekit_server_url=${encodeURIComponent(tokenData.serverUrl ?? "")}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `guest_can_publish=${tokenData.canPublish}; path=/; max-age=${maxAge}; SameSite=Lax`;
 
-      // ── Waiting room gate ────────────────────────────
+      // ── Waiting room gate ──────────────────────────────
       if (session?.id) {
         try {
           const API_URL =
@@ -57,17 +58,30 @@ export default function GuestJoinPage() {
 
       window.location.href = `/room/${joinCode}`;
     } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
+
+      // ── Session locked ────────────────────────────────
+      if (
+        axiosErr.response?.status === 403 &&
+        axiosErr.response?.data?.message?.toLowerCase().includes("locked")
+      ) {
+        setIsSessionLocked(true);
+        setLoading(false);
+        return;
+      }
+
       const message =
         err instanceof Error
           ? err.message
-          : (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-            "Failed to join session";
+          : axiosErr.response?.data?.message ?? "Failed to join session";
+
       setError(message);
       toast.error(message);
       setLoading(false);
     }
   }
 
+  // ── Loading ──────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -76,13 +90,45 @@ export default function GuestJoinPage() {
     );
   }
 
+  // ── Session locked state ─────────────────────────────
+  if (isSessionLocked) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-white/60"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Session Locked</h2>
+          <p className="text-white/60 text-sm">
+            The host has locked this session. No new participants can join at
+            this time.
+          </p>
+          <p className="text-white/40 text-xs mt-4">
+            Please contact the host if you believe this is a mistake.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Join form ────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-md p-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">🎙️</span>
+            <span className="text-2xl">🎓</span>
           </div>
           <h1 className="text-xl font-bold text-white">
             {session?.title ?? "Join Session"}
@@ -97,17 +143,19 @@ export default function GuestJoinPage() {
           )}
           {session?.status === "SCHEDULED" && (
             <span className="inline-block mt-2 text-xs bg-yellow-500 text-white px-3 py-1 rounded-full">
-                Session hasn&apos;t started yet
+              Session hasn&apos;t started yet
             </span>
           )}
         </div>
 
+        {/* Error */}
         {error && (
           <div className="bg-red-900/50 text-red-300 text-sm rounded-lg px-4 py-2.5 mb-4 border border-red-700">
             {error}
           </div>
         )}
 
+        {/* Form */}
         <form onSubmit={handleJoin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -143,9 +191,7 @@ export default function GuestJoinPage() {
             loading={loading}
             disabled={session?.status !== "LIVE"}
           >
-            {session?.status === "LIVE"
-              ? "Join Session"
-              : "Session Not Started"}
+            {session?.status === "LIVE" ? "Join Session" : "Session Not Started"}
           </Button>
         </form>
 
