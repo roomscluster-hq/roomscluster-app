@@ -83,9 +83,8 @@ export interface RoomActions {
   removeCohost: (userId: string) => void;
 
   // Recording
-  startRecording: () => void;
+  startRecording: (type?: 'VIDEO' | 'AUDIO' | 'BOTH') => void;
   stopRecording: () => void;
-  startAudioRecording: () => void;
 
   // Callback setters
   setOnWhiteboardDraw: (fn: ((event: any) => void) | null) => void;

@@ -26,8 +26,8 @@ interface ControlBarProps {
   onToggleCamera: () => void;
   onToggleScreenShare: () => void;
   onRaiseHand: () => void;
-  onToggleRecording: () => void;
-  onStartAudioRecording: () => void;
+  onStartRecording: (type: 'VIDEO' | 'AUDIO' | 'BOTH') => void;
+  onStopRecording: () => void;
   onToggleWhiteboard: () => void;
   onOpenChat: () => void;
   onOpenPeople: () => void;
@@ -237,8 +237,8 @@ export function ControlBar(props: ControlBarProps) {
     onToggleCamera,
     onToggleScreenShare,
     onRaiseHand,
-    onToggleRecording,
-    onStartAudioRecording,
+    onStartRecording,
+    onStopRecording,
     onToggleWhiteboard,
     onOpenChat,
     onOpenPeople,
@@ -330,7 +330,7 @@ export function ControlBar(props: ControlBarProps) {
               <ControlButton
                 onClick={() => {
                   if (isRecording) {
-                    onToggleRecording();
+                    onStopRecording();
                   } else {
                     setDesktopRecordingMenuOpen(true);
                   }
@@ -358,26 +358,36 @@ export function ControlBar(props: ControlBarProps) {
                     onClick={() => setDesktopRecordingMenuOpen(false)}
                   />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center gap-1 z-50">
-                    <div className="bg-black/90 backdrop-blur-sm border border-white/10 rounded-xl p-1.5 flex flex-col gap-1 min-w-[120px] shadow-xl">
+                    <div className="bg-black/90 backdrop-blur-sm border border-white/10 rounded-xl p-1.5 flex flex-col gap-1 min-w-[140px] shadow-xl">
                       <button
                         onClick={() => {
-                          onToggleRecording();
+                          onStartRecording('VIDEO');
                           setDesktopRecordingMenuOpen(false);
                         }}
                         className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
                       >
                         <span>🎥</span>
-                        Video
+                        Video only
                       </button>
                       <button
                         onClick={() => {
-                          onStartAudioRecording();
+                          onStartRecording('AUDIO');
                           setDesktopRecordingMenuOpen(false);
                         }}
                         className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
                       >
                         <span>🎵</span>
                         Audio only
+                      </button>
+                      <button
+                        onClick={() => {
+                          onStartRecording('BOTH');
+                          setDesktopRecordingMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
+                      >
+                        <span>🎥🎵</span>
+                        Video + Audio
                       </button>
                     </div>
                     <div className="w-2 h-2 bg-black/90 rotate-45 border-b border-r border-white/10" />
@@ -514,7 +524,7 @@ export function ControlBar(props: ControlBarProps) {
             compact
             onClick={() => {
               if (isRecording) {
-                onToggleRecording();
+                onStopRecording();
               } else {
                 setRecordingOptionsOpen(true);
               }
@@ -573,25 +583,36 @@ export function ControlBar(props: ControlBarProps) {
         <div className="p-2 pb-4 flex flex-col gap-1">
           <button
             onClick={() => {
-              onToggleRecording();
+              onStartRecording('VIDEO');
               setRecordingOptionsOpen(false);
             }}
             disabled={!recordingEnabled}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
           >
             <span className="text-xl">🎥</span>
-            Video Recording
+            Video only
           </button>
           <button
             onClick={() => {
-              onStartAudioRecording();
+              onStartRecording('AUDIO');
               setRecordingOptionsOpen(false);
             }}
             disabled={!recordingEnabled}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
           >
             <span className="text-xl">🎵</span>
-            Audio Only Recording
+            Audio only
+          </button>
+          <button
+            onClick={() => {
+              onStartRecording('BOTH');
+              setRecordingOptionsOpen(false);
+            }}
+            disabled={!recordingEnabled}
+            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
+          >
+            <span className="text-xl">🎥🎵</span>
+            Video + Audio
           </button>
         </div>
       </BottomSheet>

@@ -478,21 +478,15 @@ export function RoomProvider({
   }, []);
 
   // Recording actions via socket
-  const startRecording = useCallback(() => {
+  const startRecording = useCallback((type: 'VIDEO' | 'AUDIO' | 'BOTH' = 'VIDEO') => {
     setRecordingLoading(true);
-    socketRef.current?.emit("recording:start");
+    socketRef.current?.emit("recording:start", { type });
     setTimeout(() => setRecordingLoading(false), 5000);
   }, []);
 
   const stopRecording = useCallback(() => {
     setRecordingLoading(true);
     socketRef.current?.emit("recording:stop");
-    setTimeout(() => setRecordingLoading(false), 5000);
-  }, []);
-
-  const startAudioRecording = useCallback(() => {
-    setRecordingLoading(true);
-    socketRef.current?.emit("recording:start-audio");
     setTimeout(() => setRecordingLoading(false), 5000);
   }, []);
 
@@ -556,7 +550,6 @@ export function RoomProvider({
     // Recording actions
     startRecording,
     stopRecording,
-    startAudioRecording,
 
     // Callback setters
     setOnWhiteboardDraw,
