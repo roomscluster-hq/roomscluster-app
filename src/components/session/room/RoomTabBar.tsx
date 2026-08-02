@@ -5,7 +5,8 @@ export type SidebarTab =
   | "participants"
   | "waiting"
   | "settings"
-  | "qa";
+  | "qa"
+  | "polls";
 
 interface RoomTabBarProps {
   activeTab: SidebarTab;
@@ -17,6 +18,7 @@ interface RoomTabBarProps {
   waitingCount: number;
   canManage: boolean;
   qaCount: number;
+  pollCount: number;
 }
 
 export function RoomTabBar({
@@ -29,6 +31,7 @@ export function RoomTabBar({
   waitingCount,
   canManage,
   qaCount,
+  pollCount,
 }: RoomTabBarProps) {
   const btnClass = (tab: SidebarTab) =>
     `flex-1 ${mobile ? "py-2.5 text-sm" : "py-2 text-xs"} font-medium transition ${
@@ -83,6 +86,15 @@ export function RoomTabBar({
         {qaCount > 0 && (
           <span className="ml-1 bg-primary-600 text-white text-xs px-1.5 rounded-full">
             {qaCount}
+          </span>
+        )}
+      </button>
+
+      <button onClick={() => onChange("polls")} className={btnClass("polls")}>
+        Polls
+        {pollCount > 0 && (
+          <span className="ml-1 bg-warning-500 text-white text-xs px-1.5 rounded-full animate-pulse">
+            {pollCount}
           </span>
         )}
       </button>
