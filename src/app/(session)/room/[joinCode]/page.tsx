@@ -27,6 +27,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { QAPanel } from "@/components/session/QAPanel";
+import { PollPanel } from "@/components/session/PollPanel";
 
 type MainView = "video" | "whiteboard";
 
@@ -47,10 +48,14 @@ function RoomContent({ joinCode }: RoomContentProps) {
   const remoteDrawRef = useRef<WhiteboardDrawCallback | null>(null);
   const remoteClearRef = useRef<WhiteboardClearCallback | null>(null);
 
+  const [pollCount, setPollCount] = useState(0);
   const [qaCount, setQaCount] = useState(0);
-  const handleQuestionCountChange = useCallback((openCount: number, answeredCount: number) => {
-    setQaCount(openCount + answeredCount);
-  }, []);
+  const handleQuestionCountChange = useCallback(
+    (openCount: number, answeredCount: number) => {
+      setQaCount(openCount + answeredCount);
+    },
+    [],
+  );
 
   const {
     session,
@@ -218,6 +223,14 @@ function RoomContent({ joinCode }: RoomContentProps) {
           onQuestionCountChange={handleQuestionCountChange}
         />
       )}
+      {sidebarTab === "polls" && session && (
+        <PollPanel
+          joinCode={joinCode}
+          socketRef={socketRef}
+          canManage={canManage}
+          onPollCountChange={setPollCount}
+        />
+      )}
       {sidebarTab === "participants" && (
         <ParticipantsPanel
           participants={participants}
@@ -307,6 +320,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
               waitingCount={waitingParticipants.length}
               canManage={canManage}
               qaCount={qaCount}
+              pollCount={pollCount}
             />
             <div className="flex-1 min-h-0 overflow-hidden">
               {sidebarContent}
@@ -331,6 +345,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
             waitingCount={waitingParticipants.length}
             canManage={canManage}
             qaCount={qaCount}
+            pollCount={pollCount}
           />
           <div className="flex-1 min-h-0 overflow-hidden">{sidebarContent}</div>
         </div>
