@@ -52,6 +52,7 @@ export function useRoomSession() {
     recordingLoading,
     startRecording,
     stopRecording,
+    startAudioRecording,
     waitingParticipants,
     admitParticipant,
     admitAll,
@@ -143,6 +144,10 @@ export function useRoomSession() {
     }
   }
 
+  function handleStartAudioRecording() {
+    startAudioRecording();
+  }
+
     console.log('[RoomSession] isCohost:', isCohost, 'canPublish:', canPublish);
 
   return {
@@ -186,6 +191,7 @@ export function useRoomSession() {
     formatElapsed,
     handleRaiseHand,
     handleToggleRecording,
+    handleStartAudioRecording,
     toggleMic,
     toggleCamera,
     toggleScreenShare,

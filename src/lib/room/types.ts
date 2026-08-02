@@ -85,6 +85,7 @@ export interface RoomActions {
   // Recording
   startRecording: () => void;
   stopRecording: () => void;
+  startAudioRecording: () => void;
 
   // Callback setters
   setOnWhiteboardDraw: (fn: ((event: any) => void) | null) => void;

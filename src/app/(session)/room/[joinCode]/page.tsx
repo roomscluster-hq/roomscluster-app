@@ -94,6 +94,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
     formatElapsed,
     handleRaiseHand,
     handleToggleRecording,
+    handleStartAudioRecording,
     toggleMic,
     toggleCamera,
     toggleScreenShare,
@@ -375,6 +376,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
           onToggleScreenShare={toggleScreenShare}
           onRaiseHand={handleRaiseHand}
           onToggleRecording={handleToggleRecording}
+          onStartAudioRecording={handleStartAudioRecording}
           onToggleWhiteboard={() =>
             setMainView((v) => (v === "whiteboard" ? "video" : "whiteboard"))
           }
