@@ -26,7 +26,8 @@ interface ControlBarProps {
   onToggleCamera: () => void;
   onToggleScreenShare: () => void;
   onRaiseHand: () => void;
-  onToggleRecording: () => void;
+  onStartRecording: (type: 'VIDEO' | 'AUDIO' | 'BOTH') => void;
+  onStopRecording: () => void;
   onToggleWhiteboard: () => void;
   onOpenChat: () => void;
   onOpenPeople: () => void;
@@ -236,7 +237,8 @@ export function ControlBar(props: ControlBarProps) {
     onToggleCamera,
     onToggleScreenShare,
     onRaiseHand,
-    onToggleRecording,
+    onStartRecording,
+    onStopRecording,
     onToggleWhiteboard,
     onOpenChat,
     onOpenPeople,
@@ -257,6 +259,8 @@ export function ControlBar(props: ControlBarProps) {
   });
 
   const [moreOpen, setMoreOpen] = useState(false);
+  const [recordingOptionsOpen, setRecordingOptionsOpen] = useState(false);
+  const [desktopRecordingMenuOpen, setDesktopRecordingMenuOpen] = useState(false);
 
   const canManage = isHost || isCohost;
 
@@ -322,21 +326,75 @@ export function ControlBar(props: ControlBarProps) {
 
           {/* Recording — host and co-host */}
           {canManage ? (
-            <ControlButton
-              onClick={onToggleRecording}
-              active={isRecording}
-              disabled={recordingLoading || !recordingEnabled}
-              title={
-                !recordingEnabled
-                  ? "Recording disabled in settings"
-                  : isRecording
-                    ? "Stop recording"
-                    : "Start recording"
-              }
-            >
-              <RecordIcon recording={isRecording} loading={recordingLoading} />
-              <Label>{isRecording ? "Stop Rec" : "Record"}</Label>
-            </ControlButton>
+            <div className="relative">
+              <ControlButton
+                onClick={() => {
+                  if (isRecording) {
+                    onStopRecording();
+                  } else {
+                    setDesktopRecordingMenuOpen(true);
+                  }
+                }}
+                active={isRecording}
+                disabled={recordingLoading || !recordingEnabled}
+                title={
+                  !recordingEnabled
+                    ? "Recording disabled in settings"
+                    : isRecording
+                      ? "Stop recording"
+                      : "Start recording"
+                }
+              >
+                <RecordIcon recording={isRecording} loading={recordingLoading} />
+                <Label>{isRecording ? "Stop Rec" : "Record"}</Label>
+              </ControlButton>
+
+              {/* Recording options dropdown — shown when not recording and menu is open */}
+              {!isRecording && !recordingLoading && recordingEnabled && desktopRecordingMenuOpen && (
+                <>
+                  {/* Backdrop to close menu when clicking outside */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setDesktopRecordingMenuOpen(false)}
+                  />
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center gap-1 z-50">
+                    <div className="bg-black/90 backdrop-blur-sm border border-white/10 rounded-xl p-1.5 flex flex-col gap-1 min-w-[140px] shadow-xl">
+                      <button
+                        onClick={() => {
+                          onStartRecording('VIDEO');
+                          setDesktopRecordingMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
+                      >
+                        <span>🎥</span>
+                        Video only
+                      </button>
+                      <button
+                        onClick={() => {
+                          onStartRecording('AUDIO');
+                          setDesktopRecordingMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
+                      >
+                        <span>🎵</span>
+                        Audio only
+                      </button>
+                      <button
+                        onClick={() => {
+                          onStartRecording('BOTH');
+                          setDesktopRecordingMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
+                      >
+                        <span>🎥🎵</span>
+                        Video + Audio
+                      </button>
+                    </div>
+                    <div className="w-2 h-2 bg-black/90 rotate-45 border-b border-r border-white/10" />
+                  </div>
+                </>
+              )}
+            </div>
           ) : (
             <ControlButton
               onClick={onRaiseHand}
@@ -464,10 +522,22 @@ export function ControlBar(props: ControlBarProps) {
         {canManage ? (
           <ControlButton
             compact
-            onClick={onToggleRecording}
+            onClick={() => {
+              if (isRecording) {
+                onStopRecording();
+              } else {
+                setRecordingOptionsOpen(true);
+              }
+            }}
             active={isRecording}
-            disabled={recordingLoading}
-            title={isRecording ? "Stop recording" : "Start recording"}
+            disabled={recordingLoading || !recordingEnabled}
+            title={
+              !recordingEnabled
+                ? "Recording disabled in settings"
+                : isRecording
+                  ? "Stop recording"
+                  : "Start recording"
+            }
           >
             <RecordIcon recording={isRecording} loading={recordingLoading} />
           </ControlButton>
@@ -503,6 +573,49 @@ export function ControlBar(props: ControlBarProps) {
           <MoreIcon />
         </ControlButton>
       </div>
+
+      {/* Recording Options Bottom Sheet - Mobile */}
+      <BottomSheet
+        open={recordingOptionsOpen}
+        onClose={() => setRecordingOptionsOpen(false)}
+        title="Choose Recording Type"
+      >
+        <div className="p-2 pb-4 flex flex-col gap-1">
+          <button
+            onClick={() => {
+              onStartRecording('VIDEO');
+              setRecordingOptionsOpen(false);
+            }}
+            disabled={!recordingEnabled}
+            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
+          >
+            <span className="text-xl">🎥</span>
+            Video only
+          </button>
+          <button
+            onClick={() => {
+              onStartRecording('AUDIO');
+              setRecordingOptionsOpen(false);
+            }}
+            disabled={!recordingEnabled}
+            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
+          >
+            <span className="text-xl">🎵</span>
+            Audio only
+          </button>
+          <button
+            onClick={() => {
+              onStartRecording('BOTH');
+              setRecordingOptionsOpen(false);
+            }}
+            disabled={!recordingEnabled}
+            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
+          >
+            <span className="text-xl">🎥🎵</span>
+            Video + Audio
+          </button>
+        </div>
+      </BottomSheet>
 
       <BottomSheet
         open={moreOpen}

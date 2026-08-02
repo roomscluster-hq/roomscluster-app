@@ -135,12 +135,12 @@ export function useRoomSession() {
     }
   }
 
-  function handleToggleRecording() {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
+  function handleStartRecording(type: 'VIDEO' | 'AUDIO' | 'BOTH' = 'VIDEO') {
+    startRecording(type);
+  }
+
+  function handleStopRecording() {
+    stopRecording();
   }
 
     console.log('[RoomSession] isCohost:', isCohost, 'canPublish:', canPublish);
@@ -185,7 +185,8 @@ export function useRoomSession() {
     // Actions
     formatElapsed,
     handleRaiseHand,
-    handleToggleRecording,
+    handleStartRecording,
+    handleStopRecording,
     toggleMic,
     toggleCamera,
     toggleScreenShare,

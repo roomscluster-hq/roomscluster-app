@@ -79,15 +79,15 @@ export function RoomProvider({
 
   // Sync isCohost from participants list on initial load
   useEffect(() => {
-    console.log('[RoomContext] isCohost sync effect triggered:', {
+    console.log("[RoomContext] isCohost sync effect triggered:", {
       participantsLength: socket.participants.length,
       myIdentityRef: myIdentityRef.current,
       liveKitIdentity: liveKit.roomRef.current?.localParticipant?.identity,
       authUserId: user?.id,
     });
-    
+
     if (!socket.participants.length) {
-      console.log('[RoomContext] No participants yet, skipping');
+      console.log("[RoomContext] No participants yet, skipping");
       return;
     }
 
@@ -96,19 +96,19 @@ export function RoomProvider({
       myIdentityRef.current ??
       liveKit.roomRef.current?.localParticipant?.identity ??
       user?.id; // Fallback to auth user ID
-    
-    console.log('[RoomContext] Syncing isCohost from participants:', {
+
+    console.log("[RoomContext] Syncing isCohost from participants:", {
       myIdentity,
       participantsCount: socket.participants.length,
-      participants: socket.participants.map(p => ({ 
-        id: p.user?.id ?? p.userId, 
+      participants: socket.participants.map((p) => ({
+        id: p.user?.id ?? p.userId,
         role: p.role,
-        name: p.name || p.user?.name
+        name: p.name || p.user?.name,
       })),
     });
-    
+
     if (!myIdentity) {
-      console.log('[RoomContext] No myIdentity found, skipping sync');
+      console.log("[RoomContext] No myIdentity found, skipping sync");
       return;
     }
 
@@ -116,7 +116,7 @@ export function RoomProvider({
     let me = socket.participants.find(
       (p) => (p.user?.id ?? p.userId) === myIdentity,
     );
-    
+
     // If not found and we have auth user ID, try that too
     if (!me && user?.id) {
       me = socket.participants.find(
@@ -124,19 +124,25 @@ export function RoomProvider({
       );
     }
 
-    console.log('[RoomContext] Found me in participants:', { 
-      found: !!me, 
+    console.log("[RoomContext] Found me in participants:", {
+      found: !!me,
       myRole: me?.role,
       myIdentity,
       authUserId: user?.id,
-      participantIds: socket.participants.map(p => p.user?.id ?? p.userId)
+      participantIds: socket.participants.map((p) => p.user?.id ?? p.userId),
     });
 
     if (me?.role === "COHOST") {
-      console.log('[RoomContext] Setting isCohost to TRUE based on participant role');
+      console.log(
+        "[RoomContext] Setting isCohost to TRUE based on participant role",
+      );
       setIsCohost(true);
     }
-  }, [socket.participants, liveKit.roomRef.current?.localParticipant?.identity, user?.id]);
+  }, [
+    socket.participants,
+    liveKit.roomRef.current?.localParticipant?.identity,
+    user?.id,
+  ]);
 
   // Keep socketRef in sync
   useEffect(() => {
@@ -229,14 +235,14 @@ export function RoomProvider({
       token?: string;
       serverUrl?: string;
     }) => {
-      console.log('[RoomContext] participant:became-cohost received:', data);
-      
+      console.log("[RoomContext] participant:became-cohost received:", data);
+
       // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
       const myIdentity =
         room?.localParticipant?.identity ?? myIdentityRef.current;
 
-      console.log('[RoomContext] handleBecameCohost:', {
+      console.log("[RoomContext] handleBecameCohost:", {
         myIdentity,
         dataUserId: data.userId,
         isMatch: myIdentity === data.userId,
@@ -255,20 +261,22 @@ export function RoomProvider({
         toast.success("You are now a co-host!");
         try {
           const accessToken = localStorage.getItem("access_token");
-          console.log('[RoomContext] Reconnecting as co-host...');
+          console.log("[RoomContext] Reconnecting as co-host...");
           if (room.state !== "disconnected") {
             await room.disconnect();
           }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
-          console.log('[RoomContext] Reconnected successfully, updating canPublish');
+          console.log(
+            "[RoomContext] Reconnected successfully, updating canPublish",
+          );
           if (accessToken && !localStorage.getItem("access_token")) {
             localStorage.setItem("access_token", accessToken);
           }
           liveKit.updateCanPublish(true);
           liveKit.syncLocalParticipant();
-          console.log('[RoomContext] canPublish updated to true');
+          console.log("[RoomContext] canPublish updated to true");
           if (myIdentity?.startsWith("guest_")) {
             const maxAge = 60 * 60 * 4;
             document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
@@ -470,9 +478,9 @@ export function RoomProvider({
   }, []);
 
   // Recording actions via socket
-  const startRecording = useCallback(() => {
+  const startRecording = useCallback((type: 'VIDEO' | 'AUDIO' | 'BOTH' = 'VIDEO') => {
     setRecordingLoading(true);
-    socketRef.current?.emit("recording:start");
+    socketRef.current?.emit("recording:start", { type });
     setTimeout(() => setRecordingLoading(false), 5000);
   }, []);
 

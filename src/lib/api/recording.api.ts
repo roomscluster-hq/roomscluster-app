@@ -8,6 +8,7 @@ export interface Recording {
   duration: number | null;
   size: number | null;
   createdAt: string;
+  transcript?: string | null;
 }
 
 export const recordingApi = {

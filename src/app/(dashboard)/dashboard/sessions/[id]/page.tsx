@@ -30,12 +30,14 @@ export default function SessionDetailPage() {
     handleDownloadRecording,
     handleDownloadTranscript,
     handleDownloadAttendance,
+    generateTranscript,
     formatDuration,
     formatFileSize,
     isStarting,
     isEnding,
     isDeleting,
     isCohost,
+    generatingTranscriptId,
   } = useSessionDetail();
 
   if (isLoading) {
@@ -98,6 +100,8 @@ export default function SessionDetailPage() {
         recordings={recordings}
         isLoading={recordingsLoading}
         onDownload={handleDownloadRecording}
+        onGenerateTranscript={generateTranscript}
+        generatingTranscriptId={generatingTranscriptId}
         formatDuration={formatDuration}
         formatFileSize={formatFileSize}
         formatDateTime={formatDateTime}

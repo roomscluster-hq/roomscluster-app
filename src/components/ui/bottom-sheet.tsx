@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface BottomSheetProps {
   open: boolean;
@@ -13,14 +13,20 @@ interface BottomSheetProps {
 }
 
 export function BottomSheet({ open, onClose, title, children, height = "auto" }: BottomSheetProps) {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    if (!open) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !open) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prevOverflow;
     };
-  }, [open]);
+  }, [open, mounted]);
 
   if (!open) return null;
 

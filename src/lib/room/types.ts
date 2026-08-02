@@ -83,7 +83,7 @@ export interface RoomActions {
   removeCohost: (userId: string) => void;
 
   // Recording
-  startRecording: () => void;
+  startRecording: (type?: 'VIDEO' | 'AUDIO' | 'BOTH') => void;
   stopRecording: () => void;
 
   // Callback setters

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionsApi } from "@/lib/api";
 import { recordingApi } from "@/lib/api/recording.api";
+import { transcriptApi } from "@/lib/api/transcript.api";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
@@ -13,6 +15,7 @@ export function useSessionDetail() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const [generatingTranscriptId, setGeneratingTranscriptId] = useState<string | null>(null);
 
   // Queries
   const { data: session, isLoading } = useQuery({
@@ -93,6 +96,19 @@ export function useSessionDetail() {
       window.open(url, "_blank");
     } catch (err) {
       toast.error("Failed to generate download link");
+    }
+  };
+
+  const generateTranscript = async (recordingId: string) => {
+    setGeneratingTranscriptId(recordingId);
+    try {
+      await transcriptApi.generate(recordingId);
+      queryClient.invalidateQueries({ queryKey: ["session-recordings", id] });
+      toast.success("Transcript generated successfully!");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Failed to generate transcript");
+    } finally {
+      setGeneratingTranscriptId(null);
     }
   };
 
@@ -236,6 +252,7 @@ export function useSessionDetail() {
     handleDownloadRecording,
     handleDownloadTranscript,
     handleDownloadAttendance,
+    generateTranscript,
 
     // Format helpers
     formatDuration,
@@ -245,5 +262,6 @@ export function useSessionDetail() {
     isStarting: startMutation.isPending,
     isEnding: endMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    generatingTranscriptId,
   };
 }
