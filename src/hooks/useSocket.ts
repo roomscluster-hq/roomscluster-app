@@ -276,6 +276,14 @@ export function useSocket(joinCode: string) {
     socketRef.current?.emit("participant:remove-cohost", { userId });
   }, []);
 
+  const kickParticipant = useCallback((userId: string) => {
+    socketRef.current?.emit("participant:kick", { userId });
+  }, []);
+
+  const banParticipant = useCallback((userId: string, email: string) => {
+    socketRef.current?.emit("participant:ban", { userId, email });
+  }, []);
+
   return {
     socketRef,
     isConnected,
@@ -296,5 +304,7 @@ export function useSocket(joinCode: string) {
     rejectAll,
     makeCohost,
     removeCohost,
+    kickParticipant,
+    banParticipant,
   };
 }

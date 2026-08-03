@@ -433,7 +433,31 @@ export function RoomProvider({
       );
     };
 
+    const handleKicked = async (data: { userId: string }) => {
+      const myIdentity = liveKit.roomRef.current?.localParticipant?.identity
+        ?? myIdentityRef.current;
+      if (myIdentity === data.userId) {
+        toast.error("You have been removed from this session");
+        await liveKit.disconnect();
+        clearSessionCookies();
+        window.location.href = '/';
+      }
+    };
+
+    const handleBanned = async (data: { userId: string }) => {
+      const myIdentity = liveKit.roomRef.current?.localParticipant?.identity
+        ?? myIdentityRef.current;
+      if (myIdentity === data.userId) {
+        toast.error("You have been banned from this session");
+        await liveKit.disconnect();
+        clearSessionCookies();
+        window.location.href = '/';
+      }
+    };
+
     sock.on("session:lock-toggled", handleLockToggled);
+    sock.on("participant:kicked", handleKicked);
+    sock.on("participant:banned", handleBanned);
     sock.on("settings:token-updated", handleSettingsTokenUpdated);
     sock.on("participant:promoted", handlePromoted);
     sock.on("participant:demoted", handleDemoted);
@@ -458,6 +482,8 @@ export function RoomProvider({
       sock.off("recording:started", handleRecordingStarted);
       sock.off("recording:stopped", handleRecordingStopped);
       sock.off("session:lock-toggled", handleLockToggled);
+      sock.off("participant:kicked", handleKicked);
+      sock.off("participant:banned", handleBanned);
     };
   }, [socket.isConnected]); // ← only re-run when connection status changes
 
@@ -546,6 +572,8 @@ export function RoomProvider({
     rejectAll: socket.rejectAll,
     makeCohost: socket.makeCohost,
     removeCohost: socket.removeCohost,
+    kickParticipant: socket.kickParticipant,
+    banParticipant: socket.banParticipant,
 
     // Recording actions
     startRecording,
