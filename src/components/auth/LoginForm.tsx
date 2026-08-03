@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PasswordInput } from "./PasswordInput";
 import { FormDivider } from "./FormDivider";
+import { cn } from "@/lib/utils";
 
 interface LoginFormProps {
   onMagicLinkSent?: () => void;
@@ -18,11 +19,16 @@ interface LoginFormProps {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
 
+type AuthMethod = "password" | "magic-link";
+
 export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   const router = useRouter();
   const { setAuth } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [method, setMethod] = useState<AuthMethod>("password");
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
@@ -40,19 +46,70 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    loginMutation.mutate({ email, password });
+    if (method === "password") {
+      loginMutation.mutate({ email, password });
+    }
   }
 
-  function handleMagicLink() {
+  async function handleMagicLink() {
     if (!email.trim()) {
       toast.error("Enter your email first");
       return;
     }
-    onMagicLinkSent?.();
+    setMagicLinkLoading(true);
+    try {
+      await authApi.sendMagicLink(email);
+      setMagicLinkSent(true);
+      onMagicLinkSent?.();
+      toast.success("Magic link sent! Check your email.");
+    } catch {
+      toast.error("Failed to send magic link. Please try again.");
+    } finally {
+      setMagicLinkLoading(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Method Tabs */}
+      <div className="bg-surface-100 rounded-lg p-1 flex gap-1">
+        <button
+          type="button"
+          onClick={() => setMethod("password")}
+          className={cn(
+            "flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200",
+            method === "password"
+              ? "bg-white text-ink-900 shadow-sm"
+              : "text-ink-600 hover:text-ink-800"
+          )}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Password
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMethod("magic-link")}
+          className={cn(
+            "flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200",
+            method === "magic-link"
+              ? "bg-white text-ink-900 shadow-sm"
+              : "text-ink-600 hover:text-ink-800"
+          )}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Magic Link
+          </span>
+        </button>
+      </div>
+
+      {/* Email Field */}
       <Input
         label="Email Address"
         type="email"
@@ -62,27 +119,71 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
         placeholder="you@example.com"
       />
 
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-sm font-medium text-ink-700">Password</label>
-          <Link
-            href="/forgot-password"
-            className="text-sm text-primary-600 hover:underline font-medium"
-          >
-            Forgot password?
-          </Link>
+      {/* Password Field - Only show for password method */}
+      {method === "password" && (
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-ink-700">Password</label>
+            <Link
+              href="/forgot-password"
+              className="text-sm text-primary-600 hover:underline font-medium"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            label=""
+            required
+          />
         </div>
-        <PasswordInput
-          value={password}
-          onChange={setPassword}
-          label=""
-          required
-        />
-      </div>
+      )}
 
-      <Button type="submit" className="w-full" loading={loginMutation.isPending}>
-        Sign In
-      </Button>
+      {/* Magic Link Info - Only show for magic link method */}
+      {method === "magic-link" && !magicLinkSent && (
+        <p className="text-sm text-ink-600 bg-surface-50 p-3 rounded-lg">
+          We&apos;ll email you a magic link that signs you in instantly — no password needed.
+        </p>
+      )}
+
+      {/* Submit Button */}
+      {method === "password" ? (
+        <Button type="submit" className="w-full" loading={loginMutation.isPending}>
+          Sign In
+        </Button>
+      ) : magicLinkSent ? (
+        <div className="text-center py-4 px-4 bg-success-50 border border-success-100 rounded-lg">
+          <div className="w-10 h-10 rounded-full bg-success-100 flex items-center justify-center mx-auto mb-2">
+            <svg className="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-success-700">Check your email!</p>
+          <p className="text-xs text-success-600 mt-1">
+            We sent a magic link to <strong>{email}</strong>
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setMagicLinkSent(false);
+              setEmail("");
+            }}
+            className="text-xs text-success-600 hover:underline mt-3 inline-block"
+          >
+            Use a different email
+          </button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          className="w-full"
+          onClick={handleMagicLink}
+          loading={magicLinkLoading}
+        >
+          Send Magic Link
+        </Button>
+      )}
 
       <FormDivider />
 
@@ -111,16 +212,6 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
         </svg>
         Continue with Google
       </a>
-
-      {/* Magic link */}
-      <Button
-        type="button"
-        variant="secondary"
-        className="w-full"
-        onClick={handleMagicLink}
-      >
-        Email me a magic link
-      </Button>
 
       <p className="text-center text-sm text-ink-700/60">
         No account?{" "}
