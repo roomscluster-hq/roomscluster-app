@@ -30,6 +30,7 @@ export function useSocket(joinCode: string) {
   const [waitingParticipants, setWaitingParticipants] = useState<
     WaitingParticipant[]
   >([]);
+  const [reactions, setReactions] = useState<any[]>([]);
 
   useEffect(() => {
     if (socketRef.current && !socketRef.current.connected) {
@@ -169,6 +170,10 @@ export function useSocket(joinCode: string) {
       });
     });
 
+    socket.on("chat:message-deleted", ({ messageId }: { messageId: string }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    });
+
     // ── Hand raise ────────────────────────────────────
     socket.on("hand:raised", (data: RaisedHand) => {
       setRaisedHands((prev) => {
@@ -200,6 +205,15 @@ export function useSocket(joinCode: string) {
 
     socket.on("waiting:all-rejected", () => {
       setWaitingParticipants([]);
+    });
+
+    // ── Reactions ────────────────────────────────────
+    socket.on("reaction:received", (reaction: any) => {
+      setReactions((prev) => [...prev, { ...reaction, x: Math.random() * 70 + 15 }]);
+      // Auto-remove after 3.5 seconds
+      setTimeout(() => {
+        setReactions((prev) => prev.filter((r) => r.id !== reaction.id));
+      }, 3500);
     });
 
     return () => {
@@ -284,6 +298,14 @@ export function useSocket(joinCode: string) {
     socketRef.current?.emit("participant:ban", { userId, email });
   }, []);
 
+  const deleteMessage = useCallback((messageId: string) => {
+    socketRef.current?.emit("chat:delete", { messageId });
+  }, []);
+
+  const sendReaction = useCallback((emoji: string) => {
+    socketRef.current?.emit("reaction:send", { emoji });
+  }, []);
+
   return {
     socketRef,
     isConnected,
@@ -291,6 +313,7 @@ export function useSocket(joinCode: string) {
     participants,
     raisedHands,
     waitingParticipants,
+    reactions,
     sendMessage,
     raiseHand,
     lowerHand,
@@ -306,5 +329,7 @@ export function useSocket(joinCode: string) {
     removeCohost,
     kickParticipant,
     banParticipant,
+    deleteMessage,
+    sendReaction,
   };
 }

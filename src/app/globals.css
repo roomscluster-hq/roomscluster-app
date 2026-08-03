@@ -99,3 +99,22 @@ html {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
+
+/* ── Floating reactions animation ───────────────── */
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-200px) scale(1.2);
+  }
+}
+
+.animate-float-up {
+  animation: float-up 3s ease-out forwards;
+}

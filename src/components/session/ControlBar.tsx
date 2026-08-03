@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Mic, MicOff, Video, VideoOff, Hand, VideoIcon, Music, MonitorUp, MoreHorizontal, Lock, Unlock, LogOut, X, Presentation } from "lucide-react";
+import { 
+  Mic, MicOff, Video, VideoOff, Hand, Music, 
+  MonitorUp, MoreHorizontal, Lock, Unlock, X, Presentation,
+  Square, Circle, Loader2, MessageSquare, Users, LogOut as LeaveIconLucide,
+  VideoIcon
+} from "lucide-react";
 
 interface ControlBarProps {
   isMuted: boolean;
@@ -35,6 +40,7 @@ interface ControlBarProps {
   onLeave: () => void;
   isLocked: boolean;
   onToggleLock: () => void;
+  onSendReaction: (emoji: string) => void;
 }
 
 function ControlButton({
@@ -88,53 +94,17 @@ const Label = ({ children }: { children: React.ReactNode }) => (
   </span>
 );
 
-const ScreenShareIcon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path
-      fillRule="evenodd"
-      d="M2 4.25A2.25 2.25 0 014.25 2h11.5A2.25 2.25 0 0118 4.25v8.5A2.25 2.25 0 0115.75 15h-3.105a3.501 3.501 0 001.1 1.677A.75.75 0 0113.26 18H6.74a.75.75 0 01-.484-1.323A3.501 3.501 0 007.355 15H4.25A2.25 2.25 0 012 12.75v-8.5z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
+const QUICK_REACTIONS = ['👏', '❤️', '😂', '🎉', '👍', '🔥', '😮', '🙌'];
 
-const BoardIcon = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    viewBox="0 0 20 20"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.7}
-      d="M4 4h12v9H4z"
-    />
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.7}
-      d="M8 17l2-4 2 4"
-    />
-  </svg>
-);
-
-const ChatIcon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path
-      fillRule="evenodd"
-      d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
-
-const PeopleIcon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-  </svg>
-);
+const ScreenShareIcon = () => <MonitorUp className="w-5 h-5" />;
+const BoardIcon = () => <Presentation className="w-5 h-5" />;
+const ChatIcon = () => <MessageSquare className="w-5 h-5" />;
+const PeopleIcon = () => <Users className="w-5 h-5" />;
+const LeaveIcon = () => <LeaveIconLucide className="w-5 h-5" />;
+const MoreIcon = () => <MoreHorizontal className="w-5 h-5" />;
+const EndSessionIcon = () => <X className="w-5 h-5" />;
+const LockIcon = ({ locked }: { locked: boolean }) =>
+  locked ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />;
 
 const RecordIcon = ({
   recording,
@@ -142,78 +112,11 @@ const RecordIcon = ({
 }: {
   recording: boolean;
   loading: boolean;
-}) =>
-  loading ? (
-    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
-    </svg>
-  ) : recording ? (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <rect x="5" y="5" width="10" height="10" rx="1.5" />
-    </svg>
-  ) : (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <circle cx="10" cy="10" r="6" />
-    </svg>
-  );
-
-const LeaveIcon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path
-      fillRule="evenodd"
-      d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
-      clipRule="evenodd"
-    />
-    <path
-      fillRule="evenodd"
-      d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-1.08a.75.75 0 10-1.004-1.114l-2.5 2.5a.75.75 0 000 1.108l2.5 2.5a.75.75 0 101.004-1.114l-1.048-1.08H18.25A.75.75 0 0019 10z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
-
-const EndSessionIcon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-  </svg>
-);
-
-const MoreIcon = () => (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-    <path d="M4 10a2 2 0 114 0 2 2 0 01-4 0zM8 10a2 2 0 114 0 2 2 0 01-4 0zM12 10a2 2 0 114 0 2 2 0 01-4 0z" />
-  </svg>
-);
-
-const LockIcon = ({ locked }: { locked: boolean }) =>
-  locked ? (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <path
-        fillRule="evenodd"
-        d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
-        clipRule="evenodd"
-      />
-    </svg>
-  ) : (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <path
-        fillRule="evenodd"
-        d="M14.5 1A4.5 4.5 0 0010 5.5V9H3a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-1.5V5.5a3 3 0 116 0v2.75a.75.75 0 001.5 0V5.5A4.5 4.5 0 0014.5 1z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
+}) => {
+  if (loading) return <Loader2 className="w-5 h-5 animate-spin" />;
+  if (recording) return <Square className="w-5 h-5" />;
+  return <Circle className="w-5 h-5" />;
+};
 
 export function ControlBar(props: ControlBarProps) {
   const {
@@ -246,6 +149,7 @@ export function ControlBar(props: ControlBarProps) {
     onLeave,
     isLocked,
     onToggleLock,
+    onSendReaction,
   } = props;
 
   // Debug logging for co-host controls issue
@@ -358,7 +262,7 @@ export function ControlBar(props: ControlBarProps) {
                     onClick={() => setDesktopRecordingMenuOpen(false)}
                   />
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center gap-1 z-50">
-                    <div className="bg-black/90 backdrop-blur-sm border border-white/10 rounded-xl p-1.5 flex flex-col gap-1 min-w-[140px] shadow-xl">
+                    <div className="bg-black/90 backdrop-blur-sm border border-white/10 rounded-xl p-1.5 flex flex-col gap-1 min-w-35 shadow-xl">
                       <button
                         onClick={() => {
                           onStartRecording('VIDEO');
@@ -419,6 +323,20 @@ export function ControlBar(props: ControlBarProps) {
               <Label>{isLocked ? "Unlock" : "Lock"}</Label>
             </ControlButton>
           )}
+        </div>
+
+        {/* Reaction bar */}
+        <div className="hidden md:flex items-center gap-1 px-2 border-r border-white/10">
+          {QUICK_REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() => onSendReaction(emoji)}
+              className="text-xl hover:scale-125 transition-transform p-1 rounded-lg hover:bg-white/10"
+              title={`React with ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
 
         <div className="flex items-center gap-2">
