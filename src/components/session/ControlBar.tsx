@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Mic, MicOff, Video, VideoOff, Hand } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Hand, VideoIcon, Music, MonitorUp, MoreHorizontal, Lock, Unlock, LogOut, X, Presentation } from "lucide-react";
 
 interface ControlBarProps {
   isMuted: boolean;
@@ -366,7 +366,7 @@ export function ControlBar(props: ControlBarProps) {
                         }}
                         className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
                       >
-                        <span>🎥</span>
+                        <VideoIcon className="w-4 h-4" />
                         Video only
                       </button>
                       <button
@@ -376,7 +376,7 @@ export function ControlBar(props: ControlBarProps) {
                         }}
                         className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
                       >
-                        <span>🎵</span>
+                        <Music className="w-4 h-4" />
                         Audio only
                       </button>
                       <button
@@ -386,7 +386,10 @@ export function ControlBar(props: ControlBarProps) {
                         }}
                         className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
                       >
-                        <span>🎥🎵</span>
+                        <div className="flex -space-x-1">
+                          <VideoIcon className="w-4 h-4" />
+                          <Music className="w-4 h-4" />
+                        </div>
                         Video + Audio
                       </button>
                     </div>
@@ -589,7 +592,7 @@ export function ControlBar(props: ControlBarProps) {
             disabled={!recordingEnabled}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
           >
-            <span className="text-xl">🎥</span>
+            <VideoIcon className="w-5 h-5" />
             Video only
           </button>
           <button
@@ -600,7 +603,7 @@ export function ControlBar(props: ControlBarProps) {
             disabled={!recordingEnabled}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
           >
-            <span className="text-xl">🎵</span>
+            <Music className="w-5 h-5" />
             Audio only
           </button>
           <button
@@ -611,7 +614,10 @@ export function ControlBar(props: ControlBarProps) {
             disabled={!recordingEnabled}
             className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
           >
-            <span className="text-xl">🎥🎵</span>
+            <div className="flex -space-x-1">
+              <VideoIcon className="w-5 h-5" />
+              <Music className="w-5 h-5" />
+            </div>
             Video + Audio
           </button>
         </div>

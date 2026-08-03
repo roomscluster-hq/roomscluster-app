@@ -82,6 +82,10 @@ export interface RoomActions {
   makeCohost: (userId: string) => void;
   removeCohost: (userId: string) => void;
 
+  // Kick/Ban
+  kickParticipant: (userId: string) => void;
+  banParticipant: (userId: string, email: string) => void;
+
   // Recording
   startRecording: (type?: 'VIDEO' | 'AUDIO' | 'BOTH') => void;
   stopRecording: () => void;

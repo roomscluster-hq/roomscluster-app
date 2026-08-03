@@ -7,6 +7,7 @@ import { livekitApi, sessionsApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
+import { Ban, Lock, GraduationCap, Radio, Calendar } from "lucide-react";
 
 export default function GuestJoinPage() {
   const { joinCode } = useParams<{ joinCode: string }>();
@@ -15,6 +16,7 @@ export default function GuestJoinPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSessionLocked, setIsSessionLocked] = useState(false);
+  const [isBanned, setIsBanned] = useState(false);
 
   const { data: session, isLoading } = useQuery({
     queryKey: ["session-public", joinCode],
@@ -70,6 +72,17 @@ export default function GuestJoinPage() {
         return;
       }
 
+      // ── User banned ───────────────────────────────────
+      if (
+        axiosErr.response?.status === 403 &&
+        (axiosErr.response?.data?.message?.toLowerCase().includes("banned") ||
+         axiosErr.response?.data?.message?.toLowerCase().includes("ban"))
+      ) {
+        setIsBanned(true);
+        setLoading(false);
+        return;
+      }
+
       const message =
         err instanceof Error
           ? err.message
@@ -90,23 +103,33 @@ export default function GuestJoinPage() {
     );
   }
 
+  // ── Banned state ────────────────────────────────────
+  if (isBanned) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-danger-600/20 flex items-center justify-center mx-auto mb-4">
+            <Ban className="w-8 h-8 text-danger-600" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Access Denied</h2>
+          <p className="text-white/60 text-sm">
+            You have been banned from this session and cannot join.
+          </p>
+          <p className="text-white/40 text-xs mt-4">
+            Please contact the host if you believe this is a mistake.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // ── Session locked state ─────────────────────────────
   if (isSessionLocked) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
           <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-white/60"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <Lock className="w-8 h-8 text-white/60" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Session Locked</h2>
           <p className="text-white/60 text-sm">
@@ -128,7 +151,7 @@ export default function GuestJoinPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">🎓</span>
+            <GraduationCap className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-xl font-bold text-white">
             {session?.title ?? "Join Session"}
@@ -137,12 +160,14 @@ export default function GuestJoinPage() {
             Enter your details to join as a guest
           </p>
           {session?.status === "LIVE" && (
-            <span className="inline-block mt-2 text-xs bg-green-500 text-white px-3 py-1 rounded-full">
-              🔴 LIVE NOW
+            <span className="inline-flex items-center gap-1.5 mt-2 text-xs bg-green-500 text-white px-3 py-1 rounded-full">
+              <Radio className="w-3 h-3" />
+              LIVE NOW
             </span>
           )}
           {session?.status === "SCHEDULED" && (
-            <span className="inline-block mt-2 text-xs bg-yellow-500 text-white px-3 py-1 rounded-full">
+            <span className="inline-flex items-center gap-1.5 mt-2 text-xs bg-yellow-500 text-white px-3 py-1 rounded-full">
+              <Calendar className="w-3 h-3" />
               Session hasn&apos;t started yet
             </span>
           )}

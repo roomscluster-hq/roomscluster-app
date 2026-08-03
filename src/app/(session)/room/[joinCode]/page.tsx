@@ -106,6 +106,8 @@ function RoomContent({ joinCode }: RoomContentProps) {
     endSession,
     makeCohost,
     removeCohost,
+    kickParticipant,
+    banParticipant,
     setOnWhiteboardDraw,
     setOnWhiteboardClear,
   } = useRoomSession();
@@ -247,6 +249,8 @@ function RoomContent({ joinCode }: RoomContentProps) {
           onLowerHand={lowerHandForUser}
           onMakeCohost={makeCohost}
           onRemoveCohost={removeCohost}
+          onKick={kickParticipant}
+          onBan={banParticipant}
         />
       )}
       {sidebarTab === "waiting" && canManage && session && (

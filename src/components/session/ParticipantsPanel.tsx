@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { getInitials } from "@/lib/utils";
+import { Mic, Star, UserMinus, Hand, Ban, MoreVertical } from "lucide-react";
 
 interface Participant {
   userId: string;
@@ -27,8 +28,10 @@ interface ParticipantsPanelProps {
   onPromote: (userId: string) => void;
   onDemote: (userId: string) => void;
   onLowerHand: (userId: string) => void;
-  onMakeCohost: (userId: string) => void;    // ← new
-  onRemoveCohost: (userId: string) => void;  // ← new
+  onMakeCohost: (userId: string) => void;
+  onRemoveCohost: (userId: string) => void;
+  onKick: (userId: string) => void;
+  onBan: (userId: string, email: string) => void;
 }
 
 function resolveId(p: Participant): string {
@@ -61,6 +64,8 @@ function ThreeDotMenu({
   onLowerHand,
   onMakeCohost,
   onRemoveCohost,
+  onKick,
+  onBan,
 }: {
   participant: Participant;
   hasRaisedHand: boolean;
@@ -70,6 +75,8 @@ function ThreeDotMenu({
   onLowerHand: () => void;
   onMakeCohost: () => void;
   onRemoveCohost: () => void;
+  onKick: () => void;
+  onBan: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -97,9 +104,7 @@ function ThreeDotMenu({
         className="text-gray-400 hover:text-white p-1 rounded transition cursor-pointer"
         title="Participant options"
       >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-        </svg>
+        <MoreVertical className="w-4 h-4" />
       </button>
 
       {open && (
@@ -110,7 +115,7 @@ function ThreeDotMenu({
               onClick={() => { onPromote(); setOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm text-success-600 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
             >
-              <span>🎤</span> Allow to speak
+              <Mic className="w-4 h-4" /> Allow to speak
             </button>
           )}
           {isSpeaker && (
@@ -118,7 +123,7 @@ function ThreeDotMenu({
               onClick={() => { onDemote(); setOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm text-warning-500 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
             >
-              <span>🔇</span> Remove speaker
+              <Mic className="w-4 h-4" /> Remove speaker
             </button>
           )}
 
@@ -128,7 +133,7 @@ function ThreeDotMenu({
               onClick={() => { onMakeCohost(); setOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm text-primary-400 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
             >
-              <span>⭐</span> Make co-host
+              <Star className="w-4 h-4" /> Make co-host
             </button>
           )}
           {isHost && isCohost && (
@@ -136,7 +141,7 @@ function ThreeDotMenu({
               onClick={() => { onRemoveCohost(); setOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm text-warning-500 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
             >
-              <span>⭐</span> Remove co-host
+              <Star className="w-4 h-4" /> Remove co-host
             </button>
           )}
 
@@ -146,9 +151,28 @@ function ThreeDotMenu({
               onClick={() => { onLowerHand(); setOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
             >
-              <span>✋</span> Lower hand
+              <Hand className="w-4 h-4" /> Lower hand
             </button>
           )}
+
+          {/* Divider */}
+          <div className="border-t border-white/10 my-1" />
+
+          {/* Kick */}
+          <button
+            onClick={() => { onKick(); setOpen(false); }}
+            className="w-full text-left px-3 py-2 text-sm text-danger-100 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
+          >
+            <UserMinus className="w-4 h-4" /> Remove from session
+          </button>
+
+          {/* Ban */}
+          <button
+            onClick={() => { onBan(); setOpen(false); }}
+            className="w-full text-left px-3 py-2 text-sm text-danger-600 hover:bg-white/5 transition flex items-center gap-2 cursor-pointer"
+          >
+            <Ban className="w-4 h-4" /> Ban from session
+          </button>
         </div>
       )}
     </div>
@@ -166,6 +190,8 @@ export function ParticipantsPanel({
   onLowerHand,
   onMakeCohost,
   onRemoveCohost,
+  onKick,
+  onBan,
 }: ParticipantsPanelProps) {
   // Deduplicate raised hands by userId
   const seenRaisedHands = new Set<string>();
@@ -204,8 +230,8 @@ export function ParticipantsPanel({
       {/* Raised hands section */}
       {dedupedRaisedHands.length > 0 && (
         <div className="shrink-0 px-4 py-2 border-b border-white/10 bg-warning-500/10">
-          <p className="text-xs text-warning-500 font-medium mb-2">
-            ✋ Raised hands ({dedupedRaisedHands.length})
+          <p className="text-xs text-warning-500 font-medium mb-2 flex items-center gap-1.5">
+            <Hand className="w-3.5 h-3.5" /> Raised hands ({dedupedRaisedHands.length})
           </p>
           <div className="space-y-1">
             {dedupedRaisedHands.map(h => (
@@ -249,13 +275,15 @@ export function ParticipantsPanel({
                     {getInitials(name)}
                   </div>
                   {hasRaisedHand && (
-                    <span className="absolute -top-1 -right-1 text-xs leading-none">✋</span>
+                    <span className="absolute -top-1 -right-1">
+                      <Hand className="w-3.5 h-3.5 text-warning-500" />
+                    </span>
                   )}
                 </div>
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-1">
-                    <span className="text-gray-200 text-sm truncate max-w-[100px]">
+                    <span className="text-gray-200 text-sm truncate max-w-25">
                       {name}
                     </span>
                     {isMe && (
@@ -279,6 +307,8 @@ export function ParticipantsPanel({
                   onLowerHand={() => onLowerHand(pid)}
                   onMakeCohost={() => onMakeCohost(pid)}
                   onRemoveCohost={() => onRemoveCohost(pid)}
+                  onKick={() => onKick(pid)}
+                  onBan={() => onBan(pid, p.email ?? p.user?.email ?? '')}
                 />
               )}
             </div>

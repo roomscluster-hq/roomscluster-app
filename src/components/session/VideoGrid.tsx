@@ -8,7 +8,7 @@ import {
   TrackPublication,
 } from "livekit-client";
 import { getInitials, cn } from "@/lib/utils";
-import { MicOff } from "lucide-react";
+import { MicOff, Hand } from "lucide-react";
 
 interface RaisedHand {
   userId: string;
@@ -190,7 +190,7 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
 
       {hasRaisedHand && (
         <div className="absolute top-1.5 left-1.5 bg-warning-500 rounded-full px-1.5 py-0.5 flex items-center gap-1 shadow">
-          <span className="text-xs leading-none">✋</span>
+          <Hand className="w-3 h-3 text-white" />
           <span className="text-white text-[10px] font-medium hidden sm:inline">Hand raised</span>
         </div>
       )}
