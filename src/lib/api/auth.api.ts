@@ -32,4 +32,20 @@ export const authApi = {
     );
     return unwrap(res);
   },
+
+  sendMagicLink: async (email: string) => {
+    const res = await client.post<{ data: { message: string } }>(
+      "/auth/magic-link",
+      { email }
+    );
+    return unwrap(res);
+  },
+
+  verifyMagicLink: async (token: string) => {
+    const res = await client.post<{ data: { access_token: string; user: { id: string; email: string } } }>(
+      "/auth/magic-link/verify",
+      { token }
+    );
+    return unwrap(res);
+  },
 };
