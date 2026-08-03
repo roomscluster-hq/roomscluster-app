@@ -534,6 +534,7 @@ export function RoomProvider({
     participants: socket.participants,
     raisedHands: socket.raisedHands,
     waitingParticipants: socket.waitingParticipants, // ← now from socket hook
+    reactions: socket.reactions,
 
     // Room settings
     isCohost, // ← now from explicit state
@@ -574,6 +575,8 @@ export function RoomProvider({
     removeCohost: socket.removeCohost,
     kickParticipant: socket.kickParticipant,
     banParticipant: socket.banParticipant,
+    deleteMessage: socket.deleteMessage,
+    sendReaction: socket.sendReaction,
 
     // Recording actions
     startRecording,

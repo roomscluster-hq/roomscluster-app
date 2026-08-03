@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { QAPanel } from "@/components/session/QAPanel";
 import { PollPanel } from "@/components/session/PollPanel";
+import { FloatingReactions } from "@/components/session/FloatingReactions";
 
 type MainView = "video" | "whiteboard";
 
@@ -108,6 +109,9 @@ function RoomContent({ joinCode }: RoomContentProps) {
     removeCohost,
     kickParticipant,
     banParticipant,
+    deleteMessage,
+    sendReaction,
+    reactions,
     setOnWhiteboardDraw,
     setOnWhiteboardClear,
   } = useRoomSession();
@@ -215,7 +219,9 @@ function RoomContent({ joinCode }: RoomContentProps) {
         <ChatPanel
           messages={messages}
           onSend={sendMessage}
+          onDeleteMessage={deleteMessage}
           chatEnabled={roomChatEnabled}
+          canManage={canManage}
         />
       )}
       {sidebarTab === "qa" && session && (
@@ -356,6 +362,9 @@ function RoomContent({ joinCode }: RoomContentProps) {
         </div>
       </BottomSheet>
 
+      {/* Floating Reactions */}
+      <FloatingReactions reactions={reactions} />
+
       {/* Control bar */}
       <footer className="shrink-0 flex justify-center p-3 md:p-6 z-30">
         <ControlBar
@@ -390,6 +399,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
           onLeave={handleLeave}
           onToggleLock={toggleLock}
           isLocked={isLocked}
+          onSendReaction={sendReaction}
         />
       </footer>
     </div>

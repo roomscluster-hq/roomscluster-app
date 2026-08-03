@@ -40,6 +40,7 @@ export interface RoomState {
   participants: any[];
   raisedHands: RaisedHand[];
   waitingParticipants: WaitingParticipant[];
+  reactions: any[];
 
   // Room settings
   isCohost: boolean;
@@ -85,6 +86,10 @@ export interface RoomActions {
   // Kick/Ban
   kickParticipant: (userId: string) => void;
   banParticipant: (userId: string, email: string) => void;
+
+  // Chat & Reactions
+  deleteMessage: (messageId: string) => void;
+  sendReaction: (emoji: string) => void;
 
   // Recording
   startRecording: (type?: 'VIDEO' | 'AUDIO' | 'BOTH') => void;
