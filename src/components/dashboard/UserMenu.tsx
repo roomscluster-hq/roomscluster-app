@@ -62,9 +62,9 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
           </Link>
 
           <button
-            onClick={() => {
+            onClick={async () => {
               setOpen(false);
-              clearAuth();
+              await clearAuth();
               router.push("/login");
             }}
             className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-danger-600 hover:bg-danger-50 transition-colors text-left cursor-pointer"

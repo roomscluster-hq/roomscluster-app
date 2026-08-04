@@ -13,6 +13,7 @@ import {
   AttendanceCard,
   SessionActions,
 } from "@/components/dashboard/sessions";
+import { PostSessionSummary } from "@/components/dashboard/sessions/PostSessionSummary";
 import { formatDateTime, getJoinUrl } from "@/lib/utils";
 
 export default function SessionDetailPage() {
@@ -37,6 +38,7 @@ export default function SessionDetailPage() {
     isEnding,
     isDeleting,
     isCohost,
+    isHost,
     generatingTranscriptId,
   } = useSessionDetail();
 
@@ -82,8 +84,23 @@ export default function SessionDetailPage() {
         formatDateTime={formatDateTime}
       />
 
-      {/* Join Link */}
-      <JoinLinkCard joinUrl={joinUrl} />
+      {/* Post-session summary — only for ended sessions */}
+      {session.status === "ENDED" && (
+        <PostSessionSummary
+          session={session}
+          totalAttendees={attendance?.length ?? 0}
+          guestCount={attendance?.filter((a) => a.isGuest).length ?? 0}
+          authenticatedCount={attendance?.filter((a) => !a.isGuest).length ?? 0}
+          recordingsCount={recordings?.length ?? 0}
+          hasRecordings={(recordings?.length ?? 0) > 0}
+          formatDateTime={formatDateTime}
+          onDownloadAttendanceCsv={() => handleDownloadAttendance("csv")}
+          onDownloadTranscriptTxt={() => handleDownloadTranscript("txt")}
+        />
+      )}
+
+      {/* Join Link — only for non-ended sessions */}
+      {session.status !== "ENDED" && <JoinLinkCard joinUrl={joinUrl} />}
 
       {/* Session Settings */}
       <Card className="mb-4">

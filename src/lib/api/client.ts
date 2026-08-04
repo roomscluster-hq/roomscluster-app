@@ -1,5 +1,6 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/auth.store";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
@@ -7,7 +8,21 @@ const API_URL =
 export const client = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true, // ← sends cookies with every request
 });
+
+// Token refresh state
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
 
 // Attach JWT token to every request
 client.interceptors.request.use((config) => {
@@ -18,32 +33,63 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 globally
+// Response interceptor — auto refresh on 401
 client.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
-        const url = error.config?.url ?? "";
-        // Don't wipe token for LiveKit token requests — those 401s
-        // don't mean the user's session expired, just that the room
-        // isn't accessible (e.g. session not live yet)
-        const isLiveKitRequest = url.includes("/livekit/") || url.includes("/token");
-        
-        if (!isLiveKitRequest) {
-          const alreadyRedirecting = sessionStorage.getItem("redirecting_to_login");
-          if (!alreadyRedirecting) {
-            sessionStorage.setItem("redirecting_to_login", "true");
-            toast.error("Your session has expired. Please sign in again.");
-            localStorage.removeItem("access_token");
-            setTimeout(() => {
-              sessionStorage.removeItem("redirecting_to_login");
-              window.location.href = "/login";
-            }, 1200);
-          }
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      const url = originalRequest.url ?? "";
+      // Don't attempt refresh for auth endpoints or LiveKit requests
+      const isAuthEndpoint = url.includes("/auth/") && !url.includes("/auth/me");
+      const isLiveKitRequest = url.includes("/livekit/") || url.includes("/token");
+
+      if (isAuthEndpoint || isLiveKitRequest) {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // Queue request until refresh completes
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(client(originalRequest));
+          });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Dynamically import to avoid circular dependency
+        const { authApi } = await import("./auth.api");
+        const data = await authApi.refresh();
+        const newToken = data.access_token;
+        localStorage.setItem("access_token", newToken);
+        onTokenRefreshed(newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return client(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed — clear auth and redirect to login
+        localStorage.removeItem("access_token");
+        await useAuthStore.getState().clearAuth();
+        const alreadyRedirecting = sessionStorage.getItem("redirecting_to_login");
+        if (!alreadyRedirecting) {
+          sessionStorage.setItem("redirecting_to_login", "true");
+          toast.error("Your session has expired. Please sign in again.");
+          setTimeout(() => {
+            sessionStorage.removeItem("redirecting_to_login");
+            window.location.href = "/login";
+          }, 1200);
         }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );

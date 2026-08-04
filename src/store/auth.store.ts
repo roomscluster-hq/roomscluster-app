@@ -8,7 +8,7 @@ interface AuthState {
   isAuthenticated: boolean;
   hasHydrated: boolean;
   setAuth: (user: User, token: string) => void;
-  clearAuth: () => void;
+  clearAuth: () => Promise<void>;
   setHasHydrated: (state: boolean) => void;
 }
 
@@ -26,7 +26,14 @@ export const useAuthStore = create<AuthState>()(
         set({ user, token, isAuthenticated: true });
       },
 
-      clearAuth: () => {
+      clearAuth: async () => {
+        try {
+          // Dynamically import to avoid circular dependency
+          const { authApi } = await import("@/lib/api/auth.api");
+          await authApi.logout();
+        } catch {
+          // ignore errors on logout
+        }
         localStorage.removeItem("access_token");
         document.cookie = "access_token=; path=/; max-age=0";
         set({ user: null, token: null, isAuthenticated: false });

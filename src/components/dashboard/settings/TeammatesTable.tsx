@@ -78,7 +78,7 @@ export function TeammatesTable({
             onChange={(e) => onInviteEmailChange(e.target.value)}
             placeholder="colleague@company.com"
             required
-            className="w-48 sm:w-56 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+            className="w-48 sm:w-56 bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
           />
           <Button type="submit" size="sm" loading={isInviting} className="shrink-0">
             <UserPlus size={16} />
@@ -95,7 +95,7 @@ export function TeammatesTable({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Filter by name or email..."
-            className="w-full bg-surface-0 border border-surface-200 rounded-lg pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+            className="w-full bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
           />
         </div>
       </div>
