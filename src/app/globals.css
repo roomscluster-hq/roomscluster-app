@@ -52,6 +52,38 @@
   :root {
     --background: #0b1220;
     --foreground: #e4e7ec;
+
+    /* Primary — adjusted for dark mode */
+    --color-primary-50: #1e293b;
+    --color-primary-100: #334155;
+    --color-primary-500: #60a5fa;
+    --color-primary-600: #3b82f6;
+    --color-primary-700: #2563eb;
+
+    /* Ink — inverted for dark mode (text becomes light) */
+    --color-ink-900: #f1f5f9;
+    --color-ink-800: #e2e8f0;
+    --color-ink-700: #cbd5e1;
+
+    /* Neutral surfaces — darkened for dark mode */
+    --color-surface-0: #0f172a;
+    --color-surface-50: #1e293b;
+    --color-surface-200: #334155;
+
+    /* Semantic status — adjusted for dark mode */
+    --color-success-50: #064e3b;
+    --color-success-100: #065f46;
+    --color-success-600: #34d399;
+    --color-warning-50: #451a03;
+    --color-warning-100: #78350f;
+    --color-warning-500: #fbbf24;
+    --color-danger-50: #450a0a;
+    --color-danger-100: #7f1d1d;
+    --color-danger-600: #f87171;
+    --color-danger-700: #fca5a5;
+
+    /* Elevation — adjusted for dark mode */
+    --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
   }
 }
 

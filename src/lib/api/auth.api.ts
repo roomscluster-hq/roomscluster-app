@@ -48,4 +48,23 @@ export const authApi = {
     );
     return unwrap(res);
   },
+
+  refresh: async () => {
+    // Refresh token is sent automatically via httpOnly cookie
+    const res = await client.post<{ data: { access_token: string; user: { id: string; email: string } } }>(
+      "/auth/refresh",
+      {},
+      { withCredentials: true }
+    );
+    return unwrap(res);
+  },
+
+  logout: async () => {
+    const res = await client.post<{ data: { message: string } }>(
+      "/auth/logout",
+      {},
+      { withCredentials: true }
+    );
+    return unwrap(res);
+  },
 };
