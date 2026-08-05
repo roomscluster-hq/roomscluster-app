@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { useWhiteboard } from "@/hooks/useWhiteboard";
 import { cn } from "@/lib/utils";
 import { 
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { DrawEvent } from "@/types/whiteboard";
+import type { Socket } from "socket.io-client";
 
 // Dynamically import jsPDF to avoid SSR issues
 const loadJsPDF = async () => {
@@ -25,7 +26,7 @@ const loadJsPDF = async () => {
 };
 
 interface WhiteboardProps {
-    socketRef: React.RefObject<unknown>;
+    socketRef: React.RefObject<Socket | null>;
     canDraw: boolean;
     isHost: boolean;
     onRemoteDraw?: (fn: (event: DrawEvent) => void) => void;
