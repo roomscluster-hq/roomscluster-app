@@ -65,13 +65,33 @@ function ScreenShareTile({
 
   useEffect(() => {
     if (!videoRef.current) return;
-    const pubs = [...participant.videoTrackPublications.values()];
-    const screenTrack = pubs.find(
-      (pub) => pub.track?.source === Track.Source.ScreenShare,
-    )?.track;
-    if (screenTrack && videoRef.current) screenTrack.attach(videoRef.current);
-    return () => { screenTrack?.detach(); };
-  }, [participant]);
+    
+    const attachTrack = () => {
+      const pubs = [...participant.videoTrackPublications.values()];
+      const screenTrack = pubs.find(
+        (pub) => pub.track?.source === Track.Source.ScreenShare,
+      )?.track;
+      if (screenTrack && videoRef.current) {
+        screenTrack.attach(videoRef.current);
+      }
+      return screenTrack;
+    };
+
+    const screenTrack = attachTrack();
+    
+    // Handle track changes
+    const handleTrackSubscribed = () => attachTrack();
+    const handleTrackUnsubscribed = () => attachTrack();
+    
+    participant.on("trackSubscribed", handleTrackSubscribed);
+    participant.on("trackUnsubscribed", handleTrackUnsubscribed);
+    
+    return () => { 
+      screenTrack?.detach(); 
+      participant.off("trackSubscribed", handleTrackSubscribed);
+      participant.off("trackUnsubscribed", handleTrackUnsubscribed);
+    };
+  }, [participant, participant.videoTrackPublications]);
 
   useEffect(() => {
     function handleFullscreenChange() {
@@ -148,6 +168,8 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
 
   useEffect(() => {
     if (!videoRef.current) return;
+    
+    // Find camera track
     const publications = [...participant.videoTrackPublications.values()] as TrackPublication[];
     const videoTrack = publications.find(
       (pub) => pub.track?.source === Track.Source.Camera
@@ -160,7 +182,7 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
     return () => {
       videoTrack?.detach();
     };
-  }, [participant, isCameraEnabled]);
+  }, [participant, isCameraEnabled, participant.videoTrackPublications]);
 
   return (
     <div
