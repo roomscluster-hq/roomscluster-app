@@ -38,7 +38,7 @@ export function RecurrenceForm({ value, onChange }: RecurrenceFormProps) {
           }`}
         >
           <span
-            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-surface-0 rounded-full shadow transition-transform ${
               value.enabled ? "translate-x-5" : "translate-x-0"
             }`}
           />
@@ -60,14 +60,14 @@ export function RecurrenceForm({ value, onChange }: RecurrenceFormProps) {
                 max={30}
                 value={value.interval}
                 onChange={(e) => update({ interval: parseInt(e.target.value) || 1 })}
-                className="w-16 h-10 border border-surface-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+                className="w-16 h-10 border border-surface-200 bg-surface-0 text-ink-900 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
               />
               <select
                 value={value.frequency}
                 onChange={(e) =>
                   update({ frequency: e.target.value as RecurrenceOptions['frequency'] })
                 }
-                className="flex-1 h-10 border border-surface-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 bg-white"
+                className="flex-1 h-10 border border-surface-200 bg-surface-0 text-ink-900 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
               >
                 <option value="DAILY">Day(s)</option>
                 <option value="WEEKLY">Week(s)</option>
@@ -99,7 +99,7 @@ export function RecurrenceForm({ value, onChange }: RecurrenceFormProps) {
                     value={value.endDate ?? ''}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => update({ endDate: e.target.value })}
-                    className="ml-2 h-9 border border-surface-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+                    className="ml-2 h-9 border border-surface-200 bg-surface-0 text-ink-900 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
                   />
                 )}
               </label>
@@ -125,7 +125,7 @@ export function RecurrenceForm({ value, onChange }: RecurrenceFormProps) {
                       onChange={(e) =>
                         update({ endCount: parseInt(e.target.value) || 1 })
                       }
-                      className="w-16 h-9 border border-surface-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+                      className="w-16 h-9 border border-surface-200 bg-surface-0 text-ink-900 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
                     />
                     <span className="text-sm text-ink-700">occurrences</span>
                   </div>

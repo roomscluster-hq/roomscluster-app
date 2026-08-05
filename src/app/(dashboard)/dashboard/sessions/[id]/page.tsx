@@ -102,15 +102,17 @@ export default function SessionDetailPage() {
       {/* Join Link — only for non-ended sessions */}
       {session.status !== "ENDED" && <JoinLinkCard joinUrl={joinUrl} />}
 
-      {/* Session Settings */}
-      <Card className="mb-4">
-        <CardHeader>
-          <h2 className="font-semibold text-ink-900">Meeting Settings</h2>
-        </CardHeader>
-        <CardContent>
-          <SessionSettingsPanel sessionId={id} />
-        </CardContent>
-      </Card>
+      {/* Session Settings — only for non-ended sessions */}
+      {session.status !== "ENDED" && (
+        <Card className="mb-4">
+          <CardHeader>
+            <h2 className="font-semibold text-ink-900">Meeting Settings</h2>
+          </CardHeader>
+          <CardContent>
+            <SessionSettingsPanel sessionId={id} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recordings */}
       <RecordingsCard

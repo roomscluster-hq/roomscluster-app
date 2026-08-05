@@ -41,7 +41,7 @@ export default function DashboardPage() {
     if (!sessions) return null;
 
     return sessions
-      .filter((s) => s.status === "SCHEDULED" && s.scheduledAt)
+      .filter((s) => (s.status === "SCHEDULED" || s.status === "LIVE") && s.scheduledAt)
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())[0] ?? null;
   }, [sessions]);
 
@@ -203,7 +203,7 @@ export default function DashboardPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-50 transition-colors"
                   >
-                    Join
+                    {nextSession.status === "SCHEDULED" ? "Start" : "Join"}
                     <ArrowRight size={16} />
                   </Link>
                 </div>

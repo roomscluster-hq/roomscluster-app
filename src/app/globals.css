@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #0b1220;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -40,12 +41,52 @@
   --color-danger-600: #dc2626;
   --color-danger-700: #b91c1c;
 
+  --color-ink-600: #4a5568;
+  --color-ink-500: #718096;
+  --color-ink-400: #a0aec0;
+  --color-danger-500: #ef4444;
+  --color-danger-400: #f87171;
+
+  /* Missing ink shades */
+  --color-ink-600: #4a5568;
+  --color-ink-500: #718096;
+  --color-ink-400: #a0aec0;
+
+  /* Missing primary shades */
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-800: #1e3a5f;
+  --color-primary-900: #0f2040;
+
+  /* Missing danger shades */
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+
+  /* Missing success shades */
+  --color-success-400: #4ade80;
+  --color-success-500: #22c55e;
+  --color-success-700: #15803d;
+  --color-success-900: #14532d;
+
+  /* Missing warning shades */
+  --color-warning-400: #fb923c;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  /* Missing surface shades */
+  --color-surface-100: #f1f4f8;
+  --color-surface-300: #d1d5db;
+  --color-surface-400: #9ca3af;
+  --color-surface-900: #111827;
+
   /* Shape */
   --radius-card: 0.625rem; /* 10px */
   --radius-modal: 1rem; /* 16px */
 
   /* Elevation */
-  --shadow-raised: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
+  --shadow-raised:
+    0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -82,6 +123,43 @@
     --color-danger-600: #f87171;
     --color-danger-700: #fca5a5;
 
+    --color-ink-600: #a0aec0;
+    --color-ink-500: #cbd5e1;
+    --color-ink-400: #e2e8f0;
+
+    /* Missing ink shades — dark mode */
+    --color-ink-600: #94a3b8;
+    --color-ink-500: #cbd5e1;
+    --color-ink-400: #e2e8f0;
+
+    /* Missing primary shades — dark mode */
+    --color-primary-200: #1e3a5f;
+    --color-primary-300: #2454e0;
+    --color-primary-400: #60a5fa;
+    --color-primary-800: #bfdbfe;
+    --color-primary-900: #dbeafe;
+
+    /* Missing danger shades — dark mode */
+    --color-danger-400: #fca5a5;
+    --color-danger-500: #f87171;
+
+    /* Missing success shades — dark mode */
+    --color-success-400: #86efac;
+    --color-success-500: #4ade80;
+    --color-success-700: #16a34a;
+    --color-success-900: #052e16;
+
+    /* Missing warning shades — dark mode */
+    --color-warning-400: #fdba74;
+    --color-warning-600: #f59e0b;
+    --color-warning-700: #d97706;
+
+    /* Missing surface shades — dark mode */
+    --color-surface-100: #1e293b;
+    --color-surface-300: #475569;
+    --color-surface-400: #64748b;
+    --color-surface-900: #f8fafc;
+
     /* Elevation — adjusted for dark mode */
     --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
   }
@@ -91,6 +169,28 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* ── Form elements — force use of design system colors ── */
+input,
+textarea,
+select {
+  color: var(--color-ink-900);
+  background-color: var(--color-surface-0);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-ink-700);
+  opacity: 0.5;
+}
+
+/* Prevent browser from auto-styling form elements in dark mode */
+input,
+textarea,
+select,
+button {
+  color-scheme: light dark;
 }
 
 :focus-visible {

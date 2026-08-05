@@ -126,13 +126,13 @@ export function CoHostSelector({
             }}
             onFocus={() => setDropdownOpen(true)}
             placeholder="Search members by name or email..."
-            className="w-full border border-surface-200 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+            className="w-full border border-surface-200 bg-surface-0 text-ink-900 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
           />
         </div>
 
         {/* Dropdown */}
         {dropdownOpen && (
-          <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-surface-200 rounded-lg shadow-raised max-h-48 overflow-y-auto">
+          <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised max-h-48 overflow-y-auto">
             {isLoading ? (
               <div className="px-3 py-4 text-center">
                 <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto" />
