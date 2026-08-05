@@ -249,6 +249,7 @@ export function VideoGrid({
 }: VideoGridProps) {
   const [page, setPage] = useState(0);
   const raisedHandIds = new Set(raisedHands.map((h) => h.userId));
+  const [trackVersion, setTrackVersion] = useState(0);
 
   // Build screen sharing sources with deduplication
   const screenSharingSources = useMemo(() => {
@@ -268,7 +269,7 @@ export function VideoGrid({
         (pub) => pub.track?.source === Track.Source.ScreenShare,
       );
     });
-  }, [localParticipant, remoteParticipants]);
+  }, [localParticipant, remoteParticipants, trackVersion]);
 
   // Build participants list with deduplication - local participant takes priority
   const allParticipants = useMemo(() => {
@@ -304,6 +305,33 @@ export function VideoGrid({
     }
     return;
   }, [totalPages, page]);
+
+  useEffect(() => {
+  const allParticipants = [
+    ...(localParticipant ? [localParticipant] : []),
+    ...remoteParticipants,
+  ];
+
+  function onTrackChange() {
+    setTrackVersion((v) => v + 1);
+  }
+
+  for (const p of allParticipants) {
+    p.on('trackPublished', onTrackChange);
+    p.on('trackUnpublished', onTrackChange);
+    p.on('trackSubscribed', onTrackChange);
+    p.on('trackUnsubscribed', onTrackChange);
+  }
+
+  return () => {
+    for (const p of allParticipants) {
+      p.off('trackPublished', onTrackChange);
+      p.off('trackUnpublished', onTrackChange);
+      p.off('trackSubscribed', onTrackChange);
+      p.off('trackUnsubscribed', onTrackChange);
+    }
+  };
+}, [localParticipant, remoteParticipants]);
 
   return (
     <div className="flex flex-col h-full w-full gap-2 p-2">
