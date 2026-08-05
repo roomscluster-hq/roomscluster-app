@@ -24,7 +24,7 @@ export function NewFolderForm({ value, onChange, onSubmit, onCancel, isLoading }
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Folder name"
-        className="flex-1 bg-surface-0 border border-surface-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+        className="flex-1 bg-surface-0 text-ink-900 border border-surface-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
       />
       <Button type="submit" size="sm" loading={isLoading} className="cursor-pointer">
         Create

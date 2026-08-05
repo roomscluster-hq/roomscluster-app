@@ -72,14 +72,14 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Method Tabs */}
-      <div className="bg-surface-100 rounded-lg p-1 flex gap-1">
+      <div className="bg-surface-100 rounded-lg p-1 flex gap-1 dark:bg-surface-50">
         <button
           type="button"
           onClick={() => setMethod("password")}
           className={cn(
             "flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200",
             method === "password"
-              ? "bg-white text-ink-900 shadow-sm"
+              ? "bg-surface-0 text-ink-900 shadow-sm"
               : "text-ink-600 hover:text-ink-800"
           )}
         >
@@ -96,7 +96,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
           className={cn(
             "flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200",
             method === "magic-link"
-              ? "bg-white text-ink-900 shadow-sm"
+              ? "bg-surface-0 text-ink-900 shadow-sm"
               : "text-ink-600 hover:text-ink-800"
           )}
         >

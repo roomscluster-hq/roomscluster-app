@@ -3,6 +3,7 @@
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { FileText, FileSpreadsheet, Users } from "lucide-react";
 
 interface Attendee {
   id?: string;
@@ -26,61 +27,69 @@ export function AttendanceCard({
   isLoading,
   onDownloadTxt,
   onDownloadCsv,
-  formatDateTime,
 }: AttendanceCardProps) {
+  const count = attendance?.length ?? 0;
+
   return (
     <Card className="mb-4">
       <CardHeader>
-        <h2 className="font-semibold text-ink-900">
-          Attendance ({attendance?.length ?? 0})
-        </h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users size={18} className="text-primary-600" />
+            <h2 className="font-semibold text-ink-900">Attendance</h2>
+          </div>
+          {isLoading ? (
+            <Spinner />
+          ) : (
+            <span className="text-sm text-ink-700/60">
+              {count} attendee{count !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-6">
+          <div className="flex justify-center py-8">
             <Spinner />
           </div>
-        ) : !attendance || attendance.length === 0 ? (
-          <div className="bg-surface-50 border border-surface-200 rounded-lg px-4 py-6 text-center">
+        ) : count === 0 ? (
+          <div className="text-center py-6">
+            <div className="w-12 h-12 rounded-full bg-surface-100 flex items-center justify-center mx-auto mb-3">
+              <Users size={24} className="text-ink-700/30" />
+            </div>
             <p className="text-sm text-ink-700/60">
-              👥 No attendance data yet.
+              No attendance data yet
             </p>
             <p className="text-xs text-ink-700/40 mt-1">
-              Attendees will appear here once they join the session.
+              Attendees will appear here once they join the session
             </p>
           </div>
         ) : (
-          <>
-            <div className="divide-y divide-surface-200 mb-4">
-              {attendance.map((a, index) => (
-                <div key={a.id ?? `${a.email}-${index}`} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                      {a.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-ink-900 truncate">{a.name}</p>
-                      <p className="text-xs text-ink-700/40 truncate">{a.email}</p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs text-ink-700/60">{a.role}</p>
-                    <p className="text-xs text-ink-700/40">
-                      Joined {formatDateTime(a.joinedAt)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="secondary" size="sm" onClick={onDownloadTxt}>
-                Download .txt
+          <div className="space-y-3">
+            <p className="text-sm text-ink-700/70">
+              Download the full attendance record in your preferred format
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onDownloadTxt}
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <FileText size={16} className="text-ink-700/60" />
+                <span>.txt</span>
               </Button>
-              <Button variant="secondary" size="sm" onClick={onDownloadCsv}>
-                Download .csv
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onDownloadCsv}
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <FileSpreadsheet size={16} className="text-success-600" />
+                <span>.csv</span>
               </Button>
             </div>
-          </>
+          </div>
         )}
       </CardContent>
     </Card>

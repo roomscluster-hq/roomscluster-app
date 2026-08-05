@@ -38,7 +38,7 @@ export function PasswordInput({
           onChange={(e) => onChange(e.target.value)}
           required={required}
           placeholder={placeholder}
-          className="w-full h-10 px-3 pr-10 text-sm border border-surface-200 bg-surface-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600"
+          className="w-full h-10 px-3 pr-10 text-sm text-ink-900 border border-surface-200 bg-surface-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600"
         />
         {showToggle && (
           <button
