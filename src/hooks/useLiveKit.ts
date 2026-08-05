@@ -4,6 +4,7 @@ import {
   RoomEvent,
   LocalParticipant,
   RemoteParticipant,
+  Track,
 } from "livekit-client";
 import { livekitApi } from "@/lib/api";
 import { getCookie } from "@/lib/cookies";
@@ -36,6 +37,7 @@ export function useLiveKit(joinCode: string) {
 
     const updateParticipants = () => {
       setRemoteParticipants([...newRoom.remoteParticipants.values()]);
+      setLocalParticipant(newRoom.localParticipant);
     };
 
     newRoom.on(RoomEvent.ParticipantConnected, updateParticipants);
@@ -44,6 +46,7 @@ export function useLiveKit(joinCode: string) {
     newRoom.on(RoomEvent.TrackUnsubscribed, updateParticipants);
     newRoom.on(RoomEvent.LocalTrackPublished, updateParticipants);
     newRoom.on(RoomEvent.TrackPublished, updateParticipants);
+    newRoom.on(RoomEvent.LocalTrackUnpublished, updateParticipants);
     newRoom.on(RoomEvent.TrackUnpublished, updateParticipants);
     newRoom.on(RoomEvent.Disconnected, () => {
       setIsConnected(false);
@@ -51,6 +54,12 @@ export function useLiveKit(joinCode: string) {
     });
     newRoom.on(RoomEvent.Connected, () => {
       setIsConnected(true);
+    });
+    newRoom.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+      if (publication.track?.source === Track.Source.ScreenShare) {
+        setIsScreenSharing(false);
+      }
+      updateParticipants();
     });
 
     async function connect() {
@@ -66,13 +75,20 @@ export function useLiveKit(joinCode: string) {
           token = guestToken;
           serverUrl = decodeURIComponent(guestServerUrl);
           publish = getCookie("guest_can_publish") === "true";
-          console.log('[useLiveKit] Guest token found, canPublish:', publish);
+          console.log("[useLiveKit] Guest token found, canPublish:", publish);
         } else {
           const data = await livekitApi.getToken(joinCode);
           token = data.token;
           serverUrl = data.serverUrl;
           publish = data.canPublish;
-          console.log('[useLiveKit] Token from API, canPublish:', publish, 'isHost:', data.isHost, 'isGuest:', data.isGuest);
+          console.log(
+            "[useLiveKit] Token from API, canPublish:",
+            publish,
+            "isHost:",
+            data.isHost,
+            "isGuest:",
+            data.isGuest,
+          );
         }
 
         // Don't connect if component was unmounted
@@ -81,16 +97,16 @@ export function useLiveKit(joinCode: string) {
         roomRef.current = newRoom;
         setCanPublish(publish);
         canPublishRef.current = publish;
-        console.log('[useLiveKit] Connecting with canPublish:', publish);
+        console.log("[useLiveKit] Connecting with canPublish:", publish);
         await newRoom.connect(serverUrl, token);
         setLocalParticipant(newRoom.localParticipant);
         setRemoteParticipants([...newRoom.remoteParticipants.values()]);
         setIsConnected(true);
-        console.log('[useLiveKit] Connected successfully');
+        console.log("[useLiveKit] Connected successfully");
       } catch (err: any) {
         connectingRef.current = false;
         setError(err.message ?? "Failed to connect to room");
-        console.error('[useLiveKit] Connection error:', err);
+        console.error("[useLiveKit] Connection error:", err);
       }
     }
 
@@ -148,6 +164,7 @@ export function useLiveKit(joinCode: string) {
     const enabled = !room.localParticipant.isScreenShareEnabled;
     await room.localParticipant.setScreenShareEnabled(enabled);
     setIsScreenSharing(enabled);
+    setLocalParticipant(room.localParticipant);
   }, []); // ← no dependency needed
 
   const disconnect = useCallback(async () => {
@@ -161,7 +178,12 @@ export function useLiveKit(joinCode: string) {
 
   // Function to update canPublish state externally (e.g., after promotion)
   const updateCanPublish = useCallback((value: boolean) => {
-    console.log('[LiveKit] updateCanPublish called:', value, 'current:', canPublishRef.current);
+    console.log(
+      "[LiveKit] updateCanPublish called:",
+      value,
+      "current:",
+      canPublishRef.current,
+    );
     canPublishRef.current = value;
     setCanPublish(value);
   }, []);

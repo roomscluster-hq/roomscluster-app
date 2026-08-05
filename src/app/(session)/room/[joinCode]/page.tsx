@@ -275,7 +275,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
   );
 
   return (
-    <div className="h-screen bg-ink-900 relative overflow-hidden flex flex-col">
+    <div className="h-screen bg-ink-900 relative flex flex-col overflow-hidden">
       {/* Status pills */}
       <RoomStatusPills
         isLiveKitConnected={isLiveKitConnected}
@@ -291,11 +291,11 @@ function RoomContent({ joinCode }: RoomContentProps) {
       {isRecording && <RecordingPill />}
 
       {/* Body */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex min-h-0 relative">
         {/* Main area */}
-        <div className="flex-1 relative min-w-0 min-h-0">
+        <div className="flex-1 relative min-w-0 min-h-0 overflow-hidden">
           <div
-            className="absolute inset-0 p-4 pt-16 md:pt-6"
+            className="absolute inset-0 p-4 pt-16 md:pt-6 overflow-hidden"
             style={{ display: mainView === "video" ? "flex" : "none" }}
           >
             <VideoGrid
@@ -306,7 +306,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
             />
           </div>
           <div
-            className="absolute inset-0 flex flex-col p-4 pt-16 md:pt-6"
+            className="absolute inset-0 flex flex-col p-4 pt-16 md:pt-6 overflow-hidden"
             style={{ display: mainView === "whiteboard" ? "flex" : "none" }}
           >
             <Whiteboard
@@ -321,7 +321,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
 
         {/* Sidebar — desktop/tablet */}
         {chatOpen && (
-          <div className="hidden md:flex w-80 shrink-0 flex-col border-l border-white/10 bg-white/3 backdrop-blur-xl overflow-hidden">
+          <div className="hidden md:flex w-80 shrink-0 flex-col border-l border-white/10 bg-white/3 backdrop-blur-xl h-full">
             <RoomTabBar
               activeTab={sidebarTab}
               onChange={setSidebarTab}

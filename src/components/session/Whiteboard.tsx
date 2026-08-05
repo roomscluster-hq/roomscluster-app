@@ -1,29 +1,51 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import { useWhiteboard, Tool } from "@/hooks/useWhiteboard";
+import { useRef, useEffect, useCallback } from "react";
+import { useWhiteboard } from "@/hooks/useWhiteboard";
 import { cn } from "@/lib/utils";
+import { 
+  Pencil, 
+  Eraser, 
+  Square, 
+  Circle, 
+  Minus, 
+  Undo2, 
+  Redo2, 
+  Trash2, 
+  FileImage,
+  FileText
+} from "lucide-react";
+import { toast } from "sonner";
+import type { DrawEvent } from "@/types/whiteboard";
+import type { Socket } from "socket.io-client";
 
 interface WhiteboardProps {
-    socketRef: React.RefObject<any>;
+    socketRef: React.RefObject<Socket | null>;
     canDraw: boolean;
     isHost: boolean;
-    onRemoteDraw?: (fn: (event: any) => void) => void;
+    onRemoteDraw?: (fn: (event: DrawEvent) => void) => void;
     onRemoteClear?: (fn: () => void) => void;
 }
 
 const COLORS = [
-    "#ffffff", "#ef4444", "#f97316", "#eab308",
-    "#22c55e", "#3b82f6", "#a855f7", "#ec4899",
+    { color: "#ffffff", label: "White" },
+    { color: "#ef4444", label: "Red" },
+    { color: "#f97316", label: "Orange" },
+    { color: "#eab308", label: "Yellow" },
+    { color: "#22c55e", label: "Green" },
+    { color: "#3b82f6", label: "Blue" },
+    { color: "#a855f7", label: "Purple" },
+    { color: "#ec4899", label: "Pink" },
+    { color: "#000000", label: "Black" },
 ];
 
-const TOOLS: { id: Tool; label: string; icon: string }[] = [
-    { id: "pen", label: "Pen", icon: "✏️" },
-    { id: "eraser", label: "Eraser", icon: "⬜" },
-    { id: "line", label: "Line", icon: "╱" },
-    { id: "rectangle", label: "Rectangle", icon: "▭" },
-    { id: "circle", label: "Circle", icon: "○" },
-];
+const TOOLS = [
+    { id: "pen" as const, label: "Pen", icon: Pencil },
+    { id: "eraser" as const, label: "Eraser", icon: Eraser },
+    { id: "line" as const, label: "Line", icon: Minus },
+    { id: "rectangle" as const, label: "Rectangle", icon: Square },
+    { id: "circle" as const, label: "Circle", icon: Circle },
+] as const;
 
 export function Whiteboard({
     socketRef,
@@ -46,13 +68,18 @@ export function Whiteboard({
         onPointerUp,
         drawRemoteEvent,
         clearCanvas,
+        undo,
+        redo,
+        canUndo,
+        canRedo,
+        exportCanvas,
     } = useWhiteboard(canvasRef, socketRef, canDraw);
 
     // Register remote draw/clear callbacks
     useEffect(() => {
         onRemoteDraw?.(drawRemoteEvent);
-        onRemoteClear?.(clearCanvas);
-    }, [drawRemoteEvent, clearCanvas]);
+        onRemoteClear?.(() => clearCanvas(false));
+    }, [drawRemoteEvent, clearCanvas, onRemoteDraw, onRemoteClear]);
 
     // Set canvas size on mount
     useEffect(() => {
@@ -62,12 +89,14 @@ export function Whiteboard({
         const initCanvas = () => {
             if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
 
-            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-            canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = canvas.offsetWidth * dpr;
+            canvas.height = canvas.offsetHeight * dpr;
 
             const ctx = canvas.getContext("2d");
             if (ctx) {
-                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                ctx.scale(dpr, dpr);
+                // Fill with dark background
                 ctx.fillStyle = "#1f2937";
                 ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
             }
@@ -88,58 +117,157 @@ export function Whiteboard({
         return () => observer.disconnect();
     }, []);
 
+    // Export as PNG
+    const exportAsPNG = useCallback(() => {
+        const dataUrl = exportCanvas();
+        if (!dataUrl) {
+            toast.error("Failed to export whiteboard");
+            return;
+        }
+
+        const link = document.createElement("a");
+        link.download = `whiteboard-${new Date().toISOString().split("T")[0]}.png`;
+        link.href = dataUrl;
+        link.click();
+        toast.success("Whiteboard exported as PNG");
+    }, [exportCanvas]);
+
+    // Export as PDF using browser's print functionality
+    const exportAsPDF = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+            toast.error("Failed to export whiteboard");
+            return;
+        }
+
+        try {
+            const dataUrl = canvas.toDataURL("image/png");
+            
+            // Create a new window with the image
+            const printWindow = window.open("", "_blank");
+            if (!printWindow) {
+                toast.error("Popup blocked. Please allow popups for PDF export.");
+                return;
+            }
+
+            const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Whiteboard Export</title>
+                    <style>
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
+                            background: #1f2937;
+                        }
+                        img {
+                            max-width: 100%;
+                            max-height: 100vh;
+                            object-fit: contain;
+                        }
+                        @media print {
+                            body {
+                                background: white;
+                            }
+                            img {
+                                width: 100%;
+                                height: auto;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <img src="${dataUrl}" alt="Whiteboard" />
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(html);
+            printWindow.document.close();
+            toast.success("PDF export window opened. Use Ctrl+P to save as PDF.");
+        } catch (error) {
+            console.error("PDF export error:", error);
+            toast.error("Failed to export as PDF");
+        }
+    }, []);
+
+    // Handle clear with confirmation
+    const handleClear = useCallback(() => {
+        if (confirm("Clear the whiteboard for everyone? This action cannot be undone.")) {
+            clearCanvas(true);
+            toast.success("Whiteboard cleared");
+        }
+    }, [clearCanvas]);
+
     return (
         <div className="flex flex-col h-full bg-gray-800">
             {/* Toolbar */}
-            <div className="shrink-0 flex items-center gap-3 px-4 py-2 bg-gray-900 border-b border-gray-700 flex-wrap">
-
+            <div className="shrink-0 flex items-center gap-2 px-3 py-2 bg-gray-900 border-b border-gray-700 flex-wrap">
                 {/* Tools */}
-                <div className="flex gap-1">
-                    {TOOLS.map((t) => (
-                        <button
-                            key={t.id}
-                            onClick={() => setTool(t.id)}
-                            title={t.label}
-                            disabled={!canDraw}
-                            className={cn(
-                                "w-8 h-8 rounded text-sm transition",
-                                tool === t.id
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600",
-                                !canDraw && "opacity-40 cursor-not-allowed"
-                            )}
-                        >
-                            {t.icon}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+                    {TOOLS.map((t) => {
+                        const Icon = t.icon;
+                        return (
+                            <button
+                                key={t.id}
+                                onClick={() => setTool(t.id)}
+                                title={t.label}
+                                disabled={!canDraw}
+                                className={cn(
+                                    "w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200",
+                                    tool === t.id
+                                        ? "bg-primary-600 text-white shadow-md"
+                                        : "text-gray-400 hover:bg-gray-700 hover:text-white",
+                                    !canDraw && "opacity-40 cursor-not-allowed"
+                                )}
+                            >
+                                <Icon size={16} />
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Divider */}
-                <div className="w-px h-6 bg-gray-700" />
+                <div className="w-px h-8 bg-gray-700" />
 
                 {/* Colors */}
-                <div className="flex gap-1">
+                <div className="flex items-center gap-1.5">
                     {COLORS.map((c) => (
                         <button
-                            key={c}
-                            onClick={() => setColor(c)}
+                            key={c.color}
+                            onClick={() => setColor(c.color)}
                             disabled={!canDraw}
+                            title={c.label}
                             className={cn(
-                                "w-6 h-6 rounded-full border-2 transition",
-                                color === c ? "border-blue-400 scale-110" : "border-transparent",
+                                "w-6 h-6 rounded-full border-2 transition-all duration-200",
+                                color === c.color 
+                                    ? "border-white scale-110 shadow-md" 
+                                    : "border-transparent hover:scale-105",
                                 !canDraw && "opacity-40 cursor-not-allowed"
                             )}
-                            style={{ backgroundColor: c }}
+                            style={{ backgroundColor: c.color }}
                         />
                     ))}
                 </div>
 
                 {/* Divider */}
-                <div className="w-px h-6 bg-gray-700" />
+                <div className="w-px h-8 bg-gray-700" />
 
                 {/* Stroke width */}
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Size</span>
+                    <span className="text-xs text-gray-400 font-medium">Size</span>
                     <input
                         type="range"
                         min={1}
@@ -147,39 +275,92 @@ export function Whiteboard({
                         value={lineWidth}
                         onChange={(e) => setLineWidth(Number(e.target.value))}
                         disabled={!canDraw}
-                        className="w-20 accent-blue-500"
+                        className="w-20 accent-primary-500 cursor-pointer"
                     />
-                    <span className="text-xs text-gray-400 w-4">{lineWidth}</span>
+                    <span className="text-xs text-gray-400 w-5 text-center">{lineWidth}</span>
                 </div>
 
                 <div className="flex-1" />
 
+                {/* History Controls */}
+                <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+                    <button
+                        onClick={undo}
+                        disabled={!canUndo || !canDraw}
+                        title="Undo (Ctrl+Z)"
+                        className={cn(
+                            "w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200",
+                            canUndo && canDraw
+                                ? "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                : "text-gray-600 cursor-not-allowed"
+                        )}
+                    >
+                        <Undo2 size={16} />
+                    </button>
+                    <button
+                        onClick={redo}
+                        disabled={!canRedo || !canDraw}
+                        title="Redo (Ctrl+Y)"
+                        className={cn(
+                            "w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200",
+                            canRedo && canDraw
+                                ? "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                : "text-gray-600 cursor-not-allowed"
+                        )}
+                    >
+                        <Redo2 size={16} />
+                    </button>
+                </div>
+
+                {/* Divider */}
+                <div className="w-px h-8 bg-gray-700" />
+
+                {/* Export Options */}
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={exportAsPNG}
+                        title="Export as PNG"
+                        className="w-8 h-8 rounded-md flex items-center justify-center text-gray-300 hover:bg-gray-700 hover:text-white transition-all duration-200"
+                    >
+                        <FileImage size={16} />
+                    </button>
+                    <button
+                        onClick={exportAsPDF}
+                        title="Export as PDF"
+                        className="w-8 h-8 rounded-md flex items-center justify-center text-gray-300 hover:bg-gray-700 hover:text-white transition-all duration-200"
+                    >
+                        <FileText size={16} />
+                    </button>
+                </div>
+
+                {/* Divider */}
+                <div className="w-px h-8 bg-gray-700" />
+
                 {/* Clear — host only */}
                 {isHost && (
                     <button
-                        onClick={() => {
-                            if (confirm("Clear the whiteboard for everyone?")) clearCanvas();
-                        }}
-                        className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition"
+                        onClick={handleClear}
+                        title="Clear all"
+                        className="w-8 h-8 rounded-md flex items-center justify-center text-red-400 hover:bg-red-600/20 hover:text-red-300 transition-all duration-200"
                     >
-                        Clear All
+                        <Trash2 size={16} />
                     </button>
                 )}
 
                 {/* Read-only badge for guests */}
                 {!canDraw && (
-                    <span className="text-xs text-gray-400 italic">
-                        View only — host can promote you to speaker
+                    <span className="text-xs text-gray-400 italic bg-gray-800 px-2 py-1 rounded">
+                        View only
                     </span>
                 )}
             </div>
 
-            {/* Canvas */}
-            <div className="flex-1 relative overflow-hidden">
+            {/* Canvas Container */}
+            <div className="flex-1 relative overflow-hidden bg-gray-800">
                 <canvas
                     ref={canvasRef}
                     style={{
-                        cursor: canDraw ? "crosshair" : "default",
+                        cursor: canDraw ? (tool === "select" ? "default" : "crosshair") : "default",
                         touchAction: "none",
                         width: "100%",
                         height: "100%",
@@ -189,6 +370,7 @@ export function Whiteboard({
                     onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp}
                     onPointerLeave={onPointerUp}
+                    className="absolute inset-0"
                 />
             </div>
         </div>
