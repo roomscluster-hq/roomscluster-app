@@ -19,12 +19,6 @@ import { toast } from "sonner";
 import type { DrawEvent } from "@/types/whiteboard";
 import type { Socket } from "socket.io-client";
 
-// Dynamically import jsPDF to avoid SSR issues
-const loadJsPDF = async () => {
-  const { default: jsPDF } = await import("jspdf");
-  return jsPDF;
-};
-
 interface WhiteboardProps {
     socketRef: React.RefObject<Socket | null>;
     canDraw: boolean;
@@ -138,8 +132,8 @@ export function Whiteboard({
         toast.success("Whiteboard exported as PNG");
     }, [exportCanvas]);
 
-    // Export as PDF
-    const exportAsPDF = useCallback(async () => {
+    // Export as PDF using browser's print functionality
+    const exportAsPDF = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) {
             toast.error("Failed to export whiteboard");
@@ -147,27 +141,62 @@ export function Whiteboard({
         }
 
         try {
-            const jsPDF = await loadJsPDF();
-            const imgData = canvas.toDataURL("image/png");
-            const pdf = new jsPDF({
-                orientation: "landscape",
-                unit: "px",
-                format: [canvas.width, canvas.height],
-            });
-
-            // Calculate aspect ratio to fit on PDF page
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = Math.min(pageWidth / imgWidth, pageHeight / imgHeight);
+            const dataUrl = canvas.toDataURL("image/png");
             
-            const imgX = (pageWidth - imgWidth * ratio) / 2;
-            const imgY = (pageHeight - imgHeight * ratio) / 2;
+            // Create a new window with the image
+            const printWindow = window.open("", "_blank");
+            if (!printWindow) {
+                toast.error("Popup blocked. Please allow popups for PDF export.");
+                return;
+            }
 
-            pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-            pdf.save(`whiteboard-${new Date().toISOString().split("T")[0]}.pdf`);
-            toast.success("Whiteboard exported as PDF");
+            const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Whiteboard Export</title>
+                    <style>
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
+                            background: #1f2937;
+                        }
+                        img {
+                            max-width: 100%;
+                            max-height: 100vh;
+                            object-fit: contain;
+                        }
+                        @media print {
+                            body {
+                                background: white;
+                            }
+                            img {
+                                width: 100%;
+                                height: auto;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <img src="${dataUrl}" alt="Whiteboard" />
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(html);
+            printWindow.document.close();
+            toast.success("PDF export window opened. Use Ctrl+P to save as PDF.");
         } catch (error) {
             console.error("PDF export error:", error);
             toast.error("Failed to export as PDF");
