@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { sessionsApi } from "@/lib/api";
@@ -9,13 +9,17 @@ import { organizationsApi } from "@/lib/api/organizations.api";
 import { useAuthStore } from "@/store/auth.store";
 import { StatusBadge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/utils";
 import { SessionsListSkeleton } from "@/components/dashboard/SessionsListSkeleton";
 import { Activity, ArrowRight, Calendar, Clock, Users, Video } from "lucide-react";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const [startingSessionId, setStartingSessionId] = useState<string | null>(null);
 
   const { data: sessions, isLoading } = useQuery({
     queryKey: ["sessions", "ALL"],
@@ -44,6 +48,26 @@ export default function DashboardPage() {
       .filter((s) => (s.status === "SCHEDULED" || s.status === "LIVE") && s.scheduledAt)
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())[0] ?? null;
   }, [sessions]);
+
+  // Start session mutation
+  const startSessionMutation = useMutation({
+    mutationFn: (sessionId: string) => sessionsApi.start(sessionId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("Session started");
+      window.open(`/room/${data.joinCode}`, "_blank");
+      setStartingSessionId(null);
+    },
+    onError: () => {
+      toast.error("Failed to start session");
+      setStartingSessionId(null);
+    },
+  });
+
+  const handleStartSession = (sessionId: string) => {
+    setStartingSessionId(sessionId);
+    startSessionMutation.mutate(sessionId);
+  };
 
   return (
     <div>
@@ -183,8 +207,17 @@ export default function DashboardPage() {
             <div className="bg-primary-600 text-white rounded-card p-6 relative overflow-hidden">
               <div className="relative z-10">
                 <div className="flex items-center gap-1.5 text-white/70 text-xs font-medium mb-2">
-                  <Clock size={14} />
-                  Up next
+                  {nextSession.status === "LIVE" ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      Live now
+                    </>
+                  ) : (
+                    <>
+                      <Clock size={14} />
+                      Up next
+                    </>
+                  )}
                 </div>
                 <h3 className="font-semibold text-lg mb-1 truncate">{nextSession.title}</h3>
                 <p className="text-white/70 text-sm mb-5">
@@ -197,15 +230,26 @@ export default function DashboardPage() {
                   >
                     View session
                   </Link>
-                  <Link
-                    href={`/room/${nextSession.joinCode}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-50 transition-colors"
-                  >
-                    {nextSession.status === "SCHEDULED" ? "Start" : "Join"}
-                    <ArrowRight size={16} />
-                  </Link>
+                  {nextSession.status === "SCHEDULED" ? (
+                    <Button
+                      onClick={() => handleStartSession(nextSession.id)}
+                      disabled={startingSessionId === nextSession.id}
+                      className="inline-flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-50 transition-colors border-0 h-auto"
+                    >
+                      {startingSessionId === nextSession.id ? "Starting..." : "Start"}
+                      <ArrowRight size={16} />
+                    </Button>
+                  ) : (
+                    <Link
+                      href={`/room/${nextSession.joinCode}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-50 transition-colors"
+                    >
+                      Join
+                      <ArrowRight size={16} />
+                    </Link>
+                  )}
                 </div>
               </div>
               <Activity className="absolute -right-4 -bottom-4 text-white/10" size={140} />
