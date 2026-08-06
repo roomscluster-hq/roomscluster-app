@@ -78,15 +78,10 @@ export function useSocket(joinCode: string) {
 
     // ── Participants ──────────────────────────────────
     socket.on("room:participants", (data: any[]) => {
-      console.log("[Socket] room:participants received:", data.length, "participants");
-      console.log("[Socket] First participant:", data[0]);
-      console.log("[Socket] First participant image:", data[0]?.user?.image ?? data[0]?.image);
       setParticipants(data);
     });
 
     socket.on("participant:joined", (data: any) => {
-      console.log("[Socket] participant:joined:", data);
-      console.log("[Socket] participant image:", data?.user?.image ?? data?.image);
       const id = data.user?.id ?? data.userId;
       const timestamp = Date.now();
       setParticipants((prev) => {

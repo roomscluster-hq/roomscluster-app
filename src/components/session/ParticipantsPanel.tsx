@@ -5,6 +5,17 @@ import Image from "next/image";
 import { getInitials } from "@/lib/utils";
 import { Mic, Star, UserMinus, Hand, Ban, MoreVertical } from "lucide-react";
 
+/**
+ * NOTE: Server must populate user.image field when emitting participant data
+ * Expected server payload:
+ * {
+ *   userId: string,
+ *   user: { id: string, name: string, email: string, image: string | null },
+ *   role: 'HOST' | 'COHOST' | 'SPEAKER' | 'GUEST',
+ *   ...
+ * }
+ * Currently server is not sending user.image - needs backend fix
+ */
 interface Participant {
   userId: string;
   user?: { id: string; name?: string; email?: string; image?: string | null };
@@ -275,11 +286,6 @@ export function ParticipantsPanel({
           const isMe = pid === currentUserId;
 
           const profileImage = getProfileImage(p);
-          
-          // Debug logging
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[ParticipantsPanel] Participant:', { name, image: profileImage, user: p.user, imageField: p.image });
-          }
 
           return (
             <div key={pid} className="flex items-center justify-between px-4 py-2.5">
