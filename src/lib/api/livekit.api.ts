@@ -5,15 +5,20 @@ import type { LiveKitTokenResponse } from "@/types";
 export const livekitApi = {
   getToken: async (joinCode: string) => {
     const res = await client.post<{ data: LiveKitTokenResponse }>(
-      `/livekit/token/${joinCode}`
+      `/livekit/token/${joinCode}`,
     );
     return unwrap(res);
   },
 
-  getGuestToken: async (joinCode: string, name: string, email: string, passcode?: string) => {
+  getGuestToken: async (
+    joinCode: string,
+    name: string,
+    email: string,
+    passcode?: string,
+  ) => {
     const res = await client.post<{ data: LiveKitTokenResponse }>(
-      `/livekit/guest-token/${joinCode}`,
-      { name, email, passcode }
+      `/livekit/guest-token`,
+      { joinCode, name, email, passcode },
     );
     return unwrap(res);
   },
@@ -22,7 +27,7 @@ export const livekitApi = {
     const guestToken = getCookie("guest_token");
     const res = await client.post<{ data: LiveKitTokenResponse }>(
       `/livekit/guest-token/${joinCode}/promote`,
-      { guestToken }
+      { guestToken },
     );
     return unwrap(res);
   },

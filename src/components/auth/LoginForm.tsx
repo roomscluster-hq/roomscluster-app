@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PasswordInput } from "./PasswordInput";
 import { FormDivider } from "./FormDivider";
-import { cn } from "@/lib/utils";
+import { cn, isValidEmail } from "@/lib/utils";
 
 interface LoginFormProps {
   onMagicLinkSent?: () => void;
@@ -25,6 +25,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   const router = useRouter();
   const { setAuth } = useAuthStore();
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [password, setPassword] = useState("");
   const [method, setMethod] = useState<AuthMethod>("password");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -46,6 +47,13 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    
+    // Validate email format
+    if (!isValidEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+    
     if (method === "password") {
       loginMutation.mutate({ email, password });
     }
@@ -54,6 +62,11 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   async function handleMagicLink() {
     if (!email.trim()) {
       toast.error("Enter your email first");
+      return;
+    }
+    
+    if (!isValidEmail(email)) {
+      setEmailError("Please enter a valid email address");
       return;
     }
     setMagicLinkLoading(true);
@@ -110,14 +123,20 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       </div>
 
       {/* Email Field */}
-      <Input
-        label="Email Address"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        placeholder="you@example.com"
-      />
+      <div>
+        <Input
+          label="Email Address"
+          type="email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setEmailError(""); // Clear error on type
+          }}
+          required
+          placeholder="you@example.com"
+          error={emailError}
+        />
+      </div>
 
       {/* Password Field - Only show for password method */}
       {method === "password" && (

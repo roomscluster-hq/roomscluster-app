@@ -34,6 +34,11 @@ export function truncate(str: string, length: number) {
   return str.length > length ? `${str.slice(0, length)}...` : str;
 }
 
+// ── Validation helpers ─────────────────────────────────
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 // ── Session helpers ────────────────────────────────────
 export function getJoinUrl(joinCode: string) {
   const base =

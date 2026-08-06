@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { Ban, Lock, GraduationCap, Radio, Calendar } from "lucide-react";
+import { cn, isValidEmail } from "@/lib/utils";
 
 export default function GuestJoinPage() {
   const { joinCode } = useParams<{ joinCode: string }>();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [passcode, setPasscode] = useState("");
+  const [passcodeError, setPasscodeError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSessionLocked, setIsSessionLocked] = useState(false);
@@ -27,6 +30,13 @@ export default function GuestJoinPage() {
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
+    
+    // Validate email format
+    if (!isValidEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -60,37 +70,24 @@ export default function GuestJoinPage() {
       }
 
       window.location.href = `/room/${joinCode}`;
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
-
-      // ── Session locked ────────────────────────────────
-      if (
-        axiosErr.response?.status === 403 &&
-        axiosErr.response?.data?.message?.toLowerCase().includes("locked")
-      ) {
-        setIsSessionLocked(true);
-        setLoading(false);
-        return;
-      }
-
-      // ── User banned ───────────────────────────────────
-      if (
-        axiosErr.response?.status === 403 &&
-        (axiosErr.response?.data?.message?.toLowerCase().includes("banned") ||
-         axiosErr.response?.data?.message?.toLowerCase().includes("ban"))
-      ) {
+    } catch (err: any) {
+      const message = err.response?.data?.message ?? err.message ?? "Failed to join";
+      
+      if (message.toLowerCase().includes("passcode") || 
+          message.toLowerCase().includes("incorrect")) {
+        setPasscodeError("Incorrect passcode. Please try again.");
+      } else if (message.toLowerCase().includes("banned")) {
         setIsBanned(true);
         setLoading(false);
         return;
+      } else if (message.toLowerCase().includes("locked")) {
+        setIsSessionLocked(true);
+        setLoading(false);
+        return;
+      } else {
+        setError(message);
+        toast.error(message);
       }
-
-      const message =
-        err instanceof Error
-          ? err.message
-          : axiosErr.response?.data?.message ?? "Failed to join session";
-
-      setError(message);
-      toast.error(message);
       setLoading(false);
     }
   }
@@ -204,11 +201,22 @@ export default function GuestJoinPage() {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError(""); // Clear error on type
+              }}
               required
               placeholder="john@example.com"
-              className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
+              className={cn(
+                "w-full bg-gray-700 border text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 placeholder-gray-400",
+                emailError
+                  ? "border-danger-500 focus:ring-danger-500"
+                  : "border-gray-600 focus:ring-blue-500"
+              )}
             />
+            {emailError && (
+              <p className="text-xs text-danger-600 mt-1">{emailError}</p>
+            )}
           </div>
 
           {session?.passcode && (
@@ -219,11 +227,22 @@ export default function GuestJoinPage() {
               <input
                 type="password"
                 value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
+                onChange={(e) => {
+                  setPasscode(e.target.value);
+                  setPasscodeError(""); // ← clear error on type
+                }}
                 required
                 placeholder="Enter passcode"
-                className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
+                className={cn(
+                  "w-full bg-gray-700 border text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 placeholder-gray-400",
+                  passcodeError
+                    ? "border-danger-500 focus:ring-danger-500"
+                    : "border-gray-600 focus:ring-blue-500"
+                )}
               />
+              {passcodeError && (
+                <p className="text-xs text-danger-600 mt-1">{passcodeError}</p>
+              )}
             </div>
           )}
 
