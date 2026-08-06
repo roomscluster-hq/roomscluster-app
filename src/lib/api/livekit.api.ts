@@ -10,10 +10,10 @@ export const livekitApi = {
     return unwrap(res);
   },
 
-  getGuestToken: async (joinCode: string, name: string, email: string) => {
+  getGuestToken: async (joinCode: string, name: string, email: string, passcode?: string) => {
     const res = await client.post<{ data: LiveKitTokenResponse }>(
       `/livekit/guest-token/${joinCode}`,
-      { name, email }
+      { name, email, passcode }
     );
     return unwrap(res);
   },

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LocalParticipant,
@@ -146,6 +147,20 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
   // This is the original working approach — re-run effect when camera toggles
   const isCameraEnabled = participant.isCameraEnabled;
 
+  // Get profile image from participant metadata
+  const profileImage = useMemo(() => {
+    try {
+      const metadata = participant.metadata;
+      if (metadata) {
+        const parsed = JSON.parse(metadata);
+        return parsed.image ?? null;
+      }
+    } catch {
+      // Metadata might not be valid JSON
+    }
+    return null;
+  }, [participant.metadata]);
+
   useEffect(() => {
     if (!videoRef.current) return;
     const publications = [...participant.videoTrackPublications.values()] as TrackPublication[];
@@ -181,8 +196,18 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
         />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-ink-800">
-          <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg md:text-2xl font-bold shadow-lg">
-            {getInitials(name ?? "?")}
+          <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg md:text-2xl font-bold shadow-lg overflow-hidden">
+            {profileImage ? (
+              <Image
+                src={profileImage}
+                alt={name ?? "?"}
+                fill
+                className="object-cover"
+                sizes="4rem"
+              />
+            ) : (
+              <span>{getInitials(name ?? "?")}</span>
+            )}
           </div>
           <span className="text-white/60 text-xs">{name}</span>
         </div>

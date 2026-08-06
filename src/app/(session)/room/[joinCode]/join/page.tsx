@@ -13,6 +13,7 @@ export default function GuestJoinPage() {
   const { joinCode } = useParams<{ joinCode: string }>();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [passcode, setPasscode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSessionLocked, setIsSessionLocked] = useState(false);
@@ -29,7 +30,7 @@ export default function GuestJoinPage() {
     setLoading(true);
 
     try {
-      const tokenData = await livekitApi.getGuestToken(joinCode, name, email);
+      const tokenData = await livekitApi.getGuestToken(joinCode, name, email, passcode || undefined);
       const maxAge = 60 * 60 * 4;
 
       document.cookie = `guest_token=${tokenData.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
@@ -209,6 +210,22 @@ export default function GuestJoinPage() {
               className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
             />
           </div>
+
+          {session?.passcode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Session Passcode <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="password"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+                required
+                placeholder="Enter passcode"
+                className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
+              />
+            </div>
+          )}
 
           <Button
             type="submit"

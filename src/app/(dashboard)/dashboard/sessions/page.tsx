@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import {
@@ -9,6 +9,8 @@ import {
   Folder as FolderIcon,
   GripVertical,
   CheckCircle,
+  Search,
+  X,
 } from "lucide-react";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { StatusBadge } from "@/components/ui/badge";
@@ -43,6 +45,18 @@ const SESSION_CARD_STYLES: Record<SessionStatus, string> = {
 export default function SessionsExplorerPage() {
   const { sessionsViewMode, setSessionsViewMode } = useUserPreferencesStore();
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Clear search on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && searchQuery) {
+        setSearchQuery("");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchQuery]);
 
   // Local state for view mode with fallback to stored preference
   const viewMode = sessionsViewMode;
@@ -126,12 +140,23 @@ export default function SessionsExplorerPage() {
     });
   }, [allSessions]);
 
+  // Filter by search query
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sessions;
+    const q = searchQuery.toLowerCase();
+    return sessions.filter(
+      (s) =>
+        s.title.toLowerCase().includes(q) ||
+        s.description?.toLowerCase().includes(q)
+    );
+  }, [sessions, searchQuery]);
+
   // Group sessions by recurrenceRuleId
   const { standaloneSessions, seriesGroups } = useMemo(() => {
-    const groups = new Map<string, typeof sessions>();
-    const standalone: typeof sessions = [];
+    const groups = new Map<string, typeof filteredSessions>();
+    const standalone: typeof filteredSessions = [];
 
-    sessions.forEach((s) => {
+    filteredSessions.forEach((s) => {
       if (s.recurrenceRuleId) {
         const existing = groups.get(s.recurrenceRuleId) ?? [];
         groups.set(s.recurrenceRuleId, [...existing, s]);
@@ -147,7 +172,7 @@ export default function SessionsExplorerPage() {
         sessions,
       })),
     };
-  }, [sessions]);
+  }, [filteredSessions]);
 
   const isEmpty = folders.length === 0 && allSessions.length === 0;
 
@@ -175,6 +200,26 @@ export default function SessionsExplorerPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Search input */}
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-700/40" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search sessions..."
+              className="pl-9 pr-4 py-2 text-sm border border-surface-200 rounded-lg bg-surface-0 text-ink-900 placeholder:text-ink-700/40 focus:outline-none focus:ring-2 focus:ring-primary-600 w-48 md:w-64"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-700/40 hover:text-ink-700 cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
           <ViewToggle viewMode={viewMode} onChange={setSessionsViewMode} />
           <Button
             variant="secondary"
@@ -196,6 +241,13 @@ export default function SessionsExplorerPage() {
         currentFilter={statusFilter}
         onChange={setStatusFilter}
       />
+
+      {/* Search results count */}
+      {searchQuery && (
+        <p className="text-sm text-ink-700/60 mb-4">
+          {filteredSessions.length} result{filteredSessions.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;
+        </p>
+      )}
 
       {/* Workspace indicator */}
       <WorkspaceIndicator organization={activeOrg} />
@@ -292,7 +344,7 @@ export default function SessionsExplorerPage() {
       {!isEmpty && viewMode === "list" && (
         <SessionList
           folders={folders}
-          sessions={sessions}
+          sessions={filteredSessions}
           renamingFolderId={renamingFolderId}
           renameValue={renameValue}
           onRenameChange={setRenameValue}
@@ -341,7 +393,7 @@ export default function SessionsExplorerPage() {
 
 // ── Folder Grid Component ────────────────────────────────────────────────
 interface FolderGridProps {
-  folders: any[];
+  folders: FolderWithCount[];
   renamingFolderId: string | null;
   renameValue: string;
   onRenameChange: (value: string) => void;
@@ -551,8 +603,8 @@ function SessionGrid({
 
 // ── Session List Component ───────────────────────────────────────────────
 interface SessionListProps {
-  folders: any[];
-  sessions: any[];
+  folders: FolderWithCount[];
+  sessions: Session[];
   renamingFolderId: string | null;
   renameValue: string;
   onRenameChange: (value: string) => void;
