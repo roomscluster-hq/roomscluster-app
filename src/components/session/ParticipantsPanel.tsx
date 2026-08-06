@@ -275,6 +275,11 @@ export function ParticipantsPanel({
           const isMe = pid === currentUserId;
 
           const profileImage = getProfileImage(p);
+          
+          // Debug logging
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[ParticipantsPanel] Participant:', { name, image: profileImage, user: p.user, imageField: p.image });
+          }
 
           return (
             <div key={pid} className="flex items-center justify-between px-4 py-2.5">
