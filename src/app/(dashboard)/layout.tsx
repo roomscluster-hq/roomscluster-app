@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, Plus, Video, Settings } from "lucide-react";
+import { LayoutDashboard, Plus, Video, Settings, User } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { Spinner } from "@/components/ui/spinner";
 import { OrgSwitcher } from "@/components/dashboard/OrgSwitcher";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/sessions", label: "Sessions", icon: Video, exact: false },
+  { href: "/dashboard/settings/profile", label: "Profile", icon: User, exact: false },
   { href: "/dashboard/settings/organization", label: "Settings", icon: Settings, exact: false },
 ];
 
@@ -30,7 +31,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const isActive = useIsActive(pathname);
-  const { isAuthenticated, clearAuth, hasHydrated } = useAuthStore();
+  const { isAuthenticated, hasHydrated } = useAuthStore();
 
   useEffect(() => {
     // Only redirect once we know the real auth state — not before hydration

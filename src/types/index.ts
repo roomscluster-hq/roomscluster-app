@@ -9,6 +9,7 @@ export interface User {
   name: string | null;
   email: string;
   image: string | null;
+  googleId: string;
   createdAt: string;
   updatedAt: string;
 }
