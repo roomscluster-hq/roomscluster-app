@@ -7,8 +7,6 @@ export function middleware(req: NextRequest) {
   const isGuest = !!guestToken;
   const { pathname } = req.nextUrl;
 
-  console.log(`[Middleware] ${pathname} | loggedIn: ${isLoggedIn} | guest: ${isGuest}`);
-
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
 
@@ -31,7 +29,6 @@ export function middleware(req: NextRequest) {
 
   if (isRoomPage && !isLoggedIn && !isGuest) {
     const joinCode = pathname.split("/")[2];
-    console.log(`[Middleware] Redirecting to guest join for: ${joinCode}`);
     return NextResponse.redirect(new URL(`/room/${joinCode}/join`, req.url));
   }
 

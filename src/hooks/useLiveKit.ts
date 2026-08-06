@@ -75,20 +75,11 @@ export function useLiveKit(joinCode: string) {
           token = guestToken;
           serverUrl = decodeURIComponent(guestServerUrl);
           publish = getCookie("guest_can_publish") === "true";
-          console.log("[useLiveKit] Guest token found, canPublish:", publish);
         } else {
           const data = await livekitApi.getToken(joinCode);
           token = data.token;
           serverUrl = data.serverUrl;
           publish = data.canPublish;
-          console.log(
-            "[useLiveKit] Token from API, canPublish:",
-            publish,
-            "isHost:",
-            data.isHost,
-            "isGuest:",
-            data.isGuest,
-          );
         }
 
         // Don't connect if component was unmounted
@@ -97,12 +88,10 @@ export function useLiveKit(joinCode: string) {
         roomRef.current = newRoom;
         setCanPublish(publish);
         canPublishRef.current = publish;
-        console.log("[useLiveKit] Connecting with canPublish:", publish);
         await newRoom.connect(serverUrl, token);
         setLocalParticipant(newRoom.localParticipant);
         setRemoteParticipants([...newRoom.remoteParticipants.values()]);
         setIsConnected(true);
-        console.log("[useLiveKit] Connected successfully");
       } catch (err: any) {
         connectingRef.current = false;
         setError(err.message ?? "Failed to connect to room");
@@ -128,7 +117,6 @@ export function useLiveKit(joinCode: string) {
 
       if (document.visibilityState === "visible") {
         if (room.state === "disconnected") {
-          console.log("[LiveKit] Tab visible — reconnecting");
           // Re-run connection by fetching a fresh token
           livekitApi.getToken(joinCode).then((data) => {
             room.connect(data.serverUrl, data.token).catch(console.error);
@@ -178,12 +166,6 @@ export function useLiveKit(joinCode: string) {
 
   // Function to update canPublish state externally (e.g., after promotion)
   const updateCanPublish = useCallback((value: boolean) => {
-    console.log(
-      "[LiveKit] updateCanPublish called:",
-      value,
-      "current:",
-      canPublishRef.current,
-    );
     canPublishRef.current = value;
     setCanPublish(value);
   }, []);

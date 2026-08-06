@@ -79,38 +79,15 @@ export function RoomProvider({
 
   // Sync isCohost from participants list on initial load
   useEffect(() => {
-    console.log("[RoomContext] isCohost sync effect triggered:", {
-      participantsLength: socket.participants.length,
-      myIdentityRef: myIdentityRef.current,
-      liveKitIdentity: liveKit.roomRef.current?.localParticipant?.identity,
-      authUserId: user?.id,
-    });
-
-    if (!socket.participants.length) {
-      console.log("[RoomContext] No participants yet, skipping");
-      return;
-    }
+    if (!socket.participants.length) return;
 
     // Try multiple identity sources
     const myIdentity =
       myIdentityRef.current ??
       liveKit.roomRef.current?.localParticipant?.identity ??
-      user?.id; // Fallback to auth user ID
+      user?.id;
 
-    console.log("[RoomContext] Syncing isCohost from participants:", {
-      myIdentity,
-      participantsCount: socket.participants.length,
-      participants: socket.participants.map((p) => ({
-        id: p.user?.id ?? p.userId,
-        role: p.role,
-        name: p.name || p.user?.name,
-      })),
-    });
-
-    if (!myIdentity) {
-      console.log("[RoomContext] No myIdentity found, skipping sync");
-      return;
-    }
+    if (!myIdentity) return;
 
     // Try to find by LiveKit identity first, then by user ID
     let me = socket.participants.find(
@@ -124,18 +101,7 @@ export function RoomProvider({
       );
     }
 
-    console.log("[RoomContext] Found me in participants:", {
-      found: !!me,
-      myRole: me?.role,
-      myIdentity,
-      authUserId: user?.id,
-      participantIds: socket.participants.map((p) => p.user?.id ?? p.userId),
-    });
-
     if (me?.role === "COHOST") {
-      console.log(
-        "[RoomContext] Setting isCohost to TRUE based on participant role",
-      );
       setIsCohost(true);
     }
   }, [
@@ -235,22 +201,10 @@ export function RoomProvider({
       token?: string;
       serverUrl?: string;
     }) => {
-      console.log("[RoomContext] participant:became-cohost received:", data);
-
       // Wait for LiveKit room to be available and get identity from it
       const room = await getRoom();
       const myIdentity =
         room?.localParticipant?.identity ?? myIdentityRef.current;
-
-      console.log("[RoomContext] handleBecameCohost:", {
-        myIdentity,
-        dataUserId: data.userId,
-        isMatch: myIdentity === data.userId,
-        hasToken: !!data.token,
-        hasServerUrl: !!data.serverUrl,
-        hasRoom: !!room,
-        roomState: room?.state,
-      });
 
       if (myIdentity === data.userId) {
         setIsCohost(true);
@@ -261,22 +215,17 @@ export function RoomProvider({
         toast.success("You are now a co-host!");
         try {
           const accessToken = localStorage.getItem("access_token");
-          console.log("[RoomContext] Reconnecting as co-host...");
           if (room.state !== "disconnected") {
             await room.disconnect();
           }
           await room.connect(data.serverUrl, data.token, {
             autoSubscribe: true,
           });
-          console.log(
-            "[RoomContext] Reconnected successfully, updating canPublish",
-          );
           if (accessToken && !localStorage.getItem("access_token")) {
             localStorage.setItem("access_token", accessToken);
           }
           liveKit.updateCanPublish(true);
           liveKit.syncLocalParticipant();
-          console.log("[RoomContext] canPublish updated to true");
           if (myIdentity?.startsWith("guest_")) {
             const maxAge = 60 * 60 * 4;
             document.cookie = `guest_token=${data.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
@@ -382,43 +331,23 @@ export function RoomProvider({
       serverUrl: string;
       canPublish: boolean;
     }) => {
-      console.log("[Socket] settings:token-updated received:", data);
       const myIdentity =
         myIdentityRef.current ??
         liveKit.roomRef.current?.localParticipant?.identity;
-      console.log(
-        "[Socket] My identity:",
-        myIdentity,
-        "Event userId:",
-        data.userId,
-      );
-
       // Check if this event is for us - match by identity or email (for guests)
       const isForMe =
         myIdentity === data.userId ||
         (myIdentity?.startsWith("guest_") && data.userId?.includes("@"));
 
-      if (!isForMe) {
-        console.log("[Socket] Event not for me, skipping");
-        return;
-      }
+      if (!isForMe) return;
 
       const room = await getRoom();
       if (!room) return;
 
       try {
-        console.log(
-          "[LiveKit] Reconnecting with new token, canPublish:",
-          data.canPublish,
-        );
         await room.disconnect(false);
         await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
         liveKit.updateCanPublish(data.canPublish);
-        console.log(
-          "[LiveKit] Token update complete, canPublish set to:",
-          data.canPublish,
-        );
-        // No toast — silent update
       } catch (err) {
         console.error("[LiveKit] Failed to update token from settings:", err);
       }

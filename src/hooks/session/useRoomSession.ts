@@ -149,8 +149,6 @@ export function useRoomSession() {
     stopRecording();
   }
 
-    console.log('[RoomSession] isCohost:', isCohost, 'canPublish:', canPublish);
-
   return {
     joinCode,
     session,

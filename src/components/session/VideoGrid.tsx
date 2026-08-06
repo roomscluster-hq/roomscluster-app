@@ -161,9 +161,6 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
     return null;
   }, [participant.metadata]);
 
-  console.log("meta", participant)
-  console.log("image", profileImage)
-
   useEffect(() => {
     if (!videoRef.current) return;
     const publications = [...participant.videoTrackPublications.values()] as TrackPublication[];

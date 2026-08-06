@@ -55,7 +55,6 @@ export function useSocket(joinCode: string) {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("[Socket] Connected:", socket.id);
       setIsConnected(true);
       if (!joinedRef.current) {
         joinedRef.current = true;
@@ -73,7 +72,6 @@ export function useSocket(joinCode: string) {
     });
 
     socket.on("disconnect", (reason) => {
-      console.log("[Socket] Disconnected:", reason);
       setIsConnected(false);
       joinedRef.current = false;
     });
@@ -86,7 +84,6 @@ export function useSocket(joinCode: string) {
     socket.on("participant:joined", (data: any) => {
       const id = data.user?.id ?? data.userId;
       const timestamp = Date.now();
-      console.log('[Socket] participant:joined:', id, data.role, data.email);
       setParticipants((prev) => {
         // Always remove any stale entry for this user (by id or guest email)
         const filtered = prev.filter((p) => {
@@ -101,7 +98,6 @@ export function useSocket(joinCode: string) {
     });
 
     socket.on("participant:left", (data: { userId: string; email?: string }) => {
-      console.log('[Socket] participant:left:', data.userId);
       setParticipants((prev) =>
         prev.filter((p) => {
           const id = p.user?.id ?? p.userId;
@@ -114,7 +110,6 @@ export function useSocket(joinCode: string) {
           // If they rejoined within the last 2 seconds, keep them
           // This handles the race condition where left arrives after joined
           if (p._joinedAt && Date.now() - p._joinedAt < 2000) {
-            console.log(`[Socket] Ignoring participant:left for ${data.userId} - rejoined recently`);
             return true;
           }
 
@@ -217,7 +212,6 @@ export function useSocket(joinCode: string) {
     });
 
     return () => {
-      console.log("[Socket] Cleanup — disconnecting");
       joinedRef.current = false;
       socket.emit("room:leave");
       socket.disconnect();

@@ -116,35 +116,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
     setOnWhiteboardClear,
   } = useRoomSession();
 
-  // Debug logging for co-host controls issue
-  useEffect(() => {
-    console.log("[RoomSession Debug]", {
-      isHost,
-      isCohost,
-      isSpeaker,
-      canPublish,
-      canManage,
-      isGuest,
-      currentUserId: currentUserId?.slice(0, 8) + "...",
-    });
-  }, [
-    isHost,
-    isCohost,
-    isSpeaker,
-    canPublish,
-    canManage,
-    isGuest,
-    currentUserId,
-  ]);
 
-  console.log(
-    "[ControlBar props] isCohost:",
-    isCohost,
-    "isHost:",
-    isHost,
-    "canPublish:",
-    canPublish,
-  );
   // Register whiteboard callbacks
   useEffect(() => {
     setOnWhiteboardDraw((event) => remoteDrawRef.current?.(event));

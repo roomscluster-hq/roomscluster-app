@@ -50,7 +50,6 @@ export default function WaitingRoomPage() {
     });
 
     s.on("connect", () => {
-      console.log("[WaitingRoom] Socket connected:", s.id);
       // Tell the server we're in the waiting room
       s.emit("waiting:join", { joinCode });
     });
