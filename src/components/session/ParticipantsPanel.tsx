@@ -1,17 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import { LocalParticipant, RemoteParticipant } from "livekit-client";
 import { getInitials } from "@/lib/utils";
 import { Mic, Star, UserMinus, Hand, Ban, MoreVertical } from "lucide-react";
-
-interface Participant {
-  userId: string;
-  user?: { id: string; name?: string; email?: string; image?: string | null };
-  name: string;
-  email: string;
-  role: string;
-  isGuest?: boolean;
-}
 
 interface RaisedHand {
   userId: string;
@@ -20,7 +13,7 @@ interface RaisedHand {
 }
 
 interface ParticipantsPanelProps {
-  participants: Participant[];
+  participants: (LocalParticipant | RemoteParticipant)[];
   raisedHands: RaisedHand[];
   isHost: boolean;
   isCohost: boolean;
@@ -34,12 +27,24 @@ interface ParticipantsPanelProps {
   onBan: (userId: string, email: string) => void;
 }
 
-function resolveId(p: Participant): string {
-  return p.user?.id ?? p.userId;
+function resolveId(p: LocalParticipant | RemoteParticipant): string {
+  return p.identity;
 }
 
-function resolveName(p: Participant): string {
-  return p.user?.name ?? p.name ?? p.user?.email ?? p.email ?? "Unknown";
+function resolveName(p: LocalParticipant | RemoteParticipant): string {
+  return p.name ?? p.identity ?? "Unknown";
+}
+
+function getProfileImage(p: LocalParticipant | RemoteParticipant): string | null {
+  try {
+    if (p.metadata) {
+      const metadata = JSON.parse(p.metadata);
+      return metadata.image ?? null;
+    }
+  } catch {
+    // Metadata might not be valid JSON
+  }
+  return null;
 }
 
 function getRoleBadge(role: string) {
@@ -67,7 +72,7 @@ function ThreeDotMenu({
   onKick,
   onBan,
 }: {
-  participant: Participant;
+  participant: LocalParticipant | RemoteParticipant;
   hasRaisedHand: boolean;
   isHost: boolean;
   onPromote: () => void;
@@ -91,9 +96,23 @@ function ThreeDotMenu({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isSpeaker = participant.role === 'SPEAKER';
-  const isHostRole = participant.role === 'HOST';
-  const isCohost = participant.role === 'COHOST';
+  // Get role from participant metadata (set by server)
+  const getRole = (): string => {
+    try {
+      if (participant.metadata) {
+        const metadata = JSON.parse(participant.metadata);
+        return metadata.role ?? 'GUEST';
+      }
+    } catch {
+      // Metadata might not be valid JSON
+    }
+    return 'GUEST';
+  };
+
+  const role = getRole();
+  const isSpeaker = role === 'SPEAKER';
+  const isHostRole = role === 'HOST';
+  const isCohost = role === 'COHOST';
 
   if (isHostRole) return null;
 
@@ -211,9 +230,22 @@ export function ParticipantsPanel({
     return true;
   });
 
+  // Get role from metadata for sorting
+  const getRoleFromMetadata = (p: LocalParticipant | RemoteParticipant): string => {
+    try {
+      if (p.metadata) {
+        const metadata = JSON.parse(p.metadata);
+        return metadata.role ?? 'GUEST';
+      }
+    } catch {
+      // Metadata might not be valid JSON
+    }
+    return 'GUEST';
+  };
+
   const order: Record<string, number> = { HOST: 0, COHOST: 1, SPEAKER: 2, GUEST: 3 };
   const sorted = [...deduped].sort((a, b) => {
-    return (order[a.role] ?? 3) - (order[b.role] ?? 3);
+    return (order[getRoleFromMetadata(a)] ?? 3) - (order[getRoleFromMetadata(b)] ?? 3);
   });
 
   return (
@@ -267,16 +299,31 @@ export function ParticipantsPanel({
           const hasRaisedHand = raisedHandIds.has(pid);
           const isMe = pid === currentUserId;
 
-          const profileImage = p.user?.image;
+          const profileImage = getProfileImage(p);
+
+          // Get role and email from metadata
+          const role = getRoleFromMetadata(p);
+          const email = (() => {
+            try {
+              if (p.metadata) {
+                const metadata = JSON.parse(p.metadata);
+                return metadata.email ?? '';
+              }
+            } catch {}
+            return '';
+          })();
 
           return (
             <div key={pid} className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="relative shrink-0">
                   {profileImage ? (
-                    <img
+                    <Image
                       src={profileImage}
                       alt={name}
+                      width={32}
+                      height={32}
+                      loading="eager"
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (
@@ -301,7 +348,7 @@ export function ParticipantsPanel({
                     )}
                   </div>
                   <div className="mt-0.5">
-                    {getRoleBadge(p.role)}
+                    {getRoleBadge(role)}
                   </div>
                 </div>
               </div>
@@ -318,7 +365,7 @@ export function ParticipantsPanel({
                   onMakeCohost={() => onMakeCohost(pid)}
                   onRemoveCohost={() => onRemoveCohost(pid)}
                   onKick={() => onKick(pid)}
-                  onBan={() => onBan(pid, p.email ?? p.user?.email ?? '')}
+                  onBan={() => onBan(pid, email)}
                 />
               )}
             </div>

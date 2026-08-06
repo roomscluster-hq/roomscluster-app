@@ -460,9 +460,9 @@ export function RoomProvider({
     // Socket state
     isSocketConnected: socket.isConnected,
     messages: socket.messages,
-    participants: socket.participants,
+    participants: [liveKit.localParticipant, ...liveKit.remoteParticipants].filter((p): p is NonNullable<typeof p> => p !== null),
     raisedHands: socket.raisedHands,
-    waitingParticipants: socket.waitingParticipants, // ← now from socket hook
+    waitingParticipants: socket.waitingParticipants,
     reactions: socket.reactions,
 
     // Room settings

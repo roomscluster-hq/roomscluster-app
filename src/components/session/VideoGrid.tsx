@@ -204,6 +204,8 @@ function VideoTile({ participant, isLocal, hasRaisedHand, isSpeaking }: VideoTil
                 fill
                 className="object-cover"
                 sizes="4rem"
+                loading="eager" 
+                priority={true} 
               />
             ) : (
               <span>{getInitials(name ?? "?")}</span>

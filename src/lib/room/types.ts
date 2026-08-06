@@ -37,7 +37,7 @@ export interface RoomState {
   // Socket
   isSocketConnected: boolean;
   messages: ChatMessage[];
-  participants: any[];
+  participants: (LocalParticipant | RemoteParticipant)[];
   raisedHands: RaisedHand[];
   waitingParticipants: WaitingParticipant[];
   reactions: any[];

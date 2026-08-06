@@ -8,6 +8,7 @@ import {
 } from "livekit-client";
 import { livekitApi } from "@/lib/api";
 import { getCookie } from "@/lib/cookies";
+import { setLogLevel } from 'livekit-client';
 
 export function useLiveKit(joinCode: string) {
   const roomRef = useRef<Room | null>(null);
@@ -30,6 +31,7 @@ export function useLiveKit(joinCode: string) {
     if (connectingRef.current || roomRef.current) return;
     connectingRef.current = true;
 
+    setLogLevel('silent');
     const newRoom = new Room({
       adaptiveStream: true,
       dynacast: true,
@@ -93,6 +95,13 @@ export function useLiveKit(joinCode: string) {
         setRemoteParticipants([...newRoom.remoteParticipants.values()]);
         setIsConnected(true);
       } catch (err: any) {
+        // Ignore React Strict Mode double-mount disconnects
+        if (
+          err?.message?.includes("Client initiated disconnect") ||
+          err?.message?.includes("Abort connection attempt")
+        ) {
+          return;
+        }
         connectingRef.current = false;
         setError(err.message ?? "Failed to connect to room");
         console.error("[useLiveKit] Connection error:", err);

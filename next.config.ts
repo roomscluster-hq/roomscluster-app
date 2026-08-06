@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'roomscluster-recordings-999791993808-us-east-1-an.s3.us-east-1.amazonaws.com',
+        hostname: '*.s3.us-east-1.amazonaws.com',
         pathname: '/profile-pictures/**',
       },
       {
