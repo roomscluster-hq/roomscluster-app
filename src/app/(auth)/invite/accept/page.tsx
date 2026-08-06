@@ -157,10 +157,13 @@ function AcceptInvitePageContent() {
           <div className="relative w-full h-28 mb-6 rounded-lg bg-surface-50 border border-surface-200 flex items-center justify-center">
             <div className="flex -space-x-4">
               {inviterImage ? (
-                <img
+                <Image
                   src={inviterImage}
                   alt={inviterName}
+                  width={56}
+                  height={56}
                   className="w-14 h-14 rounded-full border-4 border-surface-0 object-cover shadow-raised"
+                  priority={false}
                 />
               ) : (
                 <div className="w-14 h-14 rounded-full border-4 border-surface-0 bg-primary-600 flex items-center justify-center text-white font-bold shadow-raised">
