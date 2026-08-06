@@ -95,9 +95,17 @@ export function CoHostSelector({
               key={cohost.userId}
               className="flex items-center gap-1.5 bg-primary-50 border border-primary-100 rounded-full pl-1 pr-2 py-0.5"
             >
-              <div className="w-5 h-5 rounded-full bg-primary-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
-                {getInitials(cohost.name)}
-              </div>
+              {cohost.image ? (
+                <img
+                  src={cohost.image}
+                  alt={cohost.name}
+                  className="w-5 h-5 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-primary-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
+                  {getInitials(cohost.name)}
+                </div>
+              )}
               <span className="text-xs font-medium text-primary-700 max-w-[120px] truncate">
                 {cohost.name}
               </span>

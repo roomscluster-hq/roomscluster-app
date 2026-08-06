@@ -267,13 +267,23 @@ export function ParticipantsPanel({
           const hasRaisedHand = raisedHandIds.has(pid);
           const isMe = pid === currentUserId;
 
+          const profileImage = p.user?.image;
+
           return (
             <div key={pid} className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="relative shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
-                    {getInitials(name)}
-                  </div>
+                  {profileImage ? (
+                    <img
+                      src={profileImage}
+                      alt={name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
+                      {getInitials(name)}
+                    </div>
+                  )}
                   {hasRaisedHand && (
                     <span className="absolute -top-1 -right-1">
                       <Hand className="w-3.5 h-3.5 text-warning-500" />

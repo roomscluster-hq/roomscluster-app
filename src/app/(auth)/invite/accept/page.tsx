@@ -86,6 +86,7 @@ function AcceptInvitePageContent() {
   }
 
   const inviterName = invitation.invitedBy.name ?? invitation.invitedBy.email;
+  const inviterImage = invitation.invitedBy.image;
 
   // Logged in but with a different email than the invite was sent to
   if (isAuthenticated && user?.email !== invitation.email) {
@@ -155,9 +156,17 @@ function AcceptInvitePageContent() {
           {/* Inviter + workspace avatars */}
           <div className="relative w-full h-28 mb-6 rounded-lg bg-surface-50 border border-surface-200 flex items-center justify-center">
             <div className="flex -space-x-4">
-              <div className="w-14 h-14 rounded-full border-4 border-surface-0 bg-primary-600 flex items-center justify-center text-white font-bold shadow-raised">
-                {getInitials(inviterName)}
-              </div>
+              {inviterImage ? (
+                <img
+                  src={inviterImage}
+                  alt={inviterName}
+                  className="w-14 h-14 rounded-full border-4 border-surface-0 object-cover shadow-raised"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-full border-4 border-surface-0 bg-primary-600 flex items-center justify-center text-white font-bold shadow-raised">
+                  {getInitials(inviterName)}
+                </div>
+              )}
               <div className="w-14 h-14 rounded-full border-4 border-surface-0 bg-ink-900 flex items-center justify-center text-white shadow-raised">
                 <Building2 size={22} />
               </div>
