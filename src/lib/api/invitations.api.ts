@@ -12,7 +12,7 @@ export interface Invitation {
 
 export interface InvitationDetails extends Invitation {
   organization: { name: string };
-  invitedBy: { name: string | null; email: string };
+  invitedBy: { name: string | null; email: string, image: string };
 }
 
 export const invitationsApi = {
