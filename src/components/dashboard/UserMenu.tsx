@@ -31,9 +31,17 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
           compact ? "p-1" : "w-full px-2 py-1.5"
         )}
       >
-        <div className="w-7 h-7 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
-          {(user?.name ?? user?.email ?? "?").charAt(0).toUpperCase()}
-        </div>
+        {user?.image ? (
+          <img
+            src={user.image}
+            alt={user?.name ?? user?.email}
+            className="w-7 h-7 rounded-full object-cover shrink-0"
+          />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+            {(user?.name ?? user?.email ?? "?").charAt(0).toUpperCase()}
+          </div>
+        )}
         {!compact && (
           <span className="text-sm text-ink-700 truncate flex-1 text-left">
             {user?.name ?? user?.email}
