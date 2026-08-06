@@ -2,9 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { LocalParticipant, RemoteParticipant } from "livekit-client";
 import { getInitials } from "@/lib/utils";
 import { Mic, Star, UserMinus, Hand, Ban, MoreVertical } from "lucide-react";
+
+interface Participant {
+  userId: string;
+  user?: { id: string; name?: string; email?: string; image?: string | null };
+  name: string;
+  email: string;
+  role: 'HOST' | 'COHOST' | 'SPEAKER' | 'GUEST';
+  isGuest?: boolean;
+  image?: string | null;
+}
 
 interface RaisedHand {
   userId: string;
@@ -13,7 +22,7 @@ interface RaisedHand {
 }
 
 interface ParticipantsPanelProps {
-  participants: (LocalParticipant | RemoteParticipant)[];
+  participants: Participant[];
   raisedHands: RaisedHand[];
   isHost: boolean;
   isCohost: boolean;
@@ -27,24 +36,16 @@ interface ParticipantsPanelProps {
   onBan: (userId: string, email: string) => void;
 }
 
-function resolveId(p: LocalParticipant | RemoteParticipant): string {
-  return p.identity;
+function resolveId(p: Participant): string {
+  return p.user?.id ?? p.userId;
 }
 
-function resolveName(p: LocalParticipant | RemoteParticipant): string {
-  return p.name ?? p.identity ?? "Unknown";
+function resolveName(p: Participant): string {
+  return p.user?.name ?? p.name ?? p.user?.email ?? p.email ?? "Unknown";
 }
 
-function getProfileImage(p: LocalParticipant | RemoteParticipant): string | null {
-  try {
-    if (p.metadata) {
-      const metadata = JSON.parse(p.metadata);
-      return metadata.image ?? null;
-    }
-  } catch {
-    // Metadata might not be valid JSON
-  }
-  return null;
+function getProfileImage(p: Participant): string | null {
+  return p.user?.image ?? p.image ?? null;
 }
 
 function getRoleBadge(role: string) {
@@ -72,7 +73,7 @@ function ThreeDotMenu({
   onKick,
   onBan,
 }: {
-  participant: LocalParticipant | RemoteParticipant;
+  participant: Participant;
   hasRaisedHand: boolean;
   isHost: boolean;
   onPromote: () => void;
@@ -96,23 +97,9 @@ function ThreeDotMenu({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Get role from participant metadata (set by server)
-  const getRole = (): string => {
-    try {
-      if (participant.metadata) {
-        const metadata = JSON.parse(participant.metadata);
-        return metadata.role ?? 'GUEST';
-      }
-    } catch {
-      // Metadata might not be valid JSON
-    }
-    return 'GUEST';
-  };
-
-  const role = getRole();
-  const isSpeaker = role === 'SPEAKER';
-  const isHostRole = role === 'HOST';
-  const isCohost = role === 'COHOST';
+  const isSpeaker = participant.role === 'SPEAKER';
+  const isHostRole = participant.role === 'HOST';
+  const isCohost = participant.role === 'COHOST';
 
   if (isHostRole) return null;
 
@@ -230,22 +217,10 @@ export function ParticipantsPanel({
     return true;
   });
 
-  // Get role from metadata for sorting
-  const getRoleFromMetadata = (p: LocalParticipant | RemoteParticipant): string => {
-    try {
-      if (p.metadata) {
-        const metadata = JSON.parse(p.metadata);
-        return metadata.role ?? 'GUEST';
-      }
-    } catch {
-      // Metadata might not be valid JSON
-    }
-    return 'GUEST';
-  };
-
+  // Sort by role priority
   const order: Record<string, number> = { HOST: 0, COHOST: 1, SPEAKER: 2, GUEST: 3 };
   const sorted = [...deduped].sort((a, b) => {
-    return (order[getRoleFromMetadata(a)] ?? 3) - (order[getRoleFromMetadata(b)] ?? 3);
+    return (order[a.role] ?? 3) - (order[b.role] ?? 3);
   });
 
   return (
@@ -301,18 +276,6 @@ export function ParticipantsPanel({
 
           const profileImage = getProfileImage(p);
 
-          // Get role and email from metadata
-          const role = getRoleFromMetadata(p);
-          const email = (() => {
-            try {
-              if (p.metadata) {
-                const metadata = JSON.parse(p.metadata);
-                return metadata.email ?? '';
-              }
-            } catch {}
-            return '';
-          })();
-
           return (
             <div key={pid} className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
@@ -348,7 +311,7 @@ export function ParticipantsPanel({
                     )}
                   </div>
                   <div className="mt-0.5">
-                    {getRoleBadge(role)}
+                    {getRoleBadge(p.role)}
                   </div>
                 </div>
               </div>
@@ -365,7 +328,7 @@ export function ParticipantsPanel({
                   onMakeCohost={() => onMakeCohost(pid)}
                   onRemoveCohost={() => onRemoveCohost(pid)}
                   onKick={() => onKick(pid)}
-                  onBan={() => onBan(pid, email)}
+                  onBan={() => onBan(pid, p.email)}
                 />
               )}
             </div>

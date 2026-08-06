@@ -2,6 +2,16 @@ import { LocalParticipant, RemoteParticipant } from "livekit-client";
 import { Socket } from "socket.io-client";
 import { ChatMessage } from "@/types";
 
+export interface Participant {
+  userId: string;
+  user?: { id: string; name?: string; email?: string; image?: string | null };
+  name: string;
+  email: string;
+  role: 'HOST' | 'COHOST' | 'SPEAKER' | 'GUEST';
+  isGuest?: boolean;
+  image?: string | null;
+}
+
 export interface RaisedHand {
   userId: string;
   name: string;
@@ -37,7 +47,7 @@ export interface RoomState {
   // Socket
   isSocketConnected: boolean;
   messages: ChatMessage[];
-  participants: (LocalParticipant | RemoteParticipant)[];
+  participants: Participant[];
   raisedHands: RaisedHand[];
   waitingParticipants: WaitingParticipant[];
   reactions: any[];

@@ -68,7 +68,7 @@ export function RoomProvider({
     }
 
     return liveKit.roomRef.current;
-  }, [liveKit.roomRef]);
+  }, [liveKit.roomRef.current]);
 
   // Track my LiveKit identity
   useEffect(() => {
@@ -363,24 +363,26 @@ export function RoomProvider({
     };
 
     const handleKicked = async (data: { userId: string }) => {
-      const myIdentity = liveKit.roomRef.current?.localParticipant?.identity
-        ?? myIdentityRef.current;
+      const myIdentity =
+        liveKit.roomRef.current?.localParticipant?.identity ??
+        myIdentityRef.current;
       if (myIdentity === data.userId) {
         toast.error("You have been removed from this session");
         await liveKit.disconnect();
         clearSessionCookies();
-        window.location.href = '/';
+        window.location.href = "/";
       }
     };
 
     const handleBanned = async (data: { userId: string }) => {
-      const myIdentity = liveKit.roomRef.current?.localParticipant?.identity
-        ?? myIdentityRef.current;
+      const myIdentity =
+        liveKit.roomRef.current?.localParticipant?.identity ??
+        myIdentityRef.current;
       if (myIdentity === data.userId) {
         toast.error("You have been banned from this session");
         await liveKit.disconnect();
         clearSessionCookies();
-        window.location.href = '/';
+        window.location.href = "/";
       }
     };
 
@@ -433,11 +435,14 @@ export function RoomProvider({
   }, []);
 
   // Recording actions via socket
-  const startRecording = useCallback((type: 'VIDEO' | 'AUDIO' | 'BOTH' = 'VIDEO') => {
-    setRecordingLoading(true);
-    socketRef.current?.emit("recording:start", { type });
-    setTimeout(() => setRecordingLoading(false), 5000);
-  }, []);
+  const startRecording = useCallback(
+    (type: "VIDEO" | "AUDIO" | "BOTH" = "VIDEO") => {
+      setRecordingLoading(true);
+      socketRef.current?.emit("recording:start", { type });
+      setTimeout(() => setRecordingLoading(false), 5000);
+    },
+    [],
+  );
 
   const stopRecording = useCallback(() => {
     setRecordingLoading(true);
@@ -460,7 +465,7 @@ export function RoomProvider({
     // Socket state
     isSocketConnected: socket.isConnected,
     messages: socket.messages,
-    participants: [liveKit.localParticipant, ...liveKit.remoteParticipants].filter((p): p is NonNullable<typeof p> => p !== null),
+    participants: socket.participants,
     raisedHands: socket.raisedHands,
     waitingParticipants: socket.waitingParticipants,
     reactions: socket.reactions,
