@@ -78,16 +78,31 @@ function ScreenShareTile({
 
   useEffect(() => {
     function handleFullscreenChange() {
-      if (!document.fullscreenElement) setIsFullscreen(false);
+      const active =
+        document.fullscreenElement ??
+        (document as any).webkitFullscreenElement ??
+        null;
+      if (!active) setIsFullscreen(false);
     }
+
+    // iOS native video player — only fires on the video element
+    function handleWebkitEnd() {
+      setIsFullscreen(false);
+    }
+
+    const video = videoRef.current;
+
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    video?.addEventListener("webkitendfullscreen", handleWebkitEnd);
+
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener(
         "webkitfullscreenchange",
         handleFullscreenChange,
       );
+      video?.removeEventListener("webkitendfullscreen", handleWebkitEnd);
     };
   }, []);
 
