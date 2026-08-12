@@ -193,9 +193,51 @@ function VideoTile({
   const videoRef = useRef<HTMLVideoElement>(null);
   const name = participant.name ?? participant.identity;
 
-  // ── Use participant.isCameraEnabled directly ──
-  // This is the original working approach — re-run effect when camera toggles
-  const isCameraEnabled = participant.isCameraEnabled;
+  const [videoTrack, setVideoTrack] = useState(() => {
+    const pubs = [...participant.videoTrackPublications.values()];
+    return (
+      pubs.find((pub) => pub.track?.source === Track.Source.Camera)?.track ??
+      null
+    );
+  });
+
+  useEffect(() => {
+    const updateTrack = () => {
+      const pubs = [...participant.videoTrackPublications.values()];
+      const track =
+        pubs.find((pub) => pub.track?.source === Track.Source.Camera)?.track ??
+        null;
+      setVideoTrack(track);
+    };
+
+    updateTrack();
+
+    participant.on("trackSubscribed", updateTrack);
+    participant.on("trackUnsubscribed", updateTrack);
+    participant.on("trackMuted", updateTrack);
+    participant.on("trackUnmuted", updateTrack);
+    participant.on("localTrackPublished", updateTrack);
+    participant.on("localTrackUnpublished", updateTrack);
+
+    return () => {
+      participant.off("trackSubscribed", updateTrack);
+      participant.off("trackUnsubscribed", updateTrack);
+      participant.off("trackMuted", updateTrack);
+      participant.off("trackUnmuted", updateTrack);
+      participant.off("localTrackPublished", updateTrack);
+      participant.off("localTrackUnpublished", updateTrack);
+    };
+  }, [participant]);
+
+  useEffect(() => {
+    if (!videoRef.current || !videoTrack) return;
+    videoTrack.attach(videoRef.current);
+    return () => {
+      videoTrack.detach();
+    };
+  }, [videoTrack]);
+
+  const isCameraEnabled = !!videoTrack && !videoTrack.isMuted;
 
   // Get profile image from participant metadata
   const profileImage = useMemo(() => {
@@ -210,24 +252,6 @@ function VideoTile({
     }
     return null;
   }, [participant.metadata]);
-
-  useEffect(() => {
-    if (!videoRef.current) return;
-    const publications = [
-      ...participant.videoTrackPublications.values(),
-    ] as TrackPublication[];
-    const videoTrack = publications.find(
-      (pub) => pub.track?.source === Track.Source.Camera,
-    )?.track;
-
-    if (videoTrack && videoRef.current) {
-      videoTrack.attach(videoRef.current);
-    }
-
-    return () => {
-      videoTrack?.detach();
-    };
-  }, [participant, isCameraEnabled]);
 
   return (
     <div
