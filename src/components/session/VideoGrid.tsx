@@ -264,15 +264,18 @@ function VideoTile({
         isSpeaking && "border-success-500",
       )}
     >
-      {isCameraEnabled ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={isLocal}
-          className="w-full h-full object-cover"
-        />
-      ) : (
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isLocal}
+        className={cn(
+          "w-full h-full object-cover",
+          !isCameraEnabled && "hidden",
+        )}
+      />
+
+      {!isCameraEnabled && (
         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-ink-800">
           <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg md:text-2xl font-bold shadow-lg overflow-hidden">
             {profileImage ? (
