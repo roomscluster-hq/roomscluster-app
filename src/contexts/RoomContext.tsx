@@ -331,6 +331,7 @@ export function RoomProvider({
       serverUrl: string;
       canPublish: boolean;
     }) => {
+      console.log("🔧 settings:token-updated received", data);
       const myIdentity =
         myIdentityRef.current ??
         liveKit.roomRef.current?.localParticipant?.identity;
