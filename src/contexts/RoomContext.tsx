@@ -53,6 +53,13 @@ export function RoomProvider({
   const onPromotedRef = useRef<((userId: string) => void) | null>(null);
   const myIdentityRef = useRef<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const settingsUpdateInProgressRef = useRef(false);
+  const pendingSettingsUpdateRef = useRef<{
+    userId: string;
+    token: string;
+    serverUrl: string;
+    canPublish: boolean;
+  } | null>(null);
 
   const toggleLock = useCallback(() => {
     socketRef.current?.emit("session:lock-toggle");
@@ -331,26 +338,43 @@ export function RoomProvider({
       serverUrl: string;
       canPublish: boolean;
     }) => {
-      console.log("🔧 settings:token-updated received", data);
       const myIdentity =
         myIdentityRef.current ??
         liveKit.roomRef.current?.localParticipant?.identity;
-      // Check if this event is for us - match by identity or email (for guests)
+
       const isForMe =
         myIdentity === data.userId ||
         (myIdentity?.startsWith("guest_") && data.userId?.includes("@"));
 
       if (!isForMe) return;
 
-      const room = await getRoom();
-      if (!room) return;
+      // If a reconnect is already running, remember the latest data and bail —
+      // avoids racing overlapping disconnect/connect cycles
+      if (settingsUpdateInProgressRef.current) {
+        pendingSettingsUpdateRef.current = data;
+        return;
+      }
+
+      settingsUpdateInProgressRef.current = true;
 
       try {
+        const room = await getRoom();
+        if (!room) return;
+
         await room.disconnect(false);
         await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
         liveKit.updateCanPublish(data.canPublish);
       } catch (err) {
         console.error("[LiveKit] Failed to update token from settings:", err);
+      } finally {
+        settingsUpdateInProgressRef.current = false;
+
+        // If another update arrived while we were reconnecting, apply the latest one now
+        if (pendingSettingsUpdateRef.current) {
+          const next = pendingSettingsUpdateRef.current;
+          pendingSettingsUpdateRef.current = null;
+          handleSettingsTokenUpdated(next);
+        }
       }
     };
 
