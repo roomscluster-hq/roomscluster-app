@@ -53,13 +53,6 @@ export function RoomProvider({
   const onPromotedRef = useRef<((userId: string) => void) | null>(null);
   const myIdentityRef = useRef<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
-  const settingsUpdateInProgressRef = useRef(false);
-  const pendingSettingsUpdateRef = useRef<{
-    userId: string;
-    token: string;
-    serverUrl: string;
-    canPublish: boolean;
-  } | null>(null);
 
   const toggleLock = useCallback(() => {
     socketRef.current?.emit("session:lock-toggle");
@@ -332,51 +325,6 @@ export function RoomProvider({
       toast.success("Recording stopped — processing will finish shortly");
     };
 
-    const handleSettingsTokenUpdated = async (data: {
-      userId: string;
-      token: string;
-      serverUrl: string;
-      canPublish: boolean;
-    }) => {
-      const myIdentity =
-        myIdentityRef.current ??
-        liveKit.roomRef.current?.localParticipant?.identity;
-
-      const isForMe =
-        myIdentity === data.userId ||
-        (myIdentity?.startsWith("guest_") && data.userId?.includes("@"));
-
-      if (!isForMe) return;
-
-      // If a reconnect is already running, remember the latest data and bail —
-      // avoids racing overlapping disconnect/connect cycles
-      if (settingsUpdateInProgressRef.current) {
-        pendingSettingsUpdateRef.current = data;
-        return;
-      }
-
-      settingsUpdateInProgressRef.current = true;
-
-      try {
-        const room = await getRoom();
-        if (!room) return;
-
-        await room.disconnect(false);
-        await room.connect(data.serverUrl, data.token, { autoSubscribe: true });
-        liveKit.updateCanPublish(data.canPublish);
-      } catch (err) {
-        console.error("[LiveKit] Failed to update token from settings:", err);
-      } finally {
-        settingsUpdateInProgressRef.current = false;
-
-        // If another update arrived while we were reconnecting, apply the latest one now
-        if (pendingSettingsUpdateRef.current) {
-          const next = pendingSettingsUpdateRef.current;
-          pendingSettingsUpdateRef.current = null;
-          handleSettingsTokenUpdated(next);
-        }
-      }
-    };
 
     const handleLockToggled = (data: { isLocked: boolean }) => {
       setIsLocked(data.isLocked);
@@ -414,7 +362,6 @@ export function RoomProvider({
     sock.on("session:lock-toggled", handleLockToggled);
     sock.on("participant:kicked", handleKicked);
     sock.on("participant:banned", handleBanned);
-    sock.on("settings:token-updated", handleSettingsTokenUpdated);
     sock.on("participant:promoted", handlePromoted);
     sock.on("participant:demoted", handleDemoted);
     sock.on("participant:became-cohost", handleBecameCohost);

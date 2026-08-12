@@ -26,128 +26,6 @@ export function useLiveKit(joinCode: string) {
   const [error, setError] = useState<string | null>(null);
   const canPublishRef = useRef(false);
 
-  // useEffect(() => {
-  //   // Prevent double connect
-  //   if (connectingRef.current || roomRef.current) return;
-  //   connectingRef.current = true;
-
-  //   setLogLevel("silent");
-  //   const newRoom = new Room({
-  //     adaptiveStream: false,
-  //     dynacast: false,
-  //   });
-
-  //   const updateParticipants = () => {
-  //     setRemoteParticipants([...newRoom.remoteParticipants.values()]);
-  //     setLocalParticipant(newRoom.localParticipant);
-  //   };
-
-  //   newRoom.on(RoomEvent.ParticipantConnected, updateParticipants);
-  //   newRoom.on(RoomEvent.ParticipantDisconnected, updateParticipants);
-  //   newRoom.on(RoomEvent.TrackSubscribed, updateParticipants);
-  //   newRoom.on(RoomEvent.TrackUnsubscribed, updateParticipants);
-  //   newRoom.on(RoomEvent.LocalTrackPublished, updateParticipants);
-  //   newRoom.on(RoomEvent.TrackPublished, updateParticipants);
-  //   newRoom.on(RoomEvent.LocalTrackUnpublished, updateParticipants);
-  //   newRoom.on(RoomEvent.TrackUnpublished, updateParticipants);
-
-  //   newRoom.on(RoomEvent.ConnectionStateChanged, (state) => {
-  //     console.log("🟡 CONNECTION STATE:", state);
-  //   });
-
-  //   newRoom.on(RoomEvent.SignalConnected, () => {
-  //     console.log("🟢 SIGNAL CONNECTED");
-  //   });
-
-  //   newRoom.on(RoomEvent.Connected, () => {
-  //     console.log("CONNECTED");
-  //   });
-
-  //   newRoom.on(RoomEvent.Reconnecting, () => {
-  //     console.log("RECONNECTING");
-  //   });
-
-  //   newRoom.on(RoomEvent.Reconnected, () => {
-  //     console.log("RECONNECTED");
-  //   });
-
-  //   newRoom.on(RoomEvent.MediaDevicesError, (e) => {
-  //     console.log("MEDIA ERROR", e);
-  //   });
-
-  //   newRoom.on(RoomEvent.Disconnected, (reason) => {
-  //     console.log("🔴 LIVEKIT DISCONNECTED");
-  //     console.log("Reason:", reason);
-  //     console.log("Room state:", newRoom.state);
-
-  //     setIsConnected(false);
-  //     connectingRef.current = false;
-  //   });
-  //   newRoom.on(RoomEvent.Connected, () => {
-  //     setIsConnected(true);
-  //   });
-  //   newRoom.on(RoomEvent.LocalTrackUnpublished, (publication) => {
-  //     if (publication.track?.source === Track.Source.ScreenShare) {
-  //       setIsScreenSharing(false);
-  //     }
-  //     updateParticipants();
-  //   });
-
-  //   async function connect() {
-  //     try {
-  //       const guestToken = getCookie("guest_token");
-  //       const guestServerUrl = getCookie("livekit_server_url");
-
-  //       let token: string;
-  //       let serverUrl: string;
-  //       let publish = false;
-
-  //       if (guestToken && guestServerUrl) {
-  //         token = guestToken;
-  //         serverUrl = decodeURIComponent(guestServerUrl);
-  //         publish = getCookie("guest_can_publish") === "true";
-  //       } else {
-  //         const data = await livekitApi.getToken(joinCode);
-  //         token = data.token;
-  //         serverUrl = data.serverUrl;
-  //         publish = data.canPublish;
-  //       }
-
-  //       // Don't connect if component was unmounted
-  //       if (!connectingRef.current) return;
-
-  //       setCanPublish(publish);
-  //       canPublishRef.current = publish;
-  //       await newRoom.connect(serverUrl, token);
-  //       roomRef.current = newRoom;
-  //       setLocalParticipant(newRoom.localParticipant);
-  //       setRemoteParticipants([...newRoom.remoteParticipants.values()]);
-  //       setIsConnected(true);
-  //     } catch (err: any) {
-  //       // Ignore React Strict Mode double-mount disconnects
-  //       if (
-  //         err?.message?.includes("Client initiated disconnect") ||
-  //         err?.message?.includes("Abort connection attempt")
-  //       ) {
-  //         return;
-  //       }
-  //       connectingRef.current = false;
-  //       setError(err.message ?? "Failed to connect to room");
-  //       console.error("[useLiveKit] Connection error:", err);
-  //     }
-  //   }
-
-  //   connect();
-
-  //   return () => {
-  //     connectingRef.current = false;
-  //     if (roomRef.current) {
-  //       roomRef.current.disconnect();
-  //       roomRef.current = null;
-  //     }
-  //   };
-  // }, [joinCode]);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -176,6 +54,13 @@ export function useLiveKit(joinCode: string) {
       });
 
       updateParticipants();
+    });
+    room.on(RoomEvent.ParticipantPermissionsChanged, (_prev, participant) => {
+      if (participant !== room.localParticipant || cancelled) return;
+      const allowed = participant.permissions?.canPublish ?? false;
+      canPublishRef.current = allowed;
+      setCanPublish(allowed);
+      setLocalParticipant(room.localParticipant);
     });
     room.on(RoomEvent.TrackUnsubscribed, updateParticipants);
     room.on(RoomEvent.LocalTrackPublished, updateParticipants);
