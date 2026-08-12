@@ -204,9 +204,11 @@ function VideoTile({
   useEffect(() => {
     const updateTrack = () => {
       const pubs = [...participant.videoTrackPublications.values()];
-      const track =
-        pubs.find((pub) => pub.track?.source === Track.Source.Camera)?.track ??
-        null;
+      const cameraPubs = pubs.filter(
+        (pub) => pub.track?.source === Track.Source.Camera,
+      );
+      // Map iteration order is insertion order — the last one is the most recently published
+      const track = cameraPubs[cameraPubs.length - 1]?.track ?? null;
       setVideoTrack(track);
     };
 
