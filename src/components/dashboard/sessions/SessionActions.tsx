@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Play, Video, Square, Trash2 } from "lucide-react";
+import { Play, Video, Square, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SessionStatus } from "@/types";
 
 interface SessionActionsProps {
+  sessionId: string;
   status: SessionStatus;
   joinCode: string;
   onStart: () => void;
@@ -18,6 +19,7 @@ interface SessionActionsProps {
 }
 
 export function SessionActions({
+  sessionId,
   status,
   joinCode,
   onStart,
@@ -30,9 +32,24 @@ export function SessionActions({
 }: SessionActionsProps) {
   const isLive = status === "LIVE";
   const isEnded = status === "ENDED";
+  const isScheduled = status === "SCHEDULED";
 
   return (
     <div className="flex items-center gap-2 shrink-0">
+      {/* Edit button - only for scheduled sessions */}
+      {isScheduled && (
+        <Link href={`/dashboard/sessions/${sessionId}/edit`}>
+          <Button
+            variant="secondary"
+            className="cursor-pointer gap-2"
+            title="Edit session"
+          >
+            <Pencil size={18} />
+            <span className="hidden sm:inline">Edit</span>
+          </Button>
+        </Link>
+      )}
+
       {!isEnded && (
         <>
           {isLive ? (

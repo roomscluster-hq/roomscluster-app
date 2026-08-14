@@ -64,6 +64,7 @@ export default function SessionDetailPage() {
           status={session.status}
         />
         <SessionActions
+          sessionId={id}
           status={session.status}
           joinCode={session.joinCode}
           onStart={startSession}
