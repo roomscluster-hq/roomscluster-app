@@ -37,15 +37,24 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       const url = originalRequest.url ?? "";
       // Don't attempt refresh for auth endpoints or LiveKit requests
-      const isAuthEndpoint = url.includes("/auth/") && !url.includes("/auth/me");
-      const isLiveKitRequest = url.includes("/livekit/") || url.includes("/token");
+      const isAuthEndpoint =
+        url.includes("/auth/") && !url.includes("/auth/me");
+      // const isLiveKitRequest = url.includes("/livekit/") || url.includes("/token");
 
-      if (isAuthEndpoint || isLiveKitRequest) {
+      // if (isAuthEndpoint || isLiveKitRequest) {
+      //   return Promise.reject(error);
+      // }
+
+      const isGuestLiveKitRequest = url.includes("/livekit/guest-token");
+
+      if (isAuthEndpoint || isGuestLiveKitRequest) {
         return Promise.reject(error);
       }
 
@@ -75,7 +84,9 @@ client.interceptors.response.use(
         // Refresh failed — clear auth and redirect to login
         localStorage.removeItem("access_token");
         await useAuthStore.getState().clearAuth();
-        const alreadyRedirecting = sessionStorage.getItem("redirecting_to_login");
+        const alreadyRedirecting = sessionStorage.getItem(
+          "redirecting_to_login",
+        );
         if (!alreadyRedirecting) {
           sessionStorage.setItem("redirecting_to_login", "true");
           toast.error("Your session has expired. Please sign in again.");
@@ -91,7 +102,7 @@ client.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // Unwrap the API response envelope
