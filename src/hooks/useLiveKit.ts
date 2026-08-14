@@ -25,6 +25,7 @@ export function useLiveKit(joinCode: string) {
   const [canPublish, setCanPublish] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canPublishRef = useRef(false);
+  const reconnectingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,25 +183,50 @@ export function useLiveKit(joinCode: string) {
     };
   }, [joinCode]);
 
-  // useEffect(() => {
-  //   const handleVisibilityChange = () => {
-  //     const room = roomRef.current;
-  //     if (!room) return;
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== "visible") return;
 
-  //     if (document.visibilityState === "visible") {
-  //       if (room.state === "disconnected") {
-  //         // Re-run connection by fetching a fresh token
-  //         livekitApi.getToken(joinCode).then((data) => {
-  //           room.connect(data.serverUrl, data.token).catch(console.error);
-  //         });
-  //       }
-  //     }
-  //   };
+      const room = roomRef.current;
+      if (!room || room.state !== "disconnected") return;
+      if (reconnectingRef.current) return;
 
-  //   document.addEventListener("visibilitychange", handleVisibilityChange);
-  //   return () =>
-  //     document.removeEventListener("visibilitychange", handleVisibilityChange);
-  // }, [joinCode]);
+      reconnectingRef.current = true;
+
+      try {
+        const guestToken = getCookie("guest_token");
+        const guestServerUrl = getCookie("livekit_server_url");
+
+        let token: string;
+        let serverUrl: string;
+
+        if (guestToken && guestServerUrl) {
+          token = guestToken;
+          serverUrl = decodeURIComponent(guestServerUrl);
+        } else {
+          const data = await livekitApi.getToken(joinCode);
+          token = data.token;
+          serverUrl = data.serverUrl;
+        }
+
+        await room.connect(serverUrl, token, { autoSubscribe: true });
+
+        setIsConnected(true);
+        setLocalParticipant(room.localParticipant);
+        setRemoteParticipants([...room.remoteParticipants.values()]);
+
+        console.log("🔄 Reconnected after returning to tab");
+      } catch (err) {
+        console.error("[useLiveKit] Visibility reconnect failed:", err);
+      } finally {
+        reconnectingRef.current = false;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [joinCode]);
 
   const toggleMic = useCallback(async () => {
     const room = roomRef.current;
