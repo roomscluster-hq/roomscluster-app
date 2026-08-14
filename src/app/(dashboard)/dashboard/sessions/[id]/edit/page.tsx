@@ -5,27 +5,43 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionsApi } from "@/lib/api";
+import { organizationsApi } from "@/lib/api/organizations.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/auth.store";
+import {
+  CoHostSelector,
+  SelectedCoHost,
+} from "@/components/session/CoHostSelector";
 
 export default function EditSessionPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [passcode, setPasscode] = useState("");
+  const [cohosts, setCohosts] = useState<SelectedCoHost[]>([]);
 
   // Fetch session data
   const { data: session, isLoading } = useQuery({
     queryKey: ["session", id],
     queryFn: () => sessionsApi.getOne(id),
   });
+
+  // Get organization info for co-host selector
+  const { data: organizations } = useQuery({
+    queryKey: ["organizations-mine"],
+    queryFn: organizationsApi.listMine,
+    enabled: !!session?.organizationId,
+  });
+  const activeOrg = organizations?.find((o) => o.id === session?.organizationId);
 
   // Populate form when session data loads
   useEffect(() => {
@@ -39,6 +55,19 @@ export default function EditSessionPage() {
         setScheduledAt(formatted);
       }
       setPasscode(session.passcode ?? "");
+
+      // Populate co-hosts from session participants
+      if (session.participants) {
+        const existingCohosts = session.participants
+          .filter((p) => p.role === "COHOST")
+          .map((p) => ({
+            userId: p.userId,
+            name: p.user.name ?? p.user.email,
+            email: p.user.email,
+            image: p.user.image,
+          }));
+        setCohosts(existingCohosts);
+      }
     }
   }, [session]);
 
@@ -49,6 +78,7 @@ export default function EditSessionPage() {
       description?: string;
       scheduledAt?: string;
       passcode?: string;
+      coHostUserIds?: string[];
     }) => sessionsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session", id] });
@@ -78,6 +108,7 @@ export default function EditSessionPage() {
       description: description || undefined,
       scheduledAt: scheduledAt || undefined,
       passcode: passcode || undefined,
+      coHostUserIds: cohosts.map((c) => c.userId),
     });
   }
 
@@ -155,6 +186,18 @@ export default function EditSessionPage() {
               onChange={(e) => setPasscode(e.target.value)}
               placeholder="Leave empty for no passcode"
             />
+
+            {/* Co-hosts - only for non-personal organizations */}
+            {activeOrg && !activeOrg.isPersonal && (
+              <div className="border-t border-surface-200 pt-5">
+                <CoHostSelector
+                  organizationId={activeOrg.id}
+                  currentUserId={user?.id ?? ""}
+                  value={cohosts}
+                  onChange={setCohosts}
+                />
+              </div>
+            )}
 
             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
               <Button

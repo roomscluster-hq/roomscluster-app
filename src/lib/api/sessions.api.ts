@@ -52,6 +52,7 @@ export const sessionsApi = {
       scheduledAt: string;
       passcode: string;
       isLocked: boolean;
+      coHostUserIds: string[];
     }>,
   ) => {
     const res = await client.patch<{ data: Session }>(`/sessions/${id}`, data);
