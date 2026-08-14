@@ -266,6 +266,12 @@ export function RoomProvider({
       }
     };
 
+    const handleSocketError = (data: { message?: string }) => {
+      toast.error(data.message ?? "Something went wrong, contact support");
+    };
+
+    sock.on("error", handleSocketError);
+
     sock.on("session:lock-toggled", handleLockToggled);
     sock.on("participant:kicked", handleKicked);
     sock.on("participant:banned", handleBanned);
@@ -279,6 +285,7 @@ export function RoomProvider({
     sock.on("whiteboard:cleared", handleWhiteboardClear);
     sock.on("recording:started", handleRecordingStarted);
     sock.on("recording:stopped", handleRecordingStopped);
+    sock.on("error", handleSocketError);
 
     return () => {
       sock.off("participant:promoted", handlePromoted);
@@ -294,6 +301,7 @@ export function RoomProvider({
       sock.off("session:lock-toggled", handleLockToggled);
       sock.off("participant:kicked", handleKicked);
       sock.off("participant:banned", handleBanned);
+      sock.off("error", handleSocketError);
     };
   }, [socket.isConnected]); // ← only re-run when connection status changes
 
