@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Video, CheckCircle, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, Video, CheckCircle, RefreshCw, Edit3 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/utils";
 import { SessionStatus } from "@/types";
@@ -109,17 +109,29 @@ export function RecurringSeriesGroup({
         </div>
 
         {/* Series actions */}
-        {upcomingCount > 0 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCancelSeries();
-            }}
-            className="shrink-0 text-xs text-danger-600 hover:text-danger-700 px-2 py-1 rounded hover:bg-danger-50 transition-colors"
-          >
-            Cancel series
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {upcomingCount > 0 && (
+            <>
+              <Link
+                href={`/dashboard/sessions/series/${recurrenceRuleId}/edit`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-primary-600 hover:text-primary-700 px-2 py-1 rounded hover:bg-primary-50 transition-colors flex items-center gap-1"
+              >
+                <Edit3 size={12} />
+                Edit series
+              </Link>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCancelSeries();
+                }}
+                className="text-xs text-danger-600 hover:text-danger-700 px-2 py-1 rounded hover:bg-danger-50 transition-colors"
+              >
+                Cancel series
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Expanded list of occurrences */}

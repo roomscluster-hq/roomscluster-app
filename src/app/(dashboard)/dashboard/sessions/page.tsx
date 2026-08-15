@@ -563,6 +563,8 @@ function SessionGrid({
             </div>
 
             <SessionMenu
+              sessionId={session.id}
+              status={session.status}
               currentFolderId={currentFolderId}
               onMoveToRoot={() => onMoveToRoot(session.id)}
               onMoveToFolder={() => onMoveToFolder(session.id, session.title)}
@@ -712,6 +714,8 @@ function SessionList({
             <div className="flex items-center gap-3 shrink-0">
               <StatusBadge status={session.status} />
               <SessionMenu
+                sessionId={session.id}
+                status={session.status}
                 currentFolderId={currentFolderId}
                 onMoveToRoot={() => onMoveToRoot(session.id)}
                 onMoveToFolder={() => onMoveToFolder(session.id, session.title)}
@@ -778,12 +782,16 @@ function FolderMenu({
 
 // ── Three-dot menu for sessions ───────────────────────────────────────────
 function SessionMenu({
+  sessionId,
+  status,
   currentFolderId,
   onMoveToRoot,
   onMoveToFolder,
   onDelete,
   variant = "grid",
 }: {
+  sessionId: string;
+  status: SessionStatus;
   currentFolderId?: string;
   onMoveToRoot: () => void;
   onMoveToFolder: () => void;
@@ -791,6 +799,7 @@ function SessionMenu({
   variant?: "grid" | "list";
 }) {
   const [open, setOpen] = useState(false);
+  const isScheduled = status === "SCHEDULED";
 
   const containerClasses =
     variant === "grid" ? "absolute top-3 right-3 z-10" : "relative";
@@ -813,6 +822,16 @@ function SessionMenu({
           onMouseLeave={() => setOpen(false)}
           className="absolute right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised w-44 py-1 z-10"
         >
+          {/* Edit option - only for scheduled sessions */}
+          {isScheduled && (
+            <Link
+              href={`/dashboard/sessions/${sessionId}/edit`}
+              onClick={() => setOpen(false)}
+              className="block w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
+            >
+              Edit
+            </Link>
+          )}
           <button
             onClick={() => {
               onMoveToFolder();
