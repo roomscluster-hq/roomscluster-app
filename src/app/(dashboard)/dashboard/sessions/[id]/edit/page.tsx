@@ -6,28 +6,35 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionsApi } from "@/lib/api";
 import { organizationsApi } from "@/lib/api/organizations.api";
+import { foldersApi } from "@/lib/api/folders.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
+import { useSessionSocket } from "@/hooks/useSessionSocket";
 import {
   CoHostSelector,
   SelectedCoHost,
 } from "@/components/session/CoHostSelector";
+import { Folder } from "@/types";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function EditSessionPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const { joinSession, leaveSession } = useSessionSocket();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [passcode, setPasscode] = useState("");
   const [cohosts, setCohosts] = useState<SelectedCoHost[]>([]);
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [showFolderDropdown, setShowFolderDropdown] = useState(false);
 
   // Fetch session data
   const { data: session, isLoading } = useQuery({
@@ -43,6 +50,24 @@ export default function EditSessionPage() {
   });
   const activeOrg = organizations?.find((o) => o.id === session?.organizationId);
 
+  // Fetch folders for folder selector
+  const { data: foldersData } = useQuery({
+    queryKey: ["folders-root"],
+    queryFn: () => foldersApi.getContents(undefined),
+    enabled: !!session,
+  });
+  const folders = foldersData?.folders ?? [];
+
+  // Join WebSocket room for this session
+  useEffect(() => {
+    if (id) {
+      joinSession(id);
+      return () => {
+        leaveSession(id);
+      };
+    }
+  }, [id, joinSession, leaveSession]);
+
   // Populate form when session data loads
   useEffect(() => {
     if (session) {
@@ -55,6 +80,7 @@ export default function EditSessionPage() {
         setScheduledAt(formatted);
       }
       setPasscode(session.passcode ?? "");
+      setFolderId(session.folderId ?? null);
 
       // Populate co-hosts from session participants
       if (session.participants) {
@@ -71,7 +97,33 @@ export default function EditSessionPage() {
     }
   }, [session]);
 
-  // Update mutation
+  // Handle co-host validation errors
+  const handleUpdateError = (err: AxiosError<{ message?: string }>) => {
+    const message = err.response?.data?.message;
+    
+    if (err.response?.status === 400 && message) {
+      switch (message) {
+        case "Maximum of 2 co-hosts allowed per session":
+          toast.error("Cannot add more than 2 co-hosts");
+          break;
+        case "One or more co-host users not found":
+          toast.error("Selected user not found");
+          break;
+        case "One or more co-host users are not members of this organization":
+          toast.error("User must be an organization member");
+          break;
+        case "Cannot add host as co-host":
+          toast.error("The session host cannot be added as a co-host");
+          break;
+        default:
+          toast.error(message);
+      }
+    } else {
+      toast.error(message ?? "Failed to update session");
+    }
+  };
+
+  // Update mutation with enhanced error handling
   const updateMutation = useMutation({
     mutationFn: (data: {
       title: string;
@@ -79,17 +131,17 @@ export default function EditSessionPage() {
       scheduledAt?: string;
       passcode?: string;
       coHostUserIds?: string[];
+      folderId?: string | null;
     }) => sessionsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session", id] });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       queryClient.invalidateQueries({ queryKey: ["folder-contents"] });
+      queryClient.invalidateQueries({ queryKey: ["folders-root"] });
       toast.success("Session updated successfully");
       router.push(`/dashboard/sessions/${id}`);
     },
-    onError: (err: AxiosError<{ message?: string }>) => {
-      toast.error(err.response?.data?.message ?? "Failed to update session");
-    },
+    onError: handleUpdateError,
   });
 
   // Redirect if session is not editable (LIVE or ENDED)
@@ -109,7 +161,18 @@ export default function EditSessionPage() {
       scheduledAt: scheduledAt || undefined,
       passcode: passcode || undefined,
       coHostUserIds: cohosts.map((c) => c.userId),
+      folderId,
     });
+  }
+
+  function handleMoveToRoot() {
+    setFolderId(null);
+    setShowFolderDropdown(false);
+  }
+
+  function handleMoveToFolder(selectedFolderId: string) {
+    setFolderId(selectedFolderId);
+    setShowFolderDropdown(false);
   }
 
   if (isLoading) {
@@ -127,6 +190,8 @@ export default function EditSessionPage() {
       </div>
     );
   }
+
+  const currentFolder = folders.find((f) => f.id === folderId);
 
   return (
     <div className="max-w-2xl">
@@ -187,6 +252,53 @@ export default function EditSessionPage() {
               placeholder="Leave empty for no passcode"
             />
 
+            {/* Folder Selector */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
+                Folder Location
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowFolderDropdown(!showFolderDropdown)}
+                className="w-full flex items-center justify-between border border-surface-200 rounded-lg px-3 py-2.5 text-sm bg-surface-0 hover:bg-surface-50 transition-colors"
+              >
+                <span className={folderId ? "text-ink-900" : "text-ink-700/50"}>
+                  {currentFolder?.name ?? "All Sessions (Root)"}
+                </span>
+                {showFolderDropdown ? (
+                  <ChevronUp size={16} className="text-ink-700/40" />
+                ) : (
+                  <ChevronDown size={16} className="text-ink-700/40" />
+                )}
+              </button>
+
+              {showFolderDropdown && (
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised max-h-48 overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={handleMoveToRoot}
+                    className={`w-full text-left px-3 py-2.5 text-sm hover:bg-surface-50 transition-colors ${
+                      folderId === null ? "bg-primary-50 text-primary-700" : "text-ink-700"
+                    }`}
+                  >
+                    All Sessions (Root)
+                  </button>
+                  {folders.map((folder: Folder) => (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => handleMoveToFolder(folder.id)}
+                      className={`w-full text-left px-3 py-2.5 text-sm hover:bg-surface-50 transition-colors ${
+                        folderId === folder.id ? "bg-primary-50 text-primary-700" : "text-ink-700"
+                      }`}
+                    >
+                      {folder.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Co-hosts - only for non-personal organizations */}
             {activeOrg && !activeOrg.isPersonal && (
               <div className="border-t border-surface-200 pt-5">
@@ -196,6 +308,11 @@ export default function EditSessionPage() {
                   value={cohosts}
                   onChange={setCohosts}
                 />
+                {cohosts.length > 2 && (
+                  <p className="text-xs text-danger-600 mt-2">
+                    Maximum 2 co-hosts allowed. Please remove {cohosts.length - 2} co-host(s).
+                  </p>
+                )}
               </div>
             )}
 
@@ -210,6 +327,7 @@ export default function EditSessionPage() {
               <Button
                 type="submit"
                 loading={updateMutation.isPending}
+                disabled={cohosts.length > 2}
                 className="w-full sm:w-auto"
               >
                 Save Changes

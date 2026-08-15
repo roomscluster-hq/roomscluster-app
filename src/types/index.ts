@@ -49,6 +49,7 @@ export interface Session {
   isLocked: boolean;
   hostId: string;
   organizationId: string;
+  folderId: string | null;
   createdAt: string;
   updatedAt: string;
   host?: User;
@@ -129,4 +130,29 @@ export interface Folder {
   parentFolderId: string | null;
   ownerId: string;
   organizationId: string;
+}
+
+// ── WebSocket Events ────────────────────────────────────
+export interface SessionUpdatedEvent {
+  id: string;
+  title: string;
+  description: string;
+  scheduledAt: string;
+  passcode: string;
+  isLocked: boolean;
+  folderId: string | null;
+  status: SessionStatus;
+  updatedAt: string;
+}
+
+export interface CoHostsChangedEvent {
+  sessionId: string;
+  added: string[];
+  removed: string[];
+}
+
+export interface SessionStatusChangedEvent {
+  sessionId: string;
+  status: SessionStatus;
+  timestamp: string;
 }

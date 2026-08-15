@@ -141,4 +141,28 @@ export const sessionsApi = {
     );
     return unwrap(res);
   },
+
+  updateSeries: async (
+    recurrenceRuleId: string,
+    data: Partial<{
+      title: string;
+      description: string;
+      passcode: string;
+      isLocked: boolean;
+      coHostUserIds: string[];
+      recurrence: {
+        frequency?: "DAILY" | "WEEKLY" | "MONTHLY";
+        interval?: number;
+        endType?: "DATE" | "COUNT";
+        endDate?: string;
+        endCount?: number;
+      };
+    }>,
+  ) => {
+    const res = await client.patch<{ data: { updated: number; sessions: Session[] } }>(
+      `/sessions/series/${recurrenceRuleId}`,
+      data,
+    );
+    return unwrap(res);
+  },
 };

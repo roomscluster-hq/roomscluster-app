@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { SessionSettingsPanel } from "@/components/session/SessionSettingsPanel";
 import { useSessionDetail } from "@/hooks/dashboard/useSessionDetail";
+import { useSessionSocket } from "@/hooks/useSessionSocket";
 import {
   SessionHeader,
   SessionStats,
@@ -41,6 +43,18 @@ export default function SessionDetailPage() {
     isHost,
     generatingTranscriptId,
   } = useSessionDetail();
+
+  // Join WebSocket room for real-time updates
+  const { joinSession, leaveSession } = useSessionSocket();
+
+  useEffect(() => {
+    if (id) {
+      joinSession(id);
+      return () => {
+        leaveSession(id);
+      };
+    }
+  }, [id, joinSession, leaveSession]);
 
   if (isLoading) {
     return (
