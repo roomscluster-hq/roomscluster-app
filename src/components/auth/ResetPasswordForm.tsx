@@ -99,9 +99,10 @@ export function ResetPasswordForm() {
       <Button
         type="submit"
         className="w-full"
-        loading={resetMutation.isPending}
+        disabled={resetMutation.isPending}
+        aria-busy={resetMutation.isPending}
       >
-        Reset password
+        {resetMutation.isPending ? "Resetting..." : "Reset password"}
       </Button>
 
       <BackToLoginLink />

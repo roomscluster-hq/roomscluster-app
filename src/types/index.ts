@@ -156,3 +156,20 @@ export interface SessionStatusChangedEvent {
   status: SessionStatus;
   timestamp: string;
 }
+
+export interface CreateRecurringSessionDto {
+  title: string;
+  description?: string;
+  scheduledAt: Date;
+  organizationId: string;
+  hostId: string;
+  folderId?: string;
+  groupId?: string;
+  recurrence: {
+    frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+    interval: number;
+    endType: 'DATE' | 'COUNT';
+    endDate?: Date;
+    endCount?: number;
+  };
+}

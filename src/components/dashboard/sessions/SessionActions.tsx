@@ -62,7 +62,7 @@ export function SessionActions({
           ) : (
             <Button
               onClick={onStart}
-              loading={isStarting}
+              disabled={isStarting}
               className="cursor-pointer gap-2"
             >
               <Play size={18} />
@@ -74,7 +74,7 @@ export function SessionActions({
             <Button
               variant="secondary"
               onClick={onEnd}
-              loading={isEnding}
+              disabled={isEnding}
               className="cursor-pointer gap-2"
             >
               <Square size={18} />
@@ -86,9 +86,9 @@ export function SessionActions({
 
       {!isCohost && (
         <Button
-          variant="danger"
+          variant="destructive"
           onClick={onDelete}
-          loading={isDeleting}
+          disabled={isDeleting}
           className="cursor-pointer gap-2"
           title="Delete session"
         >

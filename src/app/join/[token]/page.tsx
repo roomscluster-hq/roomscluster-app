@@ -3,18 +3,17 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { livekitApi, sessionsApi } from "@/lib/api";
+import { livekitApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import { Ban, Lock, GraduationCap, Radio, Calendar } from "lucide-react";
-import { cn, isValidEmail } from "@/lib/utils";
+import { Ban, Lock, GraduationCap, Radio, Calendar, UserX } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { invitesApi } from "@/lib/api/invites.api";
 
-export default function GuestJoinPage() {
-  const { joinCode } = useParams<{ joinCode: string }>();
+export default function InviteJoinPage() {
+  const { token } = useParams<{ token: string }>();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
   const [passcode, setPasscode] = useState("");
   const [passcodeError, setPasscodeError] = useState("");
   const [error, setError] = useState("");
@@ -22,59 +21,67 @@ export default function GuestJoinPage() {
   const [isSessionLocked, setIsSessionLocked] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
 
-  const { data: session, isLoading } = useQuery({
-    queryKey: ["session-public", joinCode],
-    queryFn: () => sessionsApi.getByJoinCode(joinCode),
+  const {
+    data: invite,
+    isLoading,
+    isError,
+    error: resolveError,
+  } = useQuery({
+    queryKey: ["invite", token],
+    queryFn: () => invitesApi.resolve(token),
     retry: false,
   });
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
-    
-    // Validate email format
-    if (!isValidEmail(email)) {
-      setEmailError("Please enter a valid email address");
-      return;
-    }
-    
+    if (!invite) return;
+
     setLoading(true);
 
     try {
-      const tokenData = await livekitApi.getGuestToken(joinCode, name, email, passcode || undefined);
+      const tokenData = await livekitApi.getGuestToken(
+        invite.joinCode,
+        name,
+        invite.memberEmail,
+        passcode || undefined,
+      );
       const maxAge = 60 * 60 * 4;
 
       document.cookie = `guest_token=${tokenData.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `guest_name=${encodeURIComponent(name)}; path=/; max-age=${maxAge}; SameSite=Lax`;
-      document.cookie = `guest_email=${encodeURIComponent(email)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      document.cookie = `guest_email=${encodeURIComponent(invite.memberEmail)}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `guest_identity=${encodeURIComponent(tokenData.guestIdentity ?? "")}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `livekit_server_url=${encodeURIComponent(tokenData.serverUrl ?? "")}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `guest_can_publish=${tokenData.canPublish}; path=/; max-age=${maxAge}; SameSite=Lax`;
 
-      // ── Waiting room gate ──────────────────────────────
-      if (session?.id) {
-        try {
-          const API_URL =
-            process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
-          const res = await fetch(`${API_URL}/sessions/${session.id}/settings`);
-          if (res.ok) {
-            const json = await res.json();
-            const settings = json.data ?? json;
-            if (settings.waitingRoomEnabled) {
-              window.location.href = `/room/${joinCode}/waiting`;
-              return;
-            }
+      // ── Waiting room gate — same check as the standard guest join page ──
+      try {
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
+        const res = await fetch(
+          `${API_URL}/sessions/${invite.sessionId}/settings`,
+        );
+        if (res.ok) {
+          const json = await res.json();
+          const settings = json.data ?? json;
+          if (settings.waitingRoomEnabled) {
+            window.location.href = `/room/${invite.joinCode}/waiting`;
+            return;
           }
-        } catch {
-          // Fetch failed — let guest through without waiting room
         }
+      } catch {
+        // Fetch failed — let them through without waiting room
       }
 
-      window.location.href = `/room/${joinCode}`;
+      window.location.href = `/room/${invite.joinCode}`;
     } catch (err: any) {
-      const message = err.response?.data?.message ?? err.message ?? "Failed to join";
-      
-      if (message.toLowerCase().includes("passcode") || 
-          message.toLowerCase().includes("incorrect")) {
+      const message =
+        err.response?.data?.message ?? err.message ?? "Failed to join";
+
+      if (
+        message.toLowerCase().includes("passcode") ||
+        message.toLowerCase().includes("incorrect")
+      ) {
         setPasscodeError("Incorrect passcode. Please try again.");
       } else if (message.toLowerCase().includes("banned")) {
         setIsBanned(true);
@@ -101,6 +108,30 @@ export default function GuestJoinPage() {
     );
   }
 
+  // ── Invalid / expired / no-longer-enrolled invite ─────
+  if (isError) {
+    const message =
+      (resolveError as any)?.response?.data?.message ??
+      "This invite link is no longer valid.";
+
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+            <UserX className="w-8 h-8 text-white/60" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">
+            Can&apos;t Join Session
+          </h2>
+          <p className="text-white/60 text-sm">{message}</p>
+          <p className="text-white/40 text-xs mt-4">
+            Contact the host if you believe this is a mistake.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // ── Banned state ────────────────────────────────────
   if (isBanned) {
     return (
@@ -112,9 +143,6 @@ export default function GuestJoinPage() {
           <h2 className="text-xl font-bold text-white mb-2">Access Denied</h2>
           <p className="text-white/60 text-sm">
             You have been banned from this session and cannot join.
-          </p>
-          <p className="text-white/40 text-xs mt-4">
-            Please contact the host if you believe this is a mistake.
           </p>
         </div>
       </div>
@@ -134,9 +162,6 @@ export default function GuestJoinPage() {
             The host has locked this session. No new participants can join at
             this time.
           </p>
-          <p className="text-white/40 text-xs mt-4">
-            Please contact the host if you believe this is a mistake.
-          </p>
         </div>
       </div>
     );
@@ -146,24 +171,24 @@ export default function GuestJoinPage() {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-md p-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-xl font-bold text-white">
-            {session?.title ?? "Join Session"}
+            {invite?.sessionTitle ?? "Join Session"}
           </h1>
           <p className="text-gray-400 text-sm mt-1">
-            Enter your details to join as a guest
+            Joining as{" "}
+            <span className="text-gray-200">{invite?.memberEmail}</span>
           </p>
-          {session?.status === "LIVE" && (
+          {invite?.sessionStatus === "LIVE" && (
             <span className="inline-flex items-center gap-1.5 mt-2 text-xs bg-green-500 text-white px-3 py-1 rounded-full">
               <Radio className="w-3 h-3" />
               LIVE NOW
             </span>
           )}
-          {session?.status === "SCHEDULED" && (
+          {invite?.sessionStatus === "SCHEDULED" && (
             <span className="inline-flex items-center gap-1.5 mt-2 text-xs bg-yellow-500 text-white px-3 py-1 rounded-full">
               <Calendar className="w-3 h-3" />
               Session hasn&apos;t started yet
@@ -171,14 +196,12 @@ export default function GuestJoinPage() {
           )}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="bg-red-900/50 text-red-300 text-sm rounded-lg px-4 py-2.5 mb-4 border border-red-700">
             {error}
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleJoin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -194,32 +217,7 @@ export default function GuestJoinPage() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Email Address <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setEmailError(""); // Clear error on type
-              }}
-              required
-              placeholder="john@example.com"
-              className={cn(
-                "w-full bg-gray-700 border text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 placeholder-gray-400",
-                emailError
-                  ? "border-danger-500 focus:ring-danger-500"
-                  : "border-gray-600 focus:ring-blue-500"
-              )}
-            />
-            {emailError && (
-              <p className="text-xs text-danger-600 mt-1">{emailError}</p>
-            )}
-          </div>
-
-          {session?.passcode && (
+          {invite?.requiresPasscode && (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Session Passcode <span className="text-red-400">*</span>
@@ -229,7 +227,7 @@ export default function GuestJoinPage() {
                 value={passcode}
                 onChange={(e) => {
                   setPasscode(e.target.value);
-                  setPasscodeError(""); // ← clear error on type
+                  setPasscodeError("");
                 }}
                 required
                 placeholder="Enter passcode"
@@ -237,11 +235,13 @@ export default function GuestJoinPage() {
                   "w-full bg-gray-700 border text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 placeholder-gray-400",
                   passcodeError
                     ? "border-danger-500 focus:ring-danger-500"
-                    : "border-gray-600 focus:ring-blue-500"
+                    : "border-gray-600 focus:ring-blue-500",
                 )}
               />
               {passcodeError && (
-                <p className="text-xs text-danger-600 mt-1">{passcodeError}</p>
+                <p className="text-xs text-danger-600 mt-1">
+                  {passcodeError}
+                </p>
               )}
             </div>
           )}
@@ -249,15 +249,13 @@ export default function GuestJoinPage() {
           <Button
             type="submit"
             className="w-full"
-            disabled={session?.status !== "LIVE" || loading}
+            disabled={invite?.sessionStatus !== "LIVE" || loading}
           >
-            {session?.status === "LIVE" ? "Join Session" : "Session Not Started"}
+            {invite?.sessionStatus === "LIVE"
+              ? "Join Session"
+              : "Session Not Started"}
           </Button>
         </form>
-
-        <p className="text-center text-xs text-gray-500 mt-4">
-          By joining, you agree to our terms of service
-        </p>
       </div>
     </div>
   );

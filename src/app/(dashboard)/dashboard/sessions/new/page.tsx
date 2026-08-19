@@ -19,6 +19,7 @@ import {
   CoHostSelector,
   SelectedCoHost,
 } from "@/components/session/CoHostSelector";
+import { groupsApi } from "@/lib/api/groups.api";
 
 export default function NewSessionPage() {
   const router = useRouter();
@@ -47,6 +48,23 @@ export default function NewSessionPage() {
     queryFn: organizationsApi.listMine,
   });
   const activeOrg = organizations?.find((o) => o.isActive);
+
+  const urlGroupId = searchParams.get("groupId") ?? undefined;
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+
+  const { data: group } = useQuery({
+    queryKey: ["group", urlGroupId],
+    queryFn: () => groupsApi.getOne(activeOrg!.id, urlGroupId!),
+    enabled: !!urlGroupId && !!activeOrg?.id,
+  });
+
+  const { data: groupsList } = useQuery({
+    queryKey: ["groups-picker", activeOrg?.id],
+    queryFn: () => groupsApi.list(activeOrg!.id, 1, 100),
+    enabled: !urlGroupId && !!activeOrg?.id,
+  });
+
+  const groupId = urlGroupId || selectedGroupId || undefined;
 
   // Single session mutation
   const createMutation = useMutation({
@@ -98,6 +116,8 @@ export default function NewSessionPage() {
         description: description || undefined,
         scheduledAt,
         organizationId: activeOrg?.id ?? "",
+        folderId,
+        groupId,
         recurrence: {
           frequency: recurrence.frequency,
           interval: recurrence.interval,
@@ -115,6 +135,7 @@ export default function NewSessionPage() {
         scheduledAt: scheduledAt || undefined,
         passcode: passcode || undefined,
         folderId,
+        groupId,
         coHostUserIds: cohosts.map((c) => c.userId),
       });
     }
@@ -159,6 +180,33 @@ export default function NewSessionPage() {
               creating.
             </p>
           </div>
+        </div>
+      )}
+
+      {group && (
+        <p className="text-sm text-primary-600 mb-6">
+          Attached to <strong>{group.name}</strong> — only enrolled members can
+          join
+        </p>
+      )}
+
+      {!urlGroupId && groupsList && groupsList.groups.length > 0 && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-ink-700 mb-1">
+            Group (optional)
+          </label>
+          <select
+            value={selectedGroupId}
+            onChange={(e) => setSelectedGroupId(e.target.value)}
+            className="w-full sm:w-auto border border-surface-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+          >
+            <option value="">No group — anyone with the link can join</option>
+            {groupsList.groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -257,7 +305,7 @@ export default function NewSessionPage() {
               </Button>
               <Button
                 type="submit"
-                loading={isPending}
+                disabled={isPending}
                 className="w-full sm:w-auto"
               >
                 {recurrence.enabled

@@ -32,6 +32,7 @@ interface TeammatesTableProps {
   onInvite: (e: React.FormEvent) => void;
   onRemove: (userId: string, name: string) => void;
   onRevoke: (invitationId: string) => void;
+  onUpdateRole?: (memberId: string, role: "HOST" | "ADMIN") => void;
   isLoading: boolean;
   isInviting: boolean;
 }
@@ -46,6 +47,7 @@ export function TeammatesTable({
   onInvite,
   onRemove,
   onRevoke,
+  onUpdateRole,
   isLoading,
   isInviting,
 }: TeammatesTableProps) {
@@ -80,8 +82,8 @@ export function TeammatesTable({
             required
             className="w-48 sm:w-56 bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
           />
-          <Button type="submit" size="sm" loading={isInviting} className="shrink-0">
-            <UserPlus size={16} />
+          <Button type="submit" size="sm" disabled={isInviting} className="shrink-0">
+            {isInviting ? <Spinner /> : <UserPlus size={16} />}
             Invite
           </Button>
         </form>
@@ -142,12 +144,26 @@ export function TeammatesTable({
                 </td>
                 <td className="px-6 py-3.5 text-right">
                   {m.role !== "OWNER" && (
-                    <button
-                      onClick={() => onRemove(m.user.id, m.user.name ?? m.user.email)}
-                      className="text-danger-600 hover:text-danger-700 transition-colors cursor-pointer"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      {onUpdateRole && (
+                        <select
+                          value={m.role}
+                          onChange={(e) =>
+                            onUpdateRole(m.id, e.target.value as "HOST" | "ADMIN")
+                          }
+                          className="text-xs border border-surface-200 rounded-md px-2 py-1 bg-surface-0"
+                        >
+                          <option value="HOST">Host</option>
+                          <option value="ADMIN">Admin</option>
+                        </select>
+                      )}
+                      <button
+                        onClick={() => onRemove(m.user.id, m.user.name ?? m.user.email)}
+                        className="text-danger-600 hover:text-danger-700 transition-colors cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>

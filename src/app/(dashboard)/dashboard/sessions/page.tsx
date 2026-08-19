@@ -368,10 +368,10 @@ export default function SessionsExplorerPage() {
           <Button
             variant="secondary"
             onClick={loadMore}
-            loading={isFetching}
+            disabled={isFetching}
             className="cursor-pointer"
           >
-            Load more
+            {isFetching ? "Please wait..." : "Load more"}
           </Button>
         </div>
       )}

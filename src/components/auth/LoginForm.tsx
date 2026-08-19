@@ -168,7 +168,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
 
       {/* Submit Button */}
       {method === "password" ? (
-        <Button type="submit" className="w-full" loading={loginMutation.isPending}>
+        <Button type="submit" className="w-full" disabled={loginMutation.status === "pending"}>
           Sign In
         </Button>
       ) : magicLinkSent ? (
@@ -198,7 +198,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
           type="button"
           className="w-full"
           onClick={handleMagicLink}
-          loading={magicLinkLoading}
+          disabled={magicLinkLoading}
         >
           Send Magic Link
         </Button>
