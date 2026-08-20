@@ -36,6 +36,7 @@ interface TeammatesTableProps {
   isLoading: boolean;
   isInviting: boolean;
   updatingUserId?: string | null;
+  viewerRole?: "OWNER" | "ADMIN" | "HOST";
 }
 
 export function TeammatesTable({
@@ -52,6 +53,7 @@ export function TeammatesTable({
   isLoading,
   isInviting,
   updatingUserId,
+  viewerRole,
 }: TeammatesTableProps) {
   if (isLoading) {
     return (
@@ -171,20 +173,32 @@ export function TeammatesTable({
                     <div className="flex items-center justify-end gap-2">
                       {onUpdateRole && (
                         <div className="flex items-center gap-1.5">
-                          <select
-                            value={m.role}
-                            disabled={updatingUserId === m.user.id}
-                            onChange={(e) =>
-                              onUpdateRole(
-                                m.user.id,
-                                e.target.value as "HOST" | "ADMIN",
-                              )
-                            }
-                            className="text-xs border border-surface-200 rounded-md px-2 py-1 bg-surface-0 disabled:opacity-50"
-                          >
-                            <option value="HOST">Host</option>
-                            <option value="ADMIN">Admin</option>
-                          </select>
+                          {viewerRole === "OWNER" ? (
+                            <select
+                              value={m.role}
+                              disabled={updatingUserId === m.user.id}
+                              onChange={(e) =>
+                                onUpdateRole(
+                                  m.user.id,
+                                  e.target.value as "HOST" | "ADMIN",
+                                )
+                              }
+                              className="text-xs border border-surface-200 rounded-md px-2 py-1 bg-surface-0 disabled:opacity-50"
+                            >
+                              <option value="HOST">Host</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                          ) : (
+                            <select
+                              value={m.role}
+                              disabled
+                              title="Only the organization owner can change roles"
+                              className="text-xs border border-surface-200 rounded-md px-2 py-1 bg-surface-100 text-ink-700/50 cursor-not-allowed opacity-70"
+                            >
+                              <option value="HOST">Host</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                          )}
                           {updatingUserId === m.user.id && (
                             <Loader2
                               size={14}

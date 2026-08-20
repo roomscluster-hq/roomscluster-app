@@ -145,6 +145,7 @@ export default function OrganizationSettingsPage() {
               isLoading={membersLoading || invitesLoading}
               isInviting={isInviting}
               updatingUserId={updatingUserId}
+              viewerRole={activeOrg?.role}
             />
           )}
         </section>
