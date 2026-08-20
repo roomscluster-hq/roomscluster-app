@@ -72,6 +72,7 @@ export function useRoomSession() {
     removeCohost,
     kickParticipant,
     banParticipant,
+    isHost,
   } = useRoom();
 
   const { data: session, isLoading } = useQuery({
@@ -79,7 +80,7 @@ export function useRoomSession() {
     queryFn: () => sessionsApi.getByJoinCode(joinCode),
   });
 
-  const isHost = !isGuest && session?.hostId === user?.id;
+  // const isHost = !isGuest && session?.hostId === user?.id;
   const canManage = isHost || isCohost;
 
   // Join session (authenticated users only)

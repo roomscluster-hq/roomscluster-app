@@ -346,6 +346,7 @@ export function RoomProvider({
     isCameraOff: liveKit.isCameraOff,
     isScreenSharing: liveKit.isScreenSharing,
     canPublish: liveKit.canPublish,
+    isHost: liveKit.isHost,
     liveKitError: liveKit.error,
     activeSpeakerIds: new Set<string>(), // populated by useLiveKit if needed
 
