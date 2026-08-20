@@ -65,13 +65,13 @@ export function useEnrollmentManagement(groupId: string) {
         singleExpiresAt || undefined,
         sendWelcomeEmail,
       ),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidate();
       toast.success("Member added");
       setSingleEmail("");
       setSingleExpiresAt("");
     },
-    onError: () => toast.error("Failed to add member"),
+    onError: (error) => toast.error(`${error}Failed to add member`),
   });
 
   const bulkAddMutation = useMutation({

@@ -87,12 +87,12 @@ export default function ProfileSettingsPage() {
       const res = await client.delete<{ data: any }>("/users/me");
       return unwrap(res);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       clearAuth();
-      toast.success("Account deleted");
+      toast.success(`${data}`);
       window.location.href = "/";
     },
-    onError: () => toast.error("Failed to delete account"),
+    onError: (error) => toast.error(`${error}`),
   });
 
   function handleUpdateName(e: React.FormEvent) {

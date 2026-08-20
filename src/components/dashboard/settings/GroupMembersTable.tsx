@@ -231,14 +231,6 @@ export function GroupMembersTable(props: GroupMembersTableProps) {
               title="Optional expiry date"
               className="bg-surface-0 text-ink-700 border border-surface-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
             />
-
-            <input
-              type="date"
-              value={singleExpiresAt}
-              onChange={(e) => setSingleExpiresAt(e.target.value)}
-              title="Optional expiry date"
-              className="bg-surface-0 text-ink-700 border border-surface-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
-            />
             <label className="flex items-center gap-1.5 text-xs text-ink-700/60 cursor-pointer shrink-0">
               <input
                 type="checkbox"
@@ -248,12 +240,6 @@ export function GroupMembersTable(props: GroupMembersTableProps) {
               />
               Welcome email
             </label>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isAdding}
-              className="shrink-0"
-            ></Button>
             <Button
               type="submit"
               size="sm"
