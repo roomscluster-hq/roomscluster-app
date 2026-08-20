@@ -31,6 +31,8 @@ export function useEnrollmentManagement(groupId: string) {
   const [bulkExpiryValue, setBulkExpiryValue] = useState("");
   const [bulkHardDeleteOpen, setBulkHardDeleteOpen] = useState(false);
   const [isParsingCsv, setIsParsingCsv] = useState(false);
+  const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
+  const [bulkSendWelcomeEmail, setBulkSendWelcomeEmail] = useState(true);
   const [statusFilter, setStatusFilterRaw] = useState<
     "ALL" | "ACTIVE" | "INACTIVE"
   >("ALL");
@@ -56,8 +58,13 @@ export function useEnrollmentManagement(groupId: string) {
     queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
 
   const addMutation = useMutation({
-    mutationFn: (params: { email: string; expiresAt?: string }) =>
-      enrollmentApi.addMember(groupId, params.email, params.expiresAt),
+    mutationFn: (email: string) =>
+      enrollmentApi.addMember(
+        groupId,
+        email,
+        singleExpiresAt || undefined,
+        sendWelcomeEmail,
+      ),
     onSuccess: () => {
       invalidate();
       toast.success("Member added");
@@ -68,8 +75,13 @@ export function useEnrollmentManagement(groupId: string) {
   });
 
   const bulkAddMutation = useMutation({
-    mutationFn: (params: { emails: string[]; expiresAt?: string }) =>
-      enrollmentApi.bulkAddMembers(groupId, params.emails, params.expiresAt),
+    mutationFn: (emails: string[]) =>
+      enrollmentApi.bulkAddMembers(
+        groupId,
+        emails,
+        bulkExpiresAt || undefined,
+        bulkSendWelcomeEmail,
+      ),
     onSuccess: (result) => {
       invalidate();
       toast.success(`Added ${result.enrolled} member(s)`);
@@ -170,10 +182,7 @@ export function useEnrollmentManagement(groupId: string) {
   function handleAddSingle(e: React.FormEvent) {
     e.preventDefault();
     if (!singleEmail.trim()) return;
-    addMutation.mutate({
-      email: singleEmail.trim().toLowerCase(),
-      expiresAt: singleExpiresAt || undefined,
-    });
+    addMutation.mutate(singleEmail.trim().toLowerCase());
   }
 
   function parseBulkText() {
@@ -194,10 +203,7 @@ export function useEnrollmentManagement(groupId: string) {
       return;
     }
     if (valid.length === 0) return;
-    bulkAddMutation.mutate({
-      emails: valid,
-      expiresAt: bulkExpiresAt || undefined,
-    });
+    bulkAddMutation.mutate(valid);
   }
 
   function confirmRemove(email: string) {
@@ -333,5 +339,10 @@ export function useEnrollmentManagement(groupId: string) {
     executeBulkHardDelete,
     isBulkHardDeleting: bulkHardDeleteMutation.isPending,
     isParsingCsv,
+
+    sendWelcomeEmail,
+    setSendWelcomeEmail,
+    bulkSendWelcomeEmail,
+    setBulkSendWelcomeEmail,
   };
 }

@@ -30,10 +30,15 @@ export const enrollmentApi = {
     return unwrap(res);
   },
 
-  addMember: async (groupId: string, email: string, expiresAt?: string) => {
+  addMember: async (
+    groupId: string,
+    email: string,
+    expiresAt?: string,
+    sendWelcomeEmail?: boolean,
+  ) => {
     const res = await client.post<{ data: Enrollment }>(
       `/groups/${groupId}/members`,
-      { email, expiresAt },
+      { email, expiresAt, sendWelcomeEmail },
     );
     return unwrap(res);
   },
@@ -42,12 +47,14 @@ export const enrollmentApi = {
     groupId: string,
     emails: string[],
     expiresAt?: string,
+    sendWelcomeEmail?: boolean,
   ) => {
     const res = await client.post<{
       data: { enrolled: number; skipped: number; total: number };
     }>(`/groups/${groupId}/members/bulk`, {
       members: emails.map((email) => ({ email })),
       expiresAt,
+      sendWelcomeEmail,
     });
     return unwrap(res);
   },
