@@ -13,6 +13,7 @@ export interface OrgMembership {
 export interface OrgMember {
   id: string;
   role: "OWNER" | "ADMIN" | "HOST";
+  groupIds: string[];
   createdAt: string;
   user: {
     id: string;

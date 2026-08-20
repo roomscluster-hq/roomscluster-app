@@ -46,10 +46,13 @@ export default function OrganizationSettingsPage() {
     handleInvite,
     confirmRemoveMember,
     revokeInvitation,
+    onUpdateRole,
 
     // Loading states
     isRenaming,
     isInviting,
+
+    updatingUserId,
   } = useOrganizationSettings();
 
   const groupManagement = useGroupManagement();
@@ -138,8 +141,10 @@ export default function OrganizationSettingsPage() {
               onInvite={handleInvite}
               onRemove={confirmRemoveMember}
               onRevoke={revokeInvitation}
+              onUpdateRole={onUpdateRole}
               isLoading={membersLoading || invitesLoading}
               isInviting={isInviting}
+              updatingUserId={updatingUserId}
             />
           )}
         </section>

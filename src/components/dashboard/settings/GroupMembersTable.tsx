@@ -30,7 +30,11 @@ import { cn } from "@/lib/utils";
 
 type EnrollmentManagement = ReturnType<typeof useEnrollmentManagement>;
 
-export function GroupMembersTable(props: EnrollmentManagement) {
+interface GroupMembersTableProps extends EnrollmentManagement {
+  hideSummary?: boolean;
+}
+
+export function GroupMembersTable(props: GroupMembersTableProps) {
   const {
     members,
     page,
@@ -93,6 +97,7 @@ export function GroupMembersTable(props: EnrollmentManagement) {
     executeBulkHardDelete,
     isBulkHardDeleting,
     isParsingCsv,
+    hideSummary,
   } = props;
 
   const columns: DataTableColumn<Enrollment>[] = [
@@ -198,10 +203,12 @@ export function GroupMembersTable(props: EnrollmentManagement) {
       <div className="p-6 border-b border-surface-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="font-semibold text-ink-900">Members</h2>
-          <p className="text-sm text-ink-700/50 mt-0.5">
-            {members.length} shown — only active, enrolled emails can join
-            sessions in this group
-          </p>
+          {!hideSummary && (
+            <p className="text-sm text-ink-700/50 mt-0.5">
+              {members.length} shown — only active, enrolled emails can join
+              sessions in this group
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <form onSubmit={handleAddSingle} className="flex gap-2">
