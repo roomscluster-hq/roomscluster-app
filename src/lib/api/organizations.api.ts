@@ -5,14 +5,14 @@ export interface OrgMembership {
   name: string;
   slug: string;
   isPersonal: boolean;
-  role: "OWNER" | "ADMIN" | "HOST";
+  role: "OWNER" | "ADMIN" | "HOST" | "MEMBER";
   memberCount: number;
   isActive: boolean;
 }
 
 export interface OrgMember {
   id: string;
-  role: "OWNER" | "ADMIN" | "HOST";
+  role: "OWNER" | "ADMIN" | "HOST" | "MEMBER";
   groupIds: string[];
   createdAt: string;
   user: {
