@@ -15,6 +15,8 @@ const SESSION_CARD_STYLES: Record<string, string> = {
 export function PortalSessionCard({ session }: { session: PortalSession }) {
   const isLive = session.status === "LIVE";
 
+  console.log("ses", session)
+
   return (
     <div className="border border-surface-200 rounded-card overflow-hidden bg-surface-0 hover:shadow-raised transition-shadow">
       <div
@@ -32,16 +34,16 @@ export function PortalSessionCard({ session }: { session: PortalSession }) {
         </p>
 
         <span className="inline-flex items-center gap-1 mt-1.5 text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
-          {session.group.labelOverride ?? "Group"}: {session.group.name}
+          {session.group?.labelOverride ?? "Group"}: {session.group?.name}
         </span>
 
         <div className="flex items-center gap-3 text-xs text-ink-700/50 mt-2">
           <span>
             {session.scheduledAt
-              ? formatDateTime(session.scheduledAt)
+              ? formatDateTime(session?.scheduledAt)
               : "Instant session"}
           </span>
-          <span>Hosted by {session.hostName}</span>
+          <span>Hosted by {session?.hostName}</span>
         </div>
 
         {session.recordingCount > 0 && (

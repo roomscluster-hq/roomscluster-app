@@ -87,7 +87,12 @@ export function OrgSwitcher({ compact = false }: { compact?: boolean }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 mt-2 w-64 bg-surface-0 border border-surface-200 rounded-xl shadow-raised py-2 z-50">
+        <div
+          className={cn(
+            "absolute mt-2 w-64 max-w-[calc(100vw-2rem)] bg-surface-0 border border-surface-200 rounded-xl shadow-raised py-2 z-50",
+            compact ? "right-0" : "left-0",
+          )}
+        >
           <p className="px-3 py-1 text-xs font-medium text-ink-700/50 uppercase tracking-wide">
             Workspaces
           </p>

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { clearSessionCookies } from "@/lib/utils";
 import { Socket } from "socket.io-client";
 import { useAuthStore } from "@/store/auth.store";
+import { useHomeRoute } from "@/hooks/useHomeRoute";
 
 const RoomContext = createContext<RoomContextValue | null>(null);
 
@@ -33,6 +34,7 @@ export function RoomProvider({
   const socket = useSocket(joinCode);
   const settings = useRoomSettings(sessionId);
   const { user } = useAuthStore();
+  const homeRoute = useHomeRoute();
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -188,7 +190,7 @@ export function RoomProvider({
     };
     const handleSessionEnded = () => {
       clearSessionCookies();
-      window.location.href = "/dashboard";
+      window.location.href = homeRoute;
     };
 
     const handleSettingsUpdated = (s: {
