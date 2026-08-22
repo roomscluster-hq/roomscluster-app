@@ -35,6 +35,13 @@ export interface PortalGroup {
   };
 }
 
+export interface PortalRecording {
+  id: string;
+  type: "VIDEO" | "AUDIO";
+  duration: number | null;
+  createdAt: string;
+}
+
 export const portalApi = {
   getMyDashboard: async () => {
     const res = await client.get<{ data: { groups: PortalGroup[] } }>(
@@ -55,6 +62,20 @@ export const portalApi = {
         };
       };
     }>(`/portal/groups/${groupId}/past-sessions`, { params: { skip, take } });
+    return unwrap(res);
+  },
+
+  listSessionRecordings: async (sessionId: string) => {
+    const res = await client.get<{ data: PortalRecording[] }>(
+      `/portal/sessions/${sessionId}/recordings`,
+    );
+    return unwrap(res);
+  },
+
+  getRecordingDownloadUrl: async (recordingId: string) => {
+    const res = await client.get<{
+      data: { url: string; expiresIn: number; filename: string };
+    }>(`/portal/recordings/${recordingId}/download`);
     return unwrap(res);
   },
 };
