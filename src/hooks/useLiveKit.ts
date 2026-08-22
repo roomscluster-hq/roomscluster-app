@@ -26,6 +26,7 @@ export function useLiveKit(joinCode: string) {
   const [error, setError] = useState<string | null>(null);
   const canPublishRef = useRef(false);
   const reconnectingRef = useRef(false);
+  const [isHost, setIsHost] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,6 +125,7 @@ export function useLiveKit(joinCode: string) {
           token = data.token;
           serverUrl = data.serverUrl;
           publish = data.canPublish;
+          setIsHost(data.isHost);
         }
 
         // Effect was cleaned up while token was being fetched
@@ -285,6 +287,7 @@ export function useLiveKit(joinCode: string) {
     isCameraOff,
     isScreenSharing,
     canPublish,
+    isHost,
     updateCanPublish,
     syncLocalParticipant,
     error,

@@ -188,9 +188,9 @@ function AcceptInvitePageContent() {
           <Button
             className="w-full"
             onClick={() => acceptMutation.mutate()}
-            loading={acceptMutation.isPending}
+            disabled={acceptMutation.isPending}
           >
-            Accept Invitation
+            {acceptMutation.isPending ? "Accepting..." : "Accept Invitation"}
           </Button>
 
           <div className="mt-8 pt-6 border-t border-surface-200 w-full flex items-center justify-center gap-2 text-ink-700/40">

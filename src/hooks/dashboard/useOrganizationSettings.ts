@@ -12,16 +12,17 @@ export function useOrganizationSettings() {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [search, setSearch] = useState("");
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
-  // Get active organization
   const { data: organizations } = useQuery({
     queryKey: ["organizations-mine"],
     queryFn: organizationsApi.listMine,
   });
 
   const activeOrg = organizations?.find((o) => o.isActive);
+  const canManageOrg =
+    activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
 
-  // Rename mutation
   const renameMutation = useMutation({
     mutationFn: (name: string) => organizationsApi.rename(activeOrg!.id, name),
     onSuccess: () => {
@@ -32,24 +33,25 @@ export function useOrganizationSettings() {
     onError: () => toast.error("Failed to rename organization"),
   });
 
-  // Get members and invitations
+  // Get members and invitations — now enabled for Admin too, not just Owner
   const { data: members, isLoading: membersLoading } = useQuery({
     queryKey: ["org-members", activeOrg?.id],
     queryFn: () => organizationsApi.listMembers(activeOrg!.id),
-    enabled: !!activeOrg && activeOrg.role === "OWNER",
+    enabled: !!activeOrg && canManageOrg,
   });
 
   const { data: invitations, isLoading: invitesLoading } = useQuery({
     queryKey: ["org-invitations", activeOrg?.id],
     queryFn: () => invitationsApi.listForOrganization(activeOrg!.id),
-    enabled: !!activeOrg && activeOrg.role === "OWNER",
+    enabled: !!activeOrg && canManageOrg,
   });
 
-  // Invite mutation
   const inviteMutation = useMutation({
     mutationFn: (email: string) => invitationsApi.invite(activeOrg!.id, email),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["org-invitations", activeOrg?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["org-invitations", activeOrg?.id],
+      });
       toast.success("Invitation sent");
       setInviteEmail("");
     },
@@ -58,21 +60,24 @@ export function useOrganizationSettings() {
     },
   });
 
-  // Revoke mutation
   const revokeMutation = useMutation({
     mutationFn: (invitationId: string) => invitationsApi.revoke(invitationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["org-invitations", activeOrg?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["org-invitations", activeOrg?.id],
+      });
       toast.success("Invitation revoked");
     },
     onError: () => toast.error("Failed to revoke invitation"),
   });
 
-  // Remove member mutation
   const removeMutation = useMutation({
-    mutationFn: (userId: string) => organizationsApi.removeMember(activeOrg!.id, userId),
+    mutationFn: (userId: string) =>
+      organizationsApi.removeMember(activeOrg!.id, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["org-members", activeOrg?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["org-members", activeOrg?.id],
+      });
       toast.success("Member removed");
     },
     onError: (err: any) => {
@@ -80,9 +85,33 @@ export function useOrganizationSettings() {
     },
   });
 
-  // Handlers
+  const updateRoleMutation = useMutation({
+    mutationFn: ({
+      userId,
+      role,
+    }: {
+      userId: string;
+      role: "HOST" | "ADMIN";
+    }) => organizationsApi.updateMemberRole(activeOrg!.id, userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["org-members", activeOrg?.id],
+      });
+      toast.success("Role updated");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message ?? "Failed to update role");
+    },
+    onSettled: () => setUpdatingUserId(null),
+  });
+
+  const onUpdateRole = (userId: string, role: "HOST" | "ADMIN") => {
+    setUpdatingUserId(userId);
+    updateRoleMutation.mutate({ userId, role });
+  };
+
   const startEditingName = () => {
-    setNameValue(activeOrg?.isPersonal ? "" : activeOrg?.name ?? "");
+    setNameValue(activeOrg?.isPersonal ? "" : (activeOrg?.name ?? ""));
     setEditingName(true);
   };
 
@@ -109,10 +138,9 @@ export function useOrganizationSettings() {
     });
   };
 
-  // Filtered data
   const pendingInvitations = useMemo(
     () => invitations?.filter((i) => i.status === "PENDING") ?? [],
-    [invitations]
+    [invitations],
   );
 
   const q = search.trim().toLowerCase();
@@ -122,14 +150,15 @@ export function useOrganizationSettings() {
         (m) =>
           !q ||
           (m.user.name ?? "").toLowerCase().includes(q) ||
-          m.user.email.toLowerCase().includes(q)
+          m.user.email.toLowerCase().includes(q),
       ),
-    [members, q]
+    [members, q],
   );
 
   const filteredInvitations = useMemo(
-    () => pendingInvitations.filter((i) => !q || i.email.toLowerCase().includes(q)),
-    [pendingInvitations, q]
+    () =>
+      pendingInvitations.filter((i) => !q || i.email.toLowerCase().includes(q)),
+    [pendingInvitations, q],
   );
 
   return {
@@ -142,8 +171,7 @@ export function useOrganizationSettings() {
     isLoading: !activeOrg,
     membersLoading,
     invitesLoading,
-    
-    // Form states
+
     inviteEmail,
     setInviteEmail,
     editingName,
@@ -152,18 +180,18 @@ export function useOrganizationSettings() {
     setNameValue,
     search,
     setSearch,
-    
-    // Actions
+
     startEditingName,
     submitRename,
     handleInvite,
     confirmRemoveMember,
     revokeInvitation: revokeMutation.mutate,
-    
-    // Loading states
+    onUpdateRole,
+
     isRenaming: renameMutation.isPending,
     isInviting: inviteMutation.isPending,
     isRevoking: revokeMutation.isPending,
     isRemoving: removeMutation.isPending,
+    updatingUserId,
   };
 }

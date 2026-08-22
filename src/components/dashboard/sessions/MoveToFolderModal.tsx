@@ -418,7 +418,6 @@ export function MoveToFolderModal({
             <Button
               onClick={handleMove}
               disabled={selectedFolderId === null || isMoving}
-              loading={isMoving}
             >
               {isMoving ? "Moving..." : "Move"}
             </Button>

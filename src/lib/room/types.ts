@@ -89,6 +89,8 @@ export interface RoomActions {
   rejectParticipant: (joinCode: string, waitingParticipantId: string) => void;
   rejectAll: (joinCode: string) => void;
 
+  isHost: boolean;
+  
   // Co-host
   makeCohost: (userId: string) => void;
   removeCohost: (userId: string) => void;

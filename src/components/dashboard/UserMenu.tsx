@@ -2,8 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth.store";
+import { organizationsApi } from "@/lib/api/organizations.api";
 import { cn } from "@/lib/utils";
 
 export function UserMenu({ compact = false }: { compact?: boolean }) {
@@ -11,6 +14,13 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { user, clearAuth } = useAuthStore();
+
+  const { data: organizations } = useQuery({
+    queryKey: ["organizations-mine"],
+    queryFn: organizationsApi.listMine,
+  });
+  const activeOrg = organizations?.find((o) => o.isActive);
+  const isMemberOnly = activeOrg?.role === "MEMBER";
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -32,9 +42,11 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
         )}
       >
         {user?.image ? (
-          <img
+          <Image
             src={user.image}
             alt={user?.name ?? user?.email}
+            width={28}
+            height={28}
             className="w-7 h-7 rounded-full object-cover shrink-0"
           />
         ) : (
@@ -61,13 +73,15 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
             <p className="text-xs text-ink-700/50 truncate">{user?.email}</p>
           </div>
 
-          <Link
-            href="/dashboard/settings/organization"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
-          >
-            <span>⚙️</span> Organization Settings
-          </Link>
+          {!isMemberOnly && (
+            <Link
+              href="/dashboard/settings/organization"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-3 py-2.5 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
+            >
+              <span>⚙️</span> Organization Settings
+            </Link>
+          )}
 
           <button
             onClick={async () => {

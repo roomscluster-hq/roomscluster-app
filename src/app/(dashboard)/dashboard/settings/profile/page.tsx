@@ -87,12 +87,12 @@ export default function ProfileSettingsPage() {
       const res = await client.delete<{ data: any }>("/users/me");
       return unwrap(res);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       clearAuth();
-      toast.success("Account deleted");
+      toast.success(`${data}`);
       window.location.href = "/";
     },
-    onError: () => toast.error("Failed to delete account"),
+    onError: (error) => toast.error(`${error}`),
   });
 
   function handleUpdateName(e: React.FormEvent) {
@@ -238,8 +238,7 @@ export default function ProfileSettingsPage() {
             />
             <Button
               type="submit"
-              loading={updateNameMutation.isPending}
-              disabled={name.trim() === (user?.name ?? "")}
+              disabled={name.trim() === (user?.name ?? "") || updateNameMutation.isPending}
             >
               Save Name
             </Button>
@@ -284,10 +283,16 @@ export default function ProfileSettingsPage() {
               />
               <Button
                 type="submit"
-                loading={updatePasswordMutation.isPending}
-                disabled={!currentPassword || !newPassword || !confirmPassword}
+                disabled={!currentPassword || !newPassword || !confirmPassword || updatePasswordMutation.isPending}
               >
-                Update Password
+                {updatePasswordMutation.isPending ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Password"
+                )}
               </Button>
             </form>
           </CardContent>
@@ -311,12 +316,12 @@ export default function ProfileSettingsPage() {
               </p>
             </div>
             <Button
-              variant="danger"
+              variant="destructive"
               onClick={handleDeleteAccount}
-              loading={deleteAccountMutation.isPending}
+              disabled={deleteAccountMutation.isPending}
               className="shrink-0"
             >
-              Delete Account
+              {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
             </Button>
           </div>
         </CardContent>

@@ -264,12 +264,11 @@ export default function EditSeriesPage() {
               </Button>
               <Button
                 type="submit"
-                loading={updateMutation.isPending}
-                disabled={cohosts.length > 2}
-                variant={showConfirmation ? "primary" : "primary"}
+                disabled={cohosts.length > 2 || updateMutation.isPending}
+                variant="default"
                 className="w-full sm:w-auto"
               >
-                {showConfirmation ? "Confirm Update" : "Update Series"}
+                {updateMutation.isPending ? (showConfirmation ? "Confirming..." : "Updating...") : (showConfirmation ? "Confirm Update" : "Update Series")}
               </Button>
             </div>
           </form>

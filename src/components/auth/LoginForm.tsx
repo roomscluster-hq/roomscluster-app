@@ -12,12 +12,14 @@ import { toast } from "sonner";
 import { PasswordInput } from "./PasswordInput";
 import { FormDivider } from "./FormDivider";
 import { cn, isValidEmail } from "@/lib/utils";
+import { resolveHomeRoute } from "@/hooks/resolveHomeRoute";
 
 interface LoginFormProps {
   onMagicLinkSent?: () => void;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
 
 type AuthMethod = "password" | "magic-link";
 
@@ -38,7 +40,8 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       const user = await authApi.me();
       setAuth(user, data.access_token);
       toast.success("Welcome back!");
-      router.replace("/dashboard");
+      const homeRoute = await resolveHomeRoute();
+      router.replace(homeRoute);
     },
     onError: () => {
       toast.error("Invalid email or password");
@@ -47,13 +50,13 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+
     // Validate email format
     if (!isValidEmail(email)) {
       setEmailError("Please enter a valid email address");
       return;
     }
-    
+
     if (method === "password") {
       loginMutation.mutate({ email, password });
     }
@@ -64,7 +67,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       toast.error("Enter your email first");
       return;
     }
-    
+
     if (!isValidEmail(email)) {
       setEmailError("Please enter a valid email address");
       return;
@@ -93,12 +96,22 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
             "flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200",
             method === "password"
               ? "bg-surface-0 text-ink-900 shadow-sm"
-              : "text-ink-600 hover:text-ink-800"
+              : "text-ink-600 hover:text-ink-800",
           )}
         >
           <span className="flex items-center justify-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
             Password
           </span>
@@ -110,12 +123,22 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
             "flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200",
             method === "magic-link"
               ? "bg-surface-0 text-ink-900 shadow-sm"
-              : "text-ink-600 hover:text-ink-800"
+              : "text-ink-600 hover:text-ink-800",
           )}
         >
           <span className="flex items-center justify-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
             Magic Link
           </span>
@@ -162,23 +185,40 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       {/* Magic Link Info - Only show for magic link method */}
       {method === "magic-link" && !magicLinkSent && (
         <p className="text-sm text-ink-600 bg-surface-50 p-3 rounded-lg">
-          We&apos;ll email you a magic link that signs you in instantly — no password needed.
+          We&apos;ll email you a magic link that signs you in instantly — no
+          password needed.
         </p>
       )}
 
       {/* Submit Button */}
       {method === "password" ? (
-        <Button type="submit" className="w-full" loading={loginMutation.isPending}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={loginMutation.status === "pending"}
+        >
           Sign In
         </Button>
       ) : magicLinkSent ? (
         <div className="text-center py-4 px-4 bg-success-50 border border-success-100 rounded-lg">
           <div className="w-10 h-10 rounded-full bg-success-100 flex items-center justify-center mx-auto mb-2">
-            <svg className="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg
+              className="w-5 h-5 text-success-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
           </div>
-          <p className="text-sm font-medium text-success-700">Check your email!</p>
+          <p className="text-sm font-medium text-success-700">
+            Check your email!
+          </p>
           <p className="text-xs text-success-600 mt-1">
             We sent a magic link to <strong>{email}</strong>
           </p>
@@ -198,7 +238,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
           type="button"
           className="w-full"
           onClick={handleMagicLink}
-          loading={magicLinkLoading}
+          disabled={magicLinkLoading}
         >
           Send Magic Link
         </Button>
@@ -234,7 +274,10 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
 
       <p className="text-center text-sm text-ink-700/60">
         No account?{" "}
-        <a href="/register" className="text-primary-600 hover:underline font-medium">
+        <a
+          href="/register"
+          className="text-primary-600 hover:underline font-medium"
+        >
           Register
         </a>
       </p>

@@ -26,8 +26,8 @@ export function NewFolderForm({ value, onChange, onSubmit, onCancel, isLoading }
         placeholder="Folder name"
         className="flex-1 bg-surface-0 text-ink-900 border border-surface-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
       />
-      <Button type="submit" size="sm" loading={isLoading} className="cursor-pointer">
-        Create
+      <Button type="submit" size="sm" disabled={isLoading} className="cursor-pointer">
+        {isLoading ? "Creating..." : "Create"}
       </Button>
       <button
         type="button"

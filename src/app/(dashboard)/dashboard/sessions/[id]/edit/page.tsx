@@ -326,11 +326,10 @@ export default function EditSessionPage() {
               </Button>
               <Button
                 type="submit"
-                loading={updateMutation.isPending}
-                disabled={cohosts.length > 2}
+                disabled={updateMutation.isPending || cohosts.length > 2}
                 className="w-full sm:w-auto"
               >
-                Save Changes
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>

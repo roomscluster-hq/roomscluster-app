@@ -69,7 +69,7 @@ export function RegisterForm() {
       <Button
         type="submit"
         className="w-full"
-        loading={registerMutation.isPending}
+        disabled={registerMutation.isPending}
       >
         <span className="flex items-center justify-center gap-2">
           Get Started

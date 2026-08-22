@@ -6,6 +6,8 @@ import type {
   AttendanceRecord,
 } from "@/types";
 
+
+
 export const sessionsApi = {
   moveToFolder: async (id: string, folderId: string | null) => {
     const res = await client.patch<{ data: Session }>(`/sessions/${id}/move`, {
@@ -20,6 +22,7 @@ export const sessionsApi = {
     scheduledAt?: string;
     passcode?: string;
     folderId?: string;
+    groupId?: string;
     coHostUserIds?: string[];
   }) => {
     const res = await client.post<{ data: Session }>("/sessions", data);
@@ -116,6 +119,8 @@ export const sessionsApi = {
       endDate?: string;
       endCount?: number;
     };
+    groupId?: string;
+    folderId?: string;
     coHostUserIds?: string[];
   }) => {
     const res = await client.post<{

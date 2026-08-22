@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 const TAKE = 30;
 
-export function useFolderManagement(statusFilter?: string) {
+export function useFolderManagement(statusFilter?: string, groupFilter?: string) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -36,12 +36,13 @@ export function useFolderManagement(statusFilter?: string) {
     }, 0);
 
     return () => clearTimeout(t);
-  }, [currentFolderId, statusFilter]);
+  }, [currentFolderId, statusFilter, groupFilter]);
 
   // Fetch folder contents
   const { data: contents, isLoading, isFetching } = useQuery({
-    queryKey: ["folder-contents", currentFolderId, skip, statusFilter],
-    queryFn: () => foldersApi.getContents(currentFolderId, skip, TAKE, statusFilter),
+    queryKey: ["folder-contents", currentFolderId, skip, statusFilter, groupFilter],
+    queryFn: () =>
+      foldersApi.getContents(currentFolderId, skip, TAKE, statusFilter, groupFilter),
   });
 
   // Fetch breadcrumbs

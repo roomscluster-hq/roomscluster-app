@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { QAPanel } from "@/components/session/QAPanel";
 import { PollPanel } from "@/components/session/PollPanel";
 import { FloatingReactions } from "@/components/session/FloatingReactions";
+import { useHomeRoute } from "@/hooks/useHomeRoute";
 
 type MainView = "video" | "whiteboard";
 
@@ -48,6 +49,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
 
   const remoteDrawRef = useRef<WhiteboardDrawCallback | null>(null);
   const remoteClearRef = useRef<WhiteboardClearCallback | null>(null);
+  const homeRoute = useHomeRoute();
 
   const [pollCount, setPollCount] = useState(0);
   const [qaCount, setQaCount] = useState(0);
@@ -116,7 +118,6 @@ function RoomContent({ joinCode }: RoomContentProps) {
     setOnWhiteboardClear,
   } = useRoomSession();
 
-
   // Register whiteboard callbacks
   useEffect(() => {
     setOnWhiteboardDraw((event) => remoteDrawRef.current?.(event));
@@ -145,7 +146,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
       clearGuestCookies();
       window.location.href = `/room/${joinCode}/join`;
     } else {
-      router.push("/dashboard");
+      router.push(homeRoute);
     }
   }
 
@@ -158,7 +159,7 @@ function RoomContent({ joinCode }: RoomContentProps) {
           if (!isGuest) await sessionsApi.end(session!.id).catch(() => {});
           await disconnect();
           clearGuestCookies();
-          router.push(isGuest ? "/" : "/dashboard");
+          router.push(isGuest ? "/" : homeRoute);
         },
       },
       cancel: { label: "Cancel", onClick: () => {} },
