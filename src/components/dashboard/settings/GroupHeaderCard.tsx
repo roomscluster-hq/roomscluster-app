@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Layers, Users, Video, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGroupRecordingToggle } from "@/hooks/useGroupRecordingToggle";
 
 interface GroupHeaderCardProps {
   groupId: string;
@@ -17,6 +18,8 @@ interface GroupHeaderCardProps {
   onSubmitRename: (e: React.FormEvent) => void;
   onCancelRename: () => void;
   isRenaming: boolean;
+  organizationId: string;
+  membersCanViewRecordings: boolean;
 }
 
 export function GroupHeaderCard({
@@ -32,8 +35,14 @@ export function GroupHeaderCard({
   onSubmitRename,
   onCancelRename,
   isRenaming,
+  organizationId,
+  membersCanViewRecordings,
 }: GroupHeaderCardProps) {
   const isEditing = renamingId === groupId;
+  const { toggle, isToggling } = useGroupRecordingToggle(
+    organizationId,
+    groupId,
+  );
 
   return (
     <div className="bg-surface-0 border border-surface-200 rounded-xl p-6 mb-6">
@@ -44,7 +53,10 @@ export function GroupHeaderCard({
           </div>
           <div className="min-w-0">
             {isEditing ? (
-              <form onSubmit={onSubmitRename} className="flex items-center gap-2">
+              <form
+                onSubmit={onSubmitRename}
+                className="flex items-center gap-2"
+              >
                 <input
                   autoFocus
                   value={renameValue}
@@ -64,7 +76,9 @@ export function GroupHeaderCard({
               </form>
             ) : (
               <div className="flex items-center gap-2 group">
-                <h1 className="text-xl md:text-2xl font-bold text-ink-900">{name}</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-ink-900">
+                  {name}
+                </h1>
                 <button
                   onClick={onStartRename}
                   title="Rename group"
@@ -96,6 +110,31 @@ export function GroupHeaderCard({
             New Session
           </Button>
         </Link>
+
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-surface-200">
+          <div>
+            <p className="text-sm font-medium text-ink-900">
+              Members can view recordings
+            </p>
+            <p className="text-xs text-ink-700/50 mt-0.5">
+              When on, members enrolled in this group can watch and download
+              past session recordings from their portal.
+            </p>
+          </div>
+          <button
+            onClick={() => toggle(!membersCanViewRecordings)}
+            disabled={isToggling}
+            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4 ${
+              membersCanViewRecordings ? "bg-primary-600" : "bg-surface-200"
+            } disabled:opacity-50`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                membersCanViewRecordings ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -67,6 +67,8 @@ export default function GroupDetailPage() {
         onSubmitRename={rename.submitRename}
         onCancelRename={rename.cancelRename}
         isRenaming={rename.isRenaming}
+        organizationId={activeOrg?.id ?? ""}
+        membersCanViewRecordings={group?.membersCanViewRecordings ?? false}
       />
 
       <div className="mb-4">

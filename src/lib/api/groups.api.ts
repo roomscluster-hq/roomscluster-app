@@ -6,6 +6,7 @@ export interface Group {
   description: string | null;
   labelOverride: string | null;
   organizationId: string;
+  membersCanViewRecordings: boolean;
   createdAt: string;
   updatedAt: string;
   _count?: { sessions: number; enrollments: number };
@@ -61,7 +62,12 @@ export const groupsApi = {
   update: async (
     organizationId: string,
     groupId: string,
-    data: { name?: string; description?: string; labelOverride?: string },
+    data: {
+      name?: string;
+      description?: string;
+      labelOverride?: string;
+      membersCanViewRecordings?: boolean;
+    },
   ) => {
     const res = await client.patch<{ data: Group }>(
       `/organizations/${organizationId}/groups/${groupId}`,

@@ -204,7 +204,7 @@ export function GroupMembersTable(props: GroupMembersTableProps) {
   return (
     <Card>
       {/* Header */}
-      <div className="p-6 border-b border-surface-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="p-6 border-b border-surface-200 flex flex-col gap-4">
         <div>
           <h2 className="font-semibold text-ink-900">Members</h2>
           {!hideSummary && (
@@ -214,22 +214,25 @@ export function GroupMembersTable(props: GroupMembersTableProps) {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
-          <form onSubmit={handleAddSingle} className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <form
+            onSubmit={handleAddSingle}
+            className="flex flex-wrap gap-2 items-center flex-1"
+          >
             <input
               type="email"
               value={singleEmail}
               onChange={(e) => setSingleEmail(e.target.value)}
               placeholder="member@example.com"
               required
-              className="w-44 sm:w-56 bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+              className="flex-1 min-w-45 bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
             />
             <input
               type="date"
               value={singleExpiresAt}
               onChange={(e) => setSingleExpiresAt(e.target.value)}
               title="Optional expiry date"
-              className="bg-surface-0 text-ink-700 border border-surface-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+              className="bg-surface-0 text-ink-700 border border-surface-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 shrink-0"
             />
             <label className="flex items-center gap-1.5 text-xs text-ink-700/60 cursor-pointer shrink-0">
               <input
@@ -254,6 +257,7 @@ export function GroupMembersTable(props: GroupMembersTableProps) {
             variant="secondary"
             size="sm"
             onClick={() => setBulkOpen(!bulkOpen)}
+            className="shrink-0"
           >
             <Upload size={16} />
             Bulk add
@@ -306,7 +310,7 @@ export function GroupMembersTable(props: GroupMembersTableProps) {
               <div className="mt-1 font-mono">{invalidEmails.join(", ")}</div>
             </div>
           )}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 items-end">
             <div>
               <label className="block text-sm font-medium text-ink-700 mb-1">
                 Expiry date for all (optional)

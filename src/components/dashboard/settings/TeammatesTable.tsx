@@ -77,14 +77,14 @@ export function TeammatesTable({
               ` · ${invitations.length} pending invitation${invitations.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <form onSubmit={onInvite} className="flex gap-2">
+        <form onSubmit={onInvite} className="flex flex-wrap gap-2">
           <input
             type="email"
             value={inviteEmail}
             onChange={(e) => onInviteEmailChange(e.target.value)}
             placeholder="colleague@example.com"
             required
-            className="w-48 sm:w-56 bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+            className="flex-1 min-w-45 sm:w-56 sm:flex-none bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
           />
           <Button
             type="submit"

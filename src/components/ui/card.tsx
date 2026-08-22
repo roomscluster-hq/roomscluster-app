@@ -11,7 +11,7 @@ export function Card({ className, children, variant = "surface" }: CardProps) {
   return (
     <div
       className={cn(
-        "bg-surface-0 rounded-card border border-surface-200",
+        "bg-surface-0 rounded-card border border-surface-200 w-full",
         variant === "raised" && "shadow-raised",
         className
       )}

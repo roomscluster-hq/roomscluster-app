@@ -64,11 +64,13 @@ export function GroupsPanel(props: GroupManagement) {
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onBlur={submitRename}
+              disabled={isRenaming}
               className="flex-1 bg-surface-0 border border-surface-200 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
             />
             <button
               type="button"
               onClick={cancelRename}
+              disabled={isRenaming}
               className="text-ink-700/50 hover:text-ink-700 cursor-pointer text-xs"
             >
               Cancel
