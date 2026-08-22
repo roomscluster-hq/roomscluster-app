@@ -5,13 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { authApi } from "@/lib/api";
 import { Spinner } from "@/components/ui/spinner";
-import { useHomeRoute } from "@/hooks/useHomeRoute";
+import { resolveHomeRoute } from "@/hooks/resolveHomeRoute";
 
 export function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
-  const homeRoute = useHomeRoute();
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -22,16 +21,18 @@ export function GoogleCallbackContent() {
 
     localStorage.setItem("access_token", token);
 
-    authApi.me()
-      .then((user) => {
+    authApi
+      .me()
+      .then(async (user) => {
         setAuth(user, token);
+        const homeRoute = await resolveHomeRoute();
         router.replace(homeRoute);
       })
       .catch(() => {
         localStorage.removeItem("access_token");
         router.push("/login?error=google_failed");
       });
-  }, [searchParams, router, setAuth, homeRoute]);
+  }, [searchParams, router, setAuth]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
