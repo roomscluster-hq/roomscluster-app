@@ -6,17 +6,18 @@ import { useAuthStore } from "@/store/auth.store";
 import { authApi } from "@/lib/api";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
+import { useHomeRoute } from "@/hooks/useHomeRoute";
 
 export function MagicLinkContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  const homeRoute = useHomeRoute();
+  const token = searchParams.get("token");
 
   useEffect(() => {
-    const token = searchParams.get("token");
     if (!token) {
-      setError("Invalid magic link — no token found.");
       return;
     }
 
@@ -25,15 +26,17 @@ export function MagicLinkContent() {
         localStorage.setItem("access_token", data.access_token);
         const user = await authApi.me();
         setAuth(user, data.access_token);
-        router.replace("/dashboard");
+        router.replace(homeRoute);
       })
       .catch((err) => {
         const message = err.response?.data?.message ?? "This magic link is invalid or has expired.";
         setError(message);
       });
-  }, [searchParams, router, setAuth]);
+  }, [token, router, setAuth, homeRoute]);
 
-  if (error) {
+  if (!token || error) {
+    const message = error ?? "Invalid magic link — no token found.";
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center max-w-sm space-y-4">
@@ -43,7 +46,7 @@ export function MagicLinkContent() {
             </svg>
           </div>
           <h2 className="text-lg font-semibold text-ink-900">Link Expired</h2>
-          <p className="text-sm text-ink-700/60">{error}</p>
+          <p className="text-sm text-ink-700/60">{message}</p>
           <Link
             href="/login"
             className="inline-block text-sm font-medium text-primary-600 hover:underline"

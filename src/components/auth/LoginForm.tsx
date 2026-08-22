@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { PasswordInput } from "./PasswordInput";
 import { FormDivider } from "./FormDivider";
 import { cn, isValidEmail } from "@/lib/utils";
+import { useHomeRoute } from "@/hooks/useHomeRoute";
 
 interface LoginFormProps {
   onMagicLinkSent?: () => void;
@@ -30,6 +31,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   const [method, setMethod] = useState<AuthMethod>("password");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+  const homeRoute = useHomeRoute();
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
@@ -38,7 +40,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       const user = await authApi.me();
       setAuth(user, data.access_token);
       toast.success("Welcome back!");
-      router.replace("/dashboard");
+      router.replace(homeRoute);
     },
     onError: () => {
       toast.error("Invalid email or password");
