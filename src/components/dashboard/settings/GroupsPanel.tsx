@@ -145,7 +145,7 @@ export function GroupsPanel(props: GroupManagement) {
         <div>
           <h2 className="font-semibold text-ink-900">Groups</h2>
           <p className="text-sm text-ink-700/50 mt-0.5">
-            {groups.length} group{groups.length !== 1 ? "s" : ""} — sessions
+            {groups.length} group{groups.length !== 1 ? "s" : ""}  sessions
             attached to a group require enrollment to join
           </p>
         </div>

@@ -5,7 +5,6 @@ import {
   OrganizationTabs,
   GeneralSettings,
   TeammatesTable,
-  PersonalWorkspace,
   GroupsPanel,
   type Tab,
 } from "@/components/dashboard/settings";
@@ -62,26 +61,6 @@ export default function OrganizationSettingsPage() {
       <div className="flex justify-center py-20">
         <Spinner />
       </div>
-    );
-  }
-
-  // Personal workspace view
-  if (activeOrg?.isPersonal) {
-    return (
-      <PersonalWorkspace
-        workspaceName={activeOrg.name}
-        isEditing={editingName}
-        editValue={nameValue}
-        onEditChange={setNameValue}
-        onStartEdit={startEditingName}
-        onSubmit={submitRename}
-        onCancel={() => setEditingName(false)}
-        isRenaming={isRenaming}
-        inviteEmail={inviteEmail}
-        onInviteEmailChange={setInviteEmail}
-        onInvite={handleInvite}
-        isInviting={isInviting}
-      />
     );
   }
 
