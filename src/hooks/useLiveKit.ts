@@ -9,6 +9,7 @@ import {
 import { livekitApi } from "@/lib/api";
 import { getCookie } from "@/lib/cookies";
 import { setLogLevel } from "livekit-client";
+import { debugLog } from "@/lib/debug";
 
 export function useLiveKit(joinCode: string) {
   const roomRef = useRef<Room | null>(null);
@@ -48,7 +49,7 @@ export function useLiveKit(joinCode: string) {
     room.on(RoomEvent.ParticipantConnected, updateParticipants);
     room.on(RoomEvent.ParticipantDisconnected, updateParticipants);
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-      console.log("🎥 HOST RECEIVED TRACK", {
+      debugLog("🎥 HOST RECEIVED TRACK", {
         participant: participant.identity,
         source: publication.source,
         kind: publication.kind,
@@ -69,15 +70,15 @@ export function useLiveKit(joinCode: string) {
     room.on(RoomEvent.LocalTrackUnpublished, updateParticipants);
 
     room.on(RoomEvent.ConnectionStateChanged, (state) => {
-      console.log("🟡 CONNECTION STATE:", state);
+      debugLog("🟡 CONNECTION STATE:", state);
     });
 
     room.on(RoomEvent.SignalConnected, () => {
-      console.log("🟢 SIGNAL CONNECTED");
+      debugLog("🟢 SIGNAL CONNECTED");
     });
 
     room.on(RoomEvent.Connected, () => {
-      console.log("🟢 CONNECTED");
+      debugLog("🟢 CONNECTED");
 
       if (!cancelled) {
         setIsConnected(true);
@@ -85,11 +86,11 @@ export function useLiveKit(joinCode: string) {
     });
 
     room.on(RoomEvent.Reconnecting, () => {
-      console.log("🟠 RECONNECTING");
+      debugLog("🟠 RECONNECTING");
     });
 
     room.on(RoomEvent.Reconnected, () => {
-      console.log("🟢 RECONNECTED");
+      debugLog("🟢 RECONNECTED");
 
       if (!cancelled) {
         setIsConnected(true);
@@ -98,8 +99,8 @@ export function useLiveKit(joinCode: string) {
     });
 
     room.on(RoomEvent.Disconnected, (reason) => {
-      console.log("🔴 DISCONNECTED");
-      console.log("Reason:", reason);
+      debugLog("🔴 DISCONNECTED");
+      debugLog("Reason:", reason);
 
       if (!cancelled) {
         setIsConnected(false);
@@ -130,20 +131,20 @@ export function useLiveKit(joinCode: string) {
 
         // Effect was cleaned up while token was being fetched
         if (cancelled) {
-          console.log("⚠️ Connection cancelled before connect");
+          debugLog("⚠️ Connection cancelled before connect");
           return;
         }
 
         setCanPublish(publish);
         canPublishRef.current = publish;
 
-        console.log("🔵 Connecting to:", serverUrl);
+        debugLog("🔵 Connecting to:", serverUrl);
 
         await room.connect(serverUrl, token);
 
         // Effect was cleaned up while connect() was running
         if (cancelled) {
-          console.log("⚠️ Connection completed after cleanup");
+          debugLog("⚠️ Connection completed after cleanup");
           await room.disconnect();
           return;
         }
@@ -155,7 +156,7 @@ export function useLiveKit(joinCode: string) {
 
         setIsConnected(true);
 
-        console.log("✅ LiveKit connection successful");
+        debugLog("✅ LiveKit connection successful");
       } catch (err: any) {
         if (cancelled) return;
 
@@ -172,7 +173,7 @@ export function useLiveKit(joinCode: string) {
     connect();
 
     return () => {
-      console.log("🧹 Cleaning up LiveKit connection");
+      debugLog("🧹 Cleaning up LiveKit connection");
 
       cancelled = true;
       connectingRef.current = false;
@@ -217,7 +218,7 @@ export function useLiveKit(joinCode: string) {
         setLocalParticipant(room.localParticipant);
         setRemoteParticipants([...room.remoteParticipants.values()]);
 
-        console.log("🔄 Reconnected after returning to tab");
+        debugLog("🔄 Reconnected after returning to tab");
       } catch (err) {
         console.error("[useLiveKit] Visibility reconnect failed:", err);
       } finally {
