@@ -5,9 +5,22 @@ export interface OrgMembership {
   name: string;
   slug: string;
   isPersonal: boolean;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  fontFamily: string | null;
   role: "OWNER" | "ADMIN" | "HOST" | "MEMBER";
   memberCount: number;
   isActive: boolean;
+}
+
+export interface PublicOrgBranding {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  fontFamily: string | null;
+  isPersonal: boolean;
 }
 
 export interface OrgMember {
@@ -68,6 +81,45 @@ export const organizationsApi = {
     const res = await client.patch<{ data: OrgMember }>(
       `/organizations/${organizationId}/members/${userId}/role`,
       { role },
+    );
+    return unwrap(res);
+  },
+
+  updateDetails: async (
+    organizationId: string,
+    data: {
+      name?: string;
+      logoUrl?: string;
+      primaryColor?: string;
+      fontFamily?: string;
+    },
+  ) => {
+    const res = await client.patch<{ data: { id: string; name: string } }>(
+      `/organizations/${organizationId}`,
+      data,
+    );
+    return unwrap(res);
+  },
+
+  updateSlug: async (organizationId: string, slug: string) => {
+    const res = await client.patch<{ data: { id: string; slug: string } }>(
+      `/organizations/${organizationId}/slug`,
+      { slug },
+    );
+    return unwrap(res);
+  },
+
+  getBySlug: async (slug: string) => {
+    const res = await client.get<{ data: PublicOrgBranding }>(
+      `/organizations/by-slug/${slug}`,
+    );
+    return unwrap(res);
+  },
+
+  setLogo: async (organizationId: string, imageUrl: string) => {
+    const res = await client.patch<{ data: { logoUrl: string } }>(
+      `/organizations/${organizationId}/logo`,
+      { imageUrl },
     );
     return unwrap(res);
   },

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, ClipboardList, Folder, Gauge, Hand, Link2, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSubdomain } from "@/contexts/SubdomainContext";
+import { Spinner } from "@/components/ui/spinner";
 
 // ── Animated mock of the live room UI — the hero's signature element ──
 function LiveRoomMock() {
@@ -401,6 +403,16 @@ function Footer() {
 }
 
 export default function LandingPage() {
+  const { slug, isLoading } = useSubdomain();
+
+  if (slug) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface-0">
+        <Spinner />
+      </div>
+    );
+  }
+  
   return (
     <div className="bg-surface-0">
       <NavBar />
