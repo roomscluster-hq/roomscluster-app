@@ -42,3 +42,4 @@ next-env.d.ts
 PRODUCT_FEATURES.md
 # .npmrc
 config.bat
+.env

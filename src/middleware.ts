@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const ROOT_HOSTS = ["roomscluster.com", "www.roomscluster.com", "localhost:3000", "localhost"];
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
 
 function getSubdomainSlug(hostname: string): string | null {
   const hostWithoutPort = hostname.split(":")[0];
@@ -20,7 +21,7 @@ function getSubdomainSlug(hostname: string): string | null {
   return null;
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("access_token")?.value;
   const guestToken = req.cookies.get("guest_token")?.value;
   const isLoggedIn = !!accessToken;
@@ -43,16 +44,29 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Org subdomain — skip the marketing page entirely, before any HTML
-  // is rendered. Only fires on the bare root "/", so it never interferes
-  // with normal navigation elsewhere on the app (e.g. /room/xyz).
+  // ── Org subdomain — validate on EVERY request, not just root, so
+  // a bad subdomain can never render a real page first, regardless
+  // of which path someone lands on directly.
   const hostname = req.headers.get("host") ?? "";
   const subdomainSlug = getSubdomainSlug(hostname);
-  if (subdomainSlug && pathname === "/") {
-    if (!isLoggedIn) {
-      return NextResponse.redirect(new URL("/login", req.url));
+
+  if (subdomainSlug && pathname !== "/organization-not-found") {
+    try {
+      const res = await fetch(`${API_URL}/organizations/by-slug/${subdomainSlug}`);
+      if (!res.ok) {
+        return NextResponse.redirect(new URL("/organization-not-found", req.url));
+      }
+    } catch {
+      return NextResponse.redirect(new URL("/organization-not-found", req.url));
     }
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+
+    // Valid subdomain, bare root — send straight to the right entry point
+    if (pathname === "/") {
+      if (!isLoggedIn) {
+        return NextResponse.redirect(new URL("/login", req.url));
+      }
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
   }
 
   if (isDashboard && !isLoggedIn) {
