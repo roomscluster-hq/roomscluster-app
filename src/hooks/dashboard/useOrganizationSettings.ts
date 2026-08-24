@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { invitationsApi } from "@/lib/api/invitations.api";
@@ -14,12 +14,125 @@ export function useOrganizationSettings() {
   const [search, setSearch] = useState("");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
+  const [slugDraft, setSlugDraft] = useState<{
+    organizationId: string | null;
+    value: string;
+  }>({ organizationId: null, value: "" });
+
+  const [logoDraft, setLogoDraft] = useState<{
+    organizationId: string | null;
+    value: string;
+  }>({
+    organizationId: null,
+    value: "",
+  });
+  const [colorDraft, setColorDraft] = useState<{
+    organizationId: string | null;
+    value: string;
+  }>({
+    organizationId: null,
+    value: "",
+  });
+  const [fontDraft, setFontDraft] = useState<{
+    organizationId: string | null;
+    value: string;
+  }>({
+    organizationId: null,
+    value: "",
+  });
+
+  const slugMutation = useMutation({
+    mutationFn: (slug: string) =>
+      organizationsApi.updateSlug(activeOrg!.id, slug),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
+      toast.success("Subdomain updated");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message ?? "Failed to update subdomain");
+    },
+  });
+
+  const brandingMutation = useMutation({
+    mutationFn: (data: {
+      logoUrl?: string;
+      primaryColor?: string;
+      fontFamily?: string;
+    }) => organizationsApi.updateDetails(activeOrg!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
+      toast.success("Branding updated");
+    },
+    onError: () => toast.error("Failed to update branding"),
+  });
+
+  const logoMutation = useMutation({
+    mutationFn: (imageUrl: string) =>
+      organizationsApi.setLogo(activeOrg!.id, imageUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
+      toast.success("Logo updated");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message ?? "Failed to update logo");
+    },
+  });
+
+  function submitLogo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!logoUrl.trim()) return;
+    logoMutation.mutate(logoUrl.trim());
+  }
+
+  function submitSlug(e: React.FormEvent) {
+    e.preventDefault();
+    if (!slugValue.trim()) return;
+    slugMutation.mutate(slugValue.trim());
+  }
+
+  function submitBranding(e: React.FormEvent) {
+    e.preventDefault();
+    brandingMutation.mutate({
+      primaryColor: primaryColor.trim() || undefined,
+      fontFamily: fontFamily.trim() || undefined,
+    });
+  }
+
   const { data: organizations } = useQuery({
     queryKey: ["organizations-mine"],
     queryFn: organizationsApi.listMine,
   });
 
   const activeOrg = organizations?.find((o) => o.isActive);
+
+  const logoUrl =
+    logoDraft.organizationId === activeOrg?.id
+      ? logoDraft.value
+      : (activeOrg?.logoUrl ?? "");
+  const setLogoUrl = (value: string) =>
+    setLogoDraft({ organizationId: activeOrg?.id ?? null, value });
+
+  const primaryColor =
+    colorDraft.organizationId === activeOrg?.id
+      ? colorDraft.value
+      : (activeOrg?.primaryColor ?? "");
+  const setPrimaryColor = (value: string) =>
+    setColorDraft({ organizationId: activeOrg?.id ?? null, value });
+
+  const fontFamily =
+    fontDraft.organizationId === activeOrg?.id
+      ? fontDraft.value
+      : (activeOrg?.fontFamily ?? "");
+  const setFontFamily = (value: string) =>
+    setFontDraft({ organizationId: activeOrg?.id ?? null, value });
+
+  const slugValue =
+    slugDraft.organizationId === activeOrg?.id
+      ? slugDraft.value
+      : (activeOrg?.slug ?? "");
+  const setSlugValue = (value: string) => {
+    setSlugDraft({ organizationId: activeOrg?.id ?? null, value });
+  };
   const canManageOrg =
     activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
 
@@ -193,5 +306,21 @@ export function useOrganizationSettings() {
     isRevoking: revokeMutation.isPending,
     isRemoving: removeMutation.isPending,
     updatingUserId,
+
+    slugValue,
+    setSlugValue,
+    submitSlug,
+    isUpdatingSlug: slugMutation.isPending,
+
+    logoUrl,
+    setLogoUrl,
+    submitLogo,
+    primaryColor,
+    setPrimaryColor,
+    fontFamily,
+    setFontFamily,
+    submitBranding,
+    isUpdatingBranding: brandingMutation.isPending,
+    isUpdatingLogo: logoMutation.isPending,
   };
 }

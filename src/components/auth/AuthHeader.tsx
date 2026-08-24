@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Logo } from "../Logo";
 
 interface AuthHeaderProps {
   title?: string;
@@ -8,13 +9,16 @@ interface AuthHeaderProps {
   showLogo?: boolean;
 }
 
-export function AuthHeader({ title, subtitle, showLogo = true }: AuthHeaderProps) {
+export function AuthHeader({
+  title,
+  subtitle,
+  showLogo = true,
+}: AuthHeaderProps) {
   return (
     <div className="flex flex-col items-center mb-8">
       {showLogo && (
-        <Image
-          src="/favicon.png"
-          alt="RoomsCluster"
+        <Logo
+          fallbackSrc="/favicon.png"
           width={64}
           height={64}
           className="mb-4"

@@ -10,12 +10,28 @@ import { Spinner } from "@/components/ui/spinner";
 import { OrgSwitcher } from "@/components/dashboard/OrgSwitcher";
 import { UserMenu } from "@/components/dashboard/UserMenu";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/Logo";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    exact: true,
+  },
   { href: "/dashboard/sessions", label: "Sessions", icon: Video, exact: false },
-  { href: "/dashboard/settings/profile", label: "Profile", icon: User, exact: false },
-  { href: "/dashboard/settings/organization", label: "Settings", icon: Settings, exact: false },
+  {
+    href: "/dashboard/settings/profile",
+    label: "Profile",
+    icon: User,
+    exact: false,
+  },
+  {
+    href: "/dashboard/settings/organization",
+    label: "Settings",
+    icon: Settings,
+    exact: false,
+  },
 ];
 
 function useIsActive(pathname: string) {
@@ -55,12 +71,11 @@ export default function DashboardLayout({
       <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:fixed md:inset-y-0 bg-surface-0 border-r border-surface-200">
         <div className="h-16 flex items-center px-5 border-b border-surface-200">
           <Link href="/dashboard" className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="RoomsCluster"
+            <Logo
+              fallbackSrc="/logo.png"
               width={160}
               height={48}
-              className="h-auto w-auto"
+              className="h-10 w-auto max-w-45 object-contain"
               priority
             />
           </Link>
@@ -89,7 +104,7 @@ export default function DashboardLayout({
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   active
                     ? "bg-primary-50 text-primary-700"
-                    : "text-ink-700 hover:bg-surface-50"
+                    : "text-ink-700 hover:bg-surface-50",
                 )}
               >
                 <Icon className="w-4.5 h-4.5" size={18} />
@@ -109,12 +124,11 @@ export default function DashboardLayout({
         {/* Top bar — mobile only */}
         <header className="md:hidden sticky top-0 z-30 bg-surface-0 border-b border-surface-200 px-4 h-14 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="RoomsCluster"
+            <Logo
+              fallbackSrc="/logo.png"
               width={140}
               height={40}
-              className="h-auto w-auto"
+              className="h-8 w-auto max-w-35 object-contain"
               priority
             />
           </Link>
@@ -150,7 +164,7 @@ export default function DashboardLayout({
                 href={item.href}
                 className={cn(
                   "flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors",
-                  active ? "text-primary-600" : "text-ink-700/60"
+                  active ? "text-primary-600" : "text-ink-700/60",
                 )}
               >
                 <Icon className="w-5 h-5" size={20} />

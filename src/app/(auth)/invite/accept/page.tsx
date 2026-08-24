@@ -11,13 +11,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { getInitials } from "@/lib/utils";
 import { Building2, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 function BrandMark() {
   return (
     <div className="flex flex-col items-center mb-8">
-      <Image
-        src="/favicon.png"
-        alt="RoomsCluster"
+      <Logo
+        fallbackSrc="/favicon.png"
         width={64}
         height={64}
         className="mb-4"
@@ -34,7 +34,11 @@ function AcceptInvitePageContent() {
   const token = searchParams.get("token");
   const { isAuthenticated, user } = useAuthStore();
 
-  const { data: invitation, isLoading, error } = useQuery({
+  const {
+    data: invitation,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["invitation", token],
     queryFn: () => invitationsApi.getByToken(token!),
     enabled: !!token,
@@ -56,7 +60,9 @@ function AcceptInvitePageContent() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-ink-900">Invalid invitation link</h1>
+          <h1 className="text-xl font-semibold text-ink-900">
+            Invalid invitation link
+          </h1>
           <p className="text-ink-700/60 text-sm mt-2">
             This invitation link is missing or malformed.
           </p>
@@ -74,11 +80,15 @@ function AcceptInvitePageContent() {
   }
 
   if (error || !invitation) {
-    const message = (error as any)?.response?.data?.message ?? "This invitation could not be found.";
+    const message =
+      (error as any)?.response?.data?.message ??
+      "This invitation could not be found.";
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <h1 className="text-xl font-semibold text-ink-900">Invitation unavailable</h1>
+          <h1 className="text-xl font-semibold text-ink-900">
+            Invitation unavailable
+          </h1>
           <p className="text-ink-700/60 text-sm mt-2">{message}</p>
         </div>
       </div>
@@ -96,8 +106,8 @@ function AcceptInvitePageContent() {
           <h1 className="text-xl font-semibold text-ink-900">Wrong account</h1>
           <p className="text-ink-700/60 text-sm mt-2">
             This invitation was sent to <strong>{invitation.email}</strong>, but
-            you're signed in as <strong>{user?.email}</strong>. Sign out and sign
-            in with the correct email to accept.
+            you're signed in as <strong>{user?.email}</strong>. Sign out and
+            sign in with the correct email to accept.
           </p>
         </div>
       </div>
@@ -121,18 +131,28 @@ function AcceptInvitePageContent() {
               {inviterName} invited you
             </h1>
             <p className="text-ink-700/60 text-sm mt-2">
-              Join <strong>{invitation.organization.name}</strong> on RoomsCluster.
-              Sign in or create an account with <strong>{invitation.email}</strong>{" "}
-              to continue.
+              Join <strong>{invitation.organization.name}</strong> on
+              RoomsCluster. Sign in or create an account with{" "}
+              <strong>{invitation.email}</strong> to continue.
             </p>
 
             <div className="flex flex-col gap-2 mt-6">
-              <Button onClick={() => router.push(`/login?returnUrl=${encodeURIComponent(returnUrl)}`)}>
+              <Button
+                onClick={() =>
+                  router.push(
+                    `/login?returnUrl=${encodeURIComponent(returnUrl)}`,
+                  )
+                }
+              >
                 Sign in
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => router.push(`/register?returnUrl=${encodeURIComponent(returnUrl)}&email=${encodeURIComponent(invitation.email)}`)}
+                onClick={() =>
+                  router.push(
+                    `/register?returnUrl=${encodeURIComponent(returnUrl)}&email=${encodeURIComponent(invitation.email)}`,
+                  )
+                }
               >
                 Create an account
               </Button>
@@ -178,11 +198,14 @@ function AcceptInvitePageContent() {
 
           <h2 className="text-xl font-bold text-ink-900 mb-3 leading-tight">
             You've been invited to join{" "}
-            <span className="text-primary-600">{invitation.organization.name}</span>.
+            <span className="text-primary-600">
+              {invitation.organization.name}
+            </span>
+            .
           </h2>
           <p className="text-ink-700/60 text-sm mb-8">
-            <strong className="text-ink-900">{inviterName}</strong> is inviting you
-            to collaborate on sessions in this workspace.
+            <strong className="text-ink-900">{inviterName}</strong> is inviting
+            you to collaborate on sessions in this workspace.
           </p>
 
           <Button

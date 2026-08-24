@@ -52,6 +52,20 @@ export default function OrganizationSettingsPage() {
     isInviting,
 
     updatingUserId,
+    slugValue,
+    setSlugValue,
+    submitSlug,
+    isUpdatingSlug,
+    logoUrl,
+    setLogoUrl,
+    primaryColor,
+    setPrimaryColor,
+    fontFamily,
+    setFontFamily,
+    submitBranding,
+    isUpdatingBranding,
+    submitLogo,
+    isUpdatingLogo,
   } = useOrganizationSettings();
 
   const groupManagement = useGroupManagement();
@@ -108,6 +122,20 @@ export default function OrganizationSettingsPage() {
               onSubmit={submitRename}
               onCancel={() => setEditingName(false)}
               isLoading={isRenaming}
+              slugValue={slugValue}
+              onSlugChange={setSlugValue}
+              onSlugSubmit={submitSlug}
+              isUpdatingSlug={isUpdatingSlug}
+              logoUrl={logoUrl}
+              onLogoUrlChange={setLogoUrl}
+              primaryColor={primaryColor}
+              onPrimaryColorChange={setPrimaryColor}
+              fontFamily={fontFamily}
+              onFontFamilyChange={setFontFamily}
+              onBrandingSubmit={submitBranding}
+              isUpdatingBranding={isUpdatingBranding}
+              onLogoSubmit={submitLogo}
+              isUpdatingLogo={isUpdatingLogo}
             />
           ) : (
             <TeammatesTable
