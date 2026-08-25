@@ -19,13 +19,6 @@ export function useOrganizationSettings() {
     value: string;
   }>({ organizationId: null, value: "" });
 
-  const [logoDraft, setLogoDraft] = useState<{
-    organizationId: string | null;
-    value: string;
-  }>({
-    organizationId: null,
-    value: "",
-  });
   const [colorDraft, setColorDraft] = useState<{
     organizationId: string | null;
     value: string;
