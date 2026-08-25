@@ -20,3 +20,19 @@ export function getSubdomainSlug(): string | null {
 
   return null;
 }
+
+export function getRootHost(hostname: string): string {
+  const slug = getSubdomainSlug();
+  if (!slug) return hostname; // already on the root, nothing to strip
+
+  const hostWithoutPort = hostname.split(":")[0];
+  const port = hostname.includes(":") ? ":" + hostname.split(":")[1] : "";
+
+  if (hostWithoutPort.endsWith(".roomscluster.com")) {
+    return "roomscluster.com";
+  }
+  if (hostWithoutPort.endsWith(".localhost")) {
+    return "localhost" + port;
+  }
+  return hostname;
+}

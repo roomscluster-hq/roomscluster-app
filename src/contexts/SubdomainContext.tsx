@@ -84,18 +84,6 @@ export function SubdomainProvider({ children }: { children: ReactNode }) {
       .catch(() => setAccessDenied(true));
   }, [org, isAuthenticated, pathname, router]);
 
-  useEffect(() => {
-  const hostname = window.location.hostname;
-  const detectedSlug = getSubdomainSlug();
-
-  console.log("BRANDING DEBUG", {
-    hostname,
-    detectedSlug,
-  });
-
-  setSlug(detectedSlug);
-}, []);
-
   function applyBrandingOverride(
     ramp: Record<string, string>,
     fontFamily?: string | null,

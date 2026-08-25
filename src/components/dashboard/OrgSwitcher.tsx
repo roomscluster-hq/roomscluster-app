@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getSubdomainSlug, getRootHost } from "@/lib/subdomain";
 
 export function OrgSwitcher({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -19,22 +20,33 @@ export function OrgSwitcher({ compact = false }: { compact?: boolean }) {
   });
 
   const switchMutation = useMutation({
-    mutationFn: (organizationId: string) =>
-      organizationsApi.switchActive(organizationId),
-    onSuccess: (_, organizationId) => {
-      queryClient.invalidateQueries({ queryKey: ["folder-contents"] });
-      queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
-      toast.success("Switched workspace");
-      setOpen(false);
+  mutationFn: (organizationId: string) => organizationsApi.switchActive(organizationId),
+  onSuccess: (_, organizationId) => {
+    queryClient.invalidateQueries({ queryKey: ["folder-contents"] });
+    queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
+    toast.success("Switched workspace");
+    setOpen(false);
 
-      const target = organizations?.find((o) => o.id === organizationId);
-      router.push(
-        target?.role === "MEMBER" ? "/portal" : "/dashboard/sessions",
-      );
-    },
-    onError: () => toast.error("Failed to switch workspace"),
-  });
+    const target = organizations?.find((o) => o.id === organizationId);
+    const destinationPath = target?.role === "MEMBER" ? "/portal" : "/dashboard/sessions";
+
+    // If we're currently sitting on a DIFFERENT org's subdomain, a soft
+    // client-side route push would leave the browser on that same host
+    // — its branding would keep applying no matter which org is now
+    // actually active. Force a real navigation back to the neutral root
+    // domain instead, so the hostname genuinely changes too.
+    const currentSlug = getSubdomainSlug();
+    if (currentSlug) {
+      const rootHost = getRootHost(window.location.hostname);
+      window.location.href = `${window.location.protocol}//${rootHost}${destinationPath}`;
+      return;
+    }
+
+    router.push(destinationPath);
+  },
+  onError: () => toast.error("Failed to switch workspace"),
+});
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
