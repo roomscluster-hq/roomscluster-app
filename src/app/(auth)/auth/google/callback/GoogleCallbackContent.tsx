@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { authApi } from "@/lib/api";
 import { Spinner } from "@/components/ui/spinner";
+import { resolveHomeRoute } from "@/hooks/resolveHomeRoute";
 
 export function GoogleCallbackContent() {
   const router = useRouter();
@@ -20,10 +21,12 @@ export function GoogleCallbackContent() {
 
     localStorage.setItem("access_token", token);
 
-    authApi.me()
-      .then((user) => {
+    authApi
+      .me()
+      .then(async (user) => {
         setAuth(user, token);
-        router.replace("/dashboard");
+        const homeRoute = await resolveHomeRoute();
+        router.replace(homeRoute);
       })
       .catch(() => {
         localStorage.removeItem("access_token");

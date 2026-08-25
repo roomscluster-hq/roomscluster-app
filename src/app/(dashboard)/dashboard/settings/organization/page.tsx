@@ -1,19 +1,26 @@
 "use client";
 
-import { useState } from "react";
 import { useOrganizationSettings } from "@/hooks/dashboard/useOrganizationSettings";
 import {
   OrganizationTabs,
   GeneralSettings,
   TeammatesTable,
-  PersonalWorkspace,
+  GroupsPanel,
   type Tab,
 } from "@/components/dashboard/settings";
 import { Spinner } from "@/components/ui/spinner";
+import { useGroupManagement } from "@/hooks/useGroupManagement";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function OrganizationSettingsPage() {
-  const [tab, setTab] = useState<Tab>("general");
-  
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = (searchParams.get("tab") as Tab) ?? "general";
+
+  function setTab(next: Tab) {
+    router.push(`/dashboard/settings/organization?tab=${next}`);
+  }
+
   const {
     activeOrg,
     filteredMembers,
@@ -21,7 +28,7 @@ export default function OrganizationSettingsPage() {
     isLoading,
     membersLoading,
     invitesLoading,
-    
+
     // Form states
     inviteEmail,
     setInviteEmail,
@@ -31,18 +38,37 @@ export default function OrganizationSettingsPage() {
     setNameValue,
     search,
     setSearch,
-    
+
     // Actions
     startEditingName,
     submitRename,
     handleInvite,
     confirmRemoveMember,
     revokeInvitation,
-    
+    onUpdateRole,
+
     // Loading states
     isRenaming,
     isInviting,
+
+    updatingUserId,
+    slugValue,
+    setSlugValue,
+    submitSlug,
+    isUpdatingSlug,
+    logoUrl,
+    setLogoUrl,
+    primaryColor,
+    setPrimaryColor,
+    fontFamily,
+    setFontFamily,
+    submitBranding,
+    isUpdatingBranding,
+    submitLogo,
+    isUpdatingLogo,
   } = useOrganizationSettings();
+
+  const groupManagement = useGroupManagement();
 
   if (isLoading) {
     return (
@@ -52,33 +78,15 @@ export default function OrganizationSettingsPage() {
     );
   }
 
-  // Personal workspace view
-  if (activeOrg?.isPersonal) {
-    return (
-      <PersonalWorkspace
-        workspaceName={activeOrg.name}
-        isEditing={editingName}
-        editValue={nameValue}
-        onEditChange={setNameValue}
-        onStartEdit={startEditingName}
-        onSubmit={submitRename}
-        onCancel={() => setEditingName(false)}
-        isRenaming={isRenaming}
-        inviteEmail={inviteEmail}
-        onInviteEmailChange={setInviteEmail}
-        onInvite={handleInvite}
-        isInviting={isInviting}
-      />
-    );
-  }
-
-  // Non-owner view
-  if (activeOrg?.role !== "OWNER") {
+  if (activeOrg?.role !== "OWNER" && activeOrg?.role !== "ADMIN") {
     return (
       <div className="max-w-2xl">
-        <h1 className="text-xl md:text-2xl font-bold text-ink-900 mb-2">{activeOrg?.name}</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-ink-900">
+          {activeOrg?.name}
+        </h1>
         <p className="text-ink-700/60 text-sm">
-          Only the organization owner can manage members and invitations.
+          Only the organization owner or an admin can manage members and
+          invitations.
         </p>
       </div>
     );
@@ -102,7 +110,9 @@ export default function OrganizationSettingsPage() {
 
         {/* Content */}
         <section className="flex-1 min-w-0">
-          {tab === "general" ? (
+          {tab === "groups" ? (
+            <GroupsPanel {...groupManagement} />
+          ) : tab === "general" ? (
             <GeneralSettings
               orgName={activeOrg.name}
               isEditing={editingName}
@@ -112,6 +122,20 @@ export default function OrganizationSettingsPage() {
               onSubmit={submitRename}
               onCancel={() => setEditingName(false)}
               isLoading={isRenaming}
+              slugValue={slugValue}
+              onSlugChange={setSlugValue}
+              onSlugSubmit={submitSlug}
+              isUpdatingSlug={isUpdatingSlug}
+              logoUrl={logoUrl}
+              onLogoUrlChange={setLogoUrl}
+              primaryColor={primaryColor}
+              onPrimaryColorChange={setPrimaryColor}
+              fontFamily={fontFamily}
+              onFontFamilyChange={setFontFamily}
+              onBrandingSubmit={submitBranding}
+              isUpdatingBranding={isUpdatingBranding}
+              onLogoSubmit={submitLogo}
+              isUpdatingLogo={isUpdatingLogo}
             />
           ) : (
             <TeammatesTable
@@ -124,8 +148,11 @@ export default function OrganizationSettingsPage() {
               onInvite={handleInvite}
               onRemove={confirmRemoveMember}
               onRevoke={revokeInvitation}
+              onUpdateRole={onUpdateRole}
               isLoading={membersLoading || invitesLoading}
               isInviting={isInviting}
+              updatingUserId={updatingUserId}
+              viewerRole={activeOrg?.role}
             />
           )}
         </section>

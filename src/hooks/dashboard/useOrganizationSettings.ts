@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { invitationsApi } from "@/lib/api/invitations.api";
@@ -12,8 +12,92 @@ export function useOrganizationSettings() {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [search, setSearch] = useState("");
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
-  // Get active organization
+  const [slugDraft, setSlugDraft] = useState<{
+    organizationId: string | null;
+    value: string;
+  }>({ organizationId: null, value: "" });
+
+  const [logoDraft, setLogoDraft] = useState<{
+    organizationId: string | null;
+    value: string;
+  }>({
+    organizationId: null,
+    value: "",
+  });
+  const [colorDraft, setColorDraft] = useState<{
+    organizationId: string | null;
+    value: string;
+  }>({
+    organizationId: null,
+    value: "",
+  });
+  const [fontDraft, setFontDraft] = useState<{
+    organizationId: string | null;
+    value: string;
+  }>({
+    organizationId: null,
+    value: "",
+  });
+
+  const slugMutation = useMutation({
+    mutationFn: (slug: string) =>
+      organizationsApi.updateSlug(activeOrg!.id, slug),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
+      toast.success("Subdomain updated");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message ?? "Failed to update subdomain");
+    },
+  });
+
+  const brandingMutation = useMutation({
+    mutationFn: (data: {
+      logoUrl?: string;
+      primaryColor?: string;
+      fontFamily?: string;
+    }) => organizationsApi.updateDetails(activeOrg!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
+      toast.success("Branding updated");
+    },
+    onError: () => toast.error("Failed to update branding"),
+  });
+
+  const logoMutation = useMutation({
+    mutationFn: (imageUrl: string) =>
+      organizationsApi.setLogo(activeOrg!.id, imageUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
+      toast.success("Logo updated");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message ?? "Failed to update logo");
+    },
+  });
+
+  function submitLogo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!logoUrl.trim()) return;
+    logoMutation.mutate(logoUrl.trim());
+  }
+
+  function submitSlug(e: React.FormEvent) {
+    e.preventDefault();
+    if (!slugValue.trim()) return;
+    slugMutation.mutate(slugValue.trim());
+  }
+
+  function submitBranding(e: React.FormEvent) {
+    e.preventDefault();
+    brandingMutation.mutate({
+      primaryColor: primaryColor.trim() || undefined,
+      fontFamily: fontFamily.trim() || undefined,
+    });
+  }
+
   const { data: organizations } = useQuery({
     queryKey: ["organizations-mine"],
     queryFn: organizationsApi.listMine,
@@ -21,7 +105,37 @@ export function useOrganizationSettings() {
 
   const activeOrg = organizations?.find((o) => o.isActive);
 
-  // Rename mutation
+  const logoUrl =
+    logoDraft.organizationId === activeOrg?.id
+      ? logoDraft.value
+      : (activeOrg?.logoUrl ?? "");
+  const setLogoUrl = (value: string) =>
+    setLogoDraft({ organizationId: activeOrg?.id ?? null, value });
+
+  const primaryColor =
+    colorDraft.organizationId === activeOrg?.id
+      ? colorDraft.value
+      : (activeOrg?.primaryColor ?? "");
+  const setPrimaryColor = (value: string) =>
+    setColorDraft({ organizationId: activeOrg?.id ?? null, value });
+
+  const fontFamily =
+    fontDraft.organizationId === activeOrg?.id
+      ? fontDraft.value
+      : (activeOrg?.fontFamily ?? "");
+  const setFontFamily = (value: string) =>
+    setFontDraft({ organizationId: activeOrg?.id ?? null, value });
+
+  const slugValue =
+    slugDraft.organizationId === activeOrg?.id
+      ? slugDraft.value
+      : (activeOrg?.slug ?? "");
+  const setSlugValue = (value: string) => {
+    setSlugDraft({ organizationId: activeOrg?.id ?? null, value });
+  };
+  const canManageOrg =
+    activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN";
+
   const renameMutation = useMutation({
     mutationFn: (name: string) => organizationsApi.rename(activeOrg!.id, name),
     onSuccess: () => {
@@ -32,24 +146,25 @@ export function useOrganizationSettings() {
     onError: () => toast.error("Failed to rename organization"),
   });
 
-  // Get members and invitations
+  // Get members and invitations — now enabled for Admin too, not just Owner
   const { data: members, isLoading: membersLoading } = useQuery({
     queryKey: ["org-members", activeOrg?.id],
     queryFn: () => organizationsApi.listMembers(activeOrg!.id),
-    enabled: !!activeOrg && activeOrg.role === "OWNER",
+    enabled: !!activeOrg && canManageOrg,
   });
 
   const { data: invitations, isLoading: invitesLoading } = useQuery({
     queryKey: ["org-invitations", activeOrg?.id],
     queryFn: () => invitationsApi.listForOrganization(activeOrg!.id),
-    enabled: !!activeOrg && activeOrg.role === "OWNER",
+    enabled: !!activeOrg && canManageOrg,
   });
 
-  // Invite mutation
   const inviteMutation = useMutation({
     mutationFn: (email: string) => invitationsApi.invite(activeOrg!.id, email),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["org-invitations", activeOrg?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["org-invitations", activeOrg?.id],
+      });
       toast.success("Invitation sent");
       setInviteEmail("");
     },
@@ -58,21 +173,24 @@ export function useOrganizationSettings() {
     },
   });
 
-  // Revoke mutation
   const revokeMutation = useMutation({
     mutationFn: (invitationId: string) => invitationsApi.revoke(invitationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["org-invitations", activeOrg?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["org-invitations", activeOrg?.id],
+      });
       toast.success("Invitation revoked");
     },
     onError: () => toast.error("Failed to revoke invitation"),
   });
 
-  // Remove member mutation
   const removeMutation = useMutation({
-    mutationFn: (userId: string) => organizationsApi.removeMember(activeOrg!.id, userId),
+    mutationFn: (userId: string) =>
+      organizationsApi.removeMember(activeOrg!.id, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["org-members", activeOrg?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["org-members", activeOrg?.id],
+      });
       toast.success("Member removed");
     },
     onError: (err: any) => {
@@ -80,9 +198,33 @@ export function useOrganizationSettings() {
     },
   });
 
-  // Handlers
+  const updateRoleMutation = useMutation({
+    mutationFn: ({
+      userId,
+      role,
+    }: {
+      userId: string;
+      role: "HOST" | "ADMIN";
+    }) => organizationsApi.updateMemberRole(activeOrg!.id, userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["org-members", activeOrg?.id],
+      });
+      toast.success("Role updated");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message ?? "Failed to update role");
+    },
+    onSettled: () => setUpdatingUserId(null),
+  });
+
+  const onUpdateRole = (userId: string, role: "HOST" | "ADMIN") => {
+    setUpdatingUserId(userId);
+    updateRoleMutation.mutate({ userId, role });
+  };
+
   const startEditingName = () => {
-    setNameValue(activeOrg?.isPersonal ? "" : activeOrg?.name ?? "");
+    setNameValue(activeOrg?.isPersonal ? "" : (activeOrg?.name ?? ""));
     setEditingName(true);
   };
 
@@ -109,10 +251,9 @@ export function useOrganizationSettings() {
     });
   };
 
-  // Filtered data
   const pendingInvitations = useMemo(
     () => invitations?.filter((i) => i.status === "PENDING") ?? [],
-    [invitations]
+    [invitations],
   );
 
   const q = search.trim().toLowerCase();
@@ -122,14 +263,15 @@ export function useOrganizationSettings() {
         (m) =>
           !q ||
           (m.user.name ?? "").toLowerCase().includes(q) ||
-          m.user.email.toLowerCase().includes(q)
+          m.user.email.toLowerCase().includes(q),
       ),
-    [members, q]
+    [members, q],
   );
 
   const filteredInvitations = useMemo(
-    () => pendingInvitations.filter((i) => !q || i.email.toLowerCase().includes(q)),
-    [pendingInvitations, q]
+    () =>
+      pendingInvitations.filter((i) => !q || i.email.toLowerCase().includes(q)),
+    [pendingInvitations, q],
   );
 
   return {
@@ -142,8 +284,7 @@ export function useOrganizationSettings() {
     isLoading: !activeOrg,
     membersLoading,
     invitesLoading,
-    
-    // Form states
+
     inviteEmail,
     setInviteEmail,
     editingName,
@@ -152,18 +293,34 @@ export function useOrganizationSettings() {
     setNameValue,
     search,
     setSearch,
-    
-    // Actions
+
     startEditingName,
     submitRename,
     handleInvite,
     confirmRemoveMember,
     revokeInvitation: revokeMutation.mutate,
-    
-    // Loading states
+    onUpdateRole,
+
     isRenaming: renameMutation.isPending,
     isInviting: inviteMutation.isPending,
     isRevoking: revokeMutation.isPending,
     isRemoving: removeMutation.isPending,
+    updatingUserId,
+
+    slugValue,
+    setSlugValue,
+    submitSlug,
+    isUpdatingSlug: slugMutation.isPending,
+
+    logoUrl,
+    setLogoUrl,
+    submitLogo,
+    primaryColor,
+    setPrimaryColor,
+    fontFamily,
+    setFontFamily,
+    submitBranding,
+    isUpdatingBranding: brandingMutation.isPending,
+    isUpdatingLogo: logoMutation.isPending,
   };
 }

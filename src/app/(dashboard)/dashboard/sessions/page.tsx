@@ -32,6 +32,8 @@ import {
 import { StatusFilterComponent } from "@/components/dashboard/sessions/StatusFilter";
 import type { FolderWithCount } from "@/components/dashboard/sessions/MoveToFolderModal";
 import { RecurringSeriesGroup } from "@/components/dashboard/sessions/RecurringSeriesGroup";
+import { GroupFilter } from "@/components/dashboard/sessions/GroupFilter";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Local alias for the StatusFilter type to avoid conflicts with a runtime export
 type StatusFilterType = "ALL" | SessionStatus;
@@ -68,6 +70,9 @@ export default function SessionsExplorerPage() {
     title: string;
   } | null>(null);
   const [isMoving, setIsMoving] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const groupFilter = searchParams.get("group") ?? "ALL";
 
   const {
     currentFolderId,
@@ -98,7 +103,7 @@ export default function SessionsExplorerPage() {
     handleDropOnFolder,
     cancelCreatingFolder,
     isCreatingFolder,
-  } = useFolderManagement(statusFilter);
+  } = useFolderManagement(statusFilter, groupFilter);
 
   const { moveSession, confirmDeleteSession } = useSessionManagement();
 
@@ -147,7 +152,7 @@ export default function SessionsExplorerPage() {
     return sessions.filter(
       (s) =>
         s.title.toLowerCase().includes(q) ||
-        s.description?.toLowerCase().includes(q)
+        s.description?.toLowerCase().includes(q),
     );
   }, [sessions, searchQuery]);
 
@@ -173,6 +178,16 @@ export default function SessionsExplorerPage() {
       })),
     };
   }, [filteredSessions]);
+
+  function setGroupFilter(next: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "ALL") {
+      params.delete("group");
+    } else {
+      params.set("group", next);
+    }
+    router.push(`/dashboard/sessions?${params.toString()}`);
+  }
 
   const isEmpty = folders.length === 0 && allSessions.length === 0;
 
@@ -202,7 +217,10 @@ export default function SessionsExplorerPage() {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search input */}
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-700/40" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-700/40"
+            />
             <input
               type="text"
               value={searchQuery}
@@ -242,10 +260,18 @@ export default function SessionsExplorerPage() {
         onChange={setStatusFilter}
       />
 
+      <GroupFilter
+        organizationId={activeOrg?.id}
+        currentFilter={groupFilter}
+        onChange={setGroupFilter}
+      />
+
       {/* Search results count */}
       {searchQuery && (
         <p className="text-sm text-ink-700/60 mb-4">
-          {filteredSessions.length} result{filteredSessions.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;
+          {filteredSessions.length} result
+          {filteredSessions.length !== 1 ? "s" : ""} for &quot;{searchQuery}
+          &quot;
         </p>
       )}
 
@@ -368,10 +394,10 @@ export default function SessionsExplorerPage() {
           <Button
             variant="secondary"
             onClick={loadMore}
-            loading={isFetching}
+            disabled={isFetching}
             className="cursor-pointer"
           >
-            Load more
+            {isFetching ? "Please wait..." : "Load more"}
           </Button>
         </div>
       )}
@@ -509,6 +535,7 @@ interface Session {
   title: string;
   status: SessionStatus;
   scheduledAt?: string;
+  group?: { id: string; name: string; labelOverride: string | null } | null;
   _count?: {
     participants: number;
     registrations: number;
@@ -563,6 +590,8 @@ function SessionGrid({
             </div>
 
             <SessionMenu
+              sessionId={session.id}
+              status={session.status}
               currentFolderId={currentFolderId}
               onMoveToRoot={() => onMoveToRoot(session.id)}
               onMoveToFolder={() => onMoveToFolder(session.id, session.title)}
@@ -577,6 +606,11 @@ function SessionGrid({
               <p className="text-sm font-medium text-ink-900 truncate pr-6">
                 {session.title}
               </p>
+              {session.group && (
+                <span className="inline-flex items-center gap-1 mt-1 text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
+                  {session.group.labelOverride ?? "Group"}: {session.group.name}
+                </span>
+              )}
               <div className="flex items-center gap-3 text-xs text-ink-700/50 mt-1.5">
                 <span>
                   {session.scheduledAt
@@ -702,16 +736,24 @@ function SessionList({
                 <p className="text-sm font-medium text-ink-900 truncate">
                   {session.title}
                 </p>
-                <p className="text-xs text-ink-700/50">
+                <p className="text-xs text-ink-700/50 flex items-center gap-2">
                   {session.scheduledAt
                     ? formatDateTime(session.scheduledAt)
                     : "Instant session"}
+                  {session.group && (
+                    <span className="text-primary-600">
+                      · {session.group.labelOverride ?? "Group"}:{" "}
+                      {session.group.name}
+                    </span>
+                  )}
                 </p>
               </div>
             </Link>
             <div className="flex items-center gap-3 shrink-0">
               <StatusBadge status={session.status} />
               <SessionMenu
+                sessionId={session.id}
+                status={session.status}
                 currentFolderId={currentFolderId}
                 onMoveToRoot={() => onMoveToRoot(session.id)}
                 onMoveToFolder={() => onMoveToFolder(session.id, session.title)}
@@ -778,12 +820,16 @@ function FolderMenu({
 
 // ── Three-dot menu for sessions ───────────────────────────────────────────
 function SessionMenu({
+  sessionId,
+  status,
   currentFolderId,
   onMoveToRoot,
   onMoveToFolder,
   onDelete,
   variant = "grid",
 }: {
+  sessionId: string;
+  status: SessionStatus;
   currentFolderId?: string;
   onMoveToRoot: () => void;
   onMoveToFolder: () => void;
@@ -791,6 +837,7 @@ function SessionMenu({
   variant?: "grid" | "list";
 }) {
   const [open, setOpen] = useState(false);
+  const isScheduled = status === "SCHEDULED";
 
   const containerClasses =
     variant === "grid" ? "absolute top-3 right-3 z-10" : "relative";
@@ -813,6 +860,16 @@ function SessionMenu({
           onMouseLeave={() => setOpen(false)}
           className="absolute right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised w-44 py-1 z-10"
         >
+          {/* Edit option - only for scheduled sessions */}
+          {isScheduled && (
+            <Link
+              href={`/dashboard/sessions/${sessionId}/edit`}
+              onClick={() => setOpen(false)}
+              className="block w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-surface-50 transition-colors cursor-pointer"
+            >
+              Edit
+            </Link>
+          )}
           <button
             onClick={() => {
               onMoveToFolder();

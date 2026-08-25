@@ -249,8 +249,7 @@ export default function GuestJoinPage() {
           <Button
             type="submit"
             className="w-full"
-            loading={loading}
-            disabled={session?.status !== "LIVE"}
+            disabled={session?.status !== "LIVE" || loading}
           >
             {session?.status === "LIVE" ? "Join Session" : "Session Not Started"}
           </Button>

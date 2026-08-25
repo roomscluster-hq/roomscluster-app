@@ -78,16 +78,31 @@ function ScreenShareTile({
 
   useEffect(() => {
     function handleFullscreenChange() {
-      if (!document.fullscreenElement) setIsFullscreen(false);
+      const active =
+        document.fullscreenElement ??
+        (document as any).webkitFullscreenElement ??
+        null;
+      if (!active) setIsFullscreen(false);
     }
+
+    // iOS native video player — only fires on the video element
+    function handleWebkitEnd() {
+      setIsFullscreen(false);
+    }
+
+    const video = videoRef.current;
+
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    video?.addEventListener("webkitendfullscreen", handleWebkitEnd);
+
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener(
         "webkitfullscreenchange",
         handleFullscreenChange,
       );
+      video?.removeEventListener("webkitendfullscreen", handleWebkitEnd);
     };
   }, []);
 
@@ -204,9 +219,11 @@ function VideoTile({
   useEffect(() => {
     const updateTrack = () => {
       const pubs = [...participant.videoTrackPublications.values()];
-      const track =
-        pubs.find((pub) => pub.track?.source === Track.Source.Camera)?.track ??
-        null;
+      const cameraPubs = pubs.filter(
+        (pub) => pub.track?.source === Track.Source.Camera,
+      );
+      // Map iteration order is insertion order — the last one is the most recently published
+      const track = cameraPubs[cameraPubs.length - 1]?.track ?? null;
       setVideoTrack(track);
     };
 
@@ -262,15 +279,18 @@ function VideoTile({
         isSpeaking && "border-success-500",
       )}
     >
-      {isCameraEnabled ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={isLocal}
-          className="w-full h-full object-cover"
-        />
-      ) : (
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isLocal}
+        className={cn(
+          "w-full h-full object-cover",
+          !isCameraEnabled && "hidden",
+        )}
+      />
+
+      {!isCameraEnabled && (
         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-ink-800">
           <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg md:text-2xl font-bold shadow-lg overflow-hidden">
             {profileImage ? (

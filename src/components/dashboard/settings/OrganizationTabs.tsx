@@ -1,8 +1,8 @@
 "use client";
 
-import { Building2, Users } from "lucide-react";
+import { Building2, Users, Layers } from "lucide-react";
 
-export type Tab = "general" | "teammates";
+export type Tab = "general" | "teammates" | "groups";
 
 interface TabConfig {
   id: Tab;
@@ -13,6 +13,7 @@ interface TabConfig {
 const TABS: TabConfig[] = [
   { id: "general", label: "General", icon: Building2 },
   { id: "teammates", label: "Teammates", icon: Users },
+  { id: "groups", label: "Groups", icon: Layers },
 ];
 
 interface OrganizationTabsProps {

@@ -1,0 +1,340 @@
+"use client";
+
+import { AxiosError } from "axios";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { sessionsApi } from "@/lib/api";
+import { organizationsApi } from "@/lib/api/organizations.api";
+import { foldersApi } from "@/lib/api/folders.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
+import { useAuthStore } from "@/store/auth.store";
+import { useSessionSocket } from "@/hooks/useSessionSocket";
+import {
+  CoHostSelector,
+  SelectedCoHost,
+} from "@/components/session/CoHostSelector";
+import { Folder } from "@/types";
+import { ChevronDown, ChevronUp } from "lucide-react";
+
+export default function EditSessionPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const { joinSession, leaveSession } = useSessionSocket();
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [passcode, setPasscode] = useState("");
+  const [cohosts, setCohosts] = useState<SelectedCoHost[]>([]);
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [showFolderDropdown, setShowFolderDropdown] = useState(false);
+
+  // Fetch session data
+  const { data: session, isLoading } = useQuery({
+    queryKey: ["session", id],
+    queryFn: () => sessionsApi.getOne(id),
+  });
+
+  // Get organization info for co-host selector
+  const { data: organizations } = useQuery({
+    queryKey: ["organizations-mine"],
+    queryFn: organizationsApi.listMine,
+    enabled: !!session?.organizationId,
+  });
+  const activeOrg = organizations?.find((o) => o.id === session?.organizationId);
+
+  // Fetch folders for folder selector
+  const { data: foldersData } = useQuery({
+    queryKey: ["folders-root"],
+    queryFn: () => foldersApi.getContents(undefined),
+    enabled: !!session,
+  });
+  const folders = foldersData?.folders ?? [];
+
+  // Join WebSocket room for this session
+  useEffect(() => {
+    if (id) {
+      joinSession(id);
+      return () => {
+        leaveSession(id);
+      };
+    }
+  }, [id, joinSession, leaveSession]);
+
+  // Populate form when session data loads
+  useEffect(() => {
+    if (session) {
+      setTitle(session.title);
+      setDescription(session.description ?? "");
+      // Format scheduledAt for datetime-local input (YYYY-MM-DDTHH:mm)
+      if (session.scheduledAt) {
+        const date = new Date(session.scheduledAt);
+        const formatted = date.toISOString().slice(0, 16);
+        setScheduledAt(formatted);
+      }
+      setPasscode(session.passcode ?? "");
+      setFolderId(session.folderId ?? null);
+
+      // Populate co-hosts from session participants
+      if (session.participants) {
+        const existingCohosts = session.participants
+          .filter((p) => p.role === "COHOST")
+          .map((p) => ({
+            userId: p.userId,
+            name: p.user.name ?? p.user.email,
+            email: p.user.email,
+            image: p.user.image,
+          }));
+        setCohosts(existingCohosts);
+      }
+    }
+  }, [session]);
+
+  // Handle co-host validation errors
+  const handleUpdateError = (err: AxiosError<{ message?: string }>) => {
+    const message = err.response?.data?.message;
+    
+    if (err.response?.status === 400 && message) {
+      switch (message) {
+        case "Maximum of 2 co-hosts allowed per session":
+          toast.error("Cannot add more than 2 co-hosts");
+          break;
+        case "One or more co-host users not found":
+          toast.error("Selected user not found");
+          break;
+        case "One or more co-host users are not members of this organization":
+          toast.error("User must be an organization member");
+          break;
+        case "Cannot add host as co-host":
+          toast.error("The session host cannot be added as a co-host");
+          break;
+        default:
+          toast.error(message);
+      }
+    } else {
+      toast.error(message ?? "Failed to update session");
+    }
+  };
+
+  // Update mutation with enhanced error handling
+  const updateMutation = useMutation({
+    mutationFn: (data: {
+      title: string;
+      description?: string;
+      scheduledAt?: string;
+      passcode?: string;
+      coHostUserIds?: string[];
+      folderId?: string | null;
+    }) => sessionsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session", id] });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["folder-contents"] });
+      queryClient.invalidateQueries({ queryKey: ["folders-root"] });
+      toast.success("Session updated successfully");
+      router.push(`/dashboard/sessions/${id}`);
+    },
+    onError: handleUpdateError,
+  });
+
+  // Redirect if session is not editable (LIVE or ENDED)
+  useEffect(() => {
+    if (session && (session.status === "LIVE" || session.status === "ENDED")) {
+      toast.error("Cannot edit a live or ended session");
+      router.push(`/dashboard/sessions/${id}`);
+    }
+  }, [session, id, router]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    updateMutation.mutate({
+      title,
+      description: description || undefined,
+      scheduledAt: scheduledAt || undefined,
+      passcode: passcode || undefined,
+      coHostUserIds: cohosts.map((c) => c.userId),
+      folderId,
+    });
+  }
+
+  function handleMoveToRoot() {
+    setFolderId(null);
+    setShowFolderDropdown(false);
+  }
+
+  function handleMoveToFolder(selectedFolderId: string) {
+    setFolderId(selectedFolderId);
+    setShowFolderDropdown(false);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="max-w-2xl">
+        <p className="text-ink-700">Session not found</p>
+      </div>
+    );
+  }
+
+  const currentFolder = folders.find((f) => f.id === folderId);
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-ink-900">
+          Edit Session
+        </h1>
+        <p className="text-ink-700/60 text-sm mt-1">
+          Update session details
+        </p>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              label="Session Title *"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              placeholder="e.g. Product Launch Webinar"
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-ink-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="w-full border border-surface-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 resize-none"
+                placeholder="What is this session about?"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-ink-700 mb-1">
+                Schedule Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="w-full border border-surface-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+              />
+              <p className="text-xs text-ink-700/40 mt-1">
+                Leave empty to start an instant session
+              </p>
+            </div>
+
+            <Input
+              label="Passcode (optional)"
+              type="text"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              placeholder="Leave empty for no passcode"
+            />
+
+            {/* Folder Selector */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
+                Folder Location
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowFolderDropdown(!showFolderDropdown)}
+                className="w-full flex items-center justify-between border border-surface-200 rounded-lg px-3 py-2.5 text-sm bg-surface-0 hover:bg-surface-50 transition-colors"
+              >
+                <span className={folderId ? "text-ink-900" : "text-ink-700/50"}>
+                  {currentFolder?.name ?? "All Sessions (Root)"}
+                </span>
+                {showFolderDropdown ? (
+                  <ChevronUp size={16} className="text-ink-700/40" />
+                ) : (
+                  <ChevronDown size={16} className="text-ink-700/40" />
+                )}
+              </button>
+
+              {showFolderDropdown && (
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised max-h-48 overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={handleMoveToRoot}
+                    className={`w-full text-left px-3 py-2.5 text-sm hover:bg-surface-50 transition-colors ${
+                      folderId === null ? "bg-primary-50 text-primary-700" : "text-ink-700"
+                    }`}
+                  >
+                    All Sessions (Root)
+                  </button>
+                  {folders.map((folder: Folder) => (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => handleMoveToFolder(folder.id)}
+                      className={`w-full text-left px-3 py-2.5 text-sm hover:bg-surface-50 transition-colors ${
+                        folderId === folder.id ? "bg-primary-50 text-primary-700" : "text-ink-700"
+                      }`}
+                    >
+                      {folder.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Co-hosts - only for non-personal organizations */}
+            {activeOrg && !activeOrg.isPersonal && (
+              <div className="border-t border-surface-200 pt-5">
+                <CoHostSelector
+                  organizationId={activeOrg.id}
+                  currentUserId={user?.id ?? ""}
+                  value={cohosts}
+                  onChange={setCohosts}
+                />
+                {cohosts.length > 2 && (
+                  <p className="text-xs text-danger-600 mt-2">
+                    Maximum 2 co-hosts allowed. Please remove {cohosts.length - 2} co-host(s).
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending || cohosts.length > 2}
+                className="w-full sm:w-auto"
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

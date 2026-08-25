@@ -9,6 +9,7 @@ import {
 import { livekitApi } from "@/lib/api";
 import { getCookie } from "@/lib/cookies";
 import { setLogLevel } from "livekit-client";
+import { debugLog } from "@/lib/debug";
 
 export function useLiveKit(joinCode: string) {
   const roomRef = useRef<Room | null>(null);
@@ -25,7 +26,8 @@ export function useLiveKit(joinCode: string) {
   const [canPublish, setCanPublish] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canPublishRef = useRef(false);
-
+  const reconnectingRef = useRef(false);
+  const [isHost, setIsHost] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +49,7 @@ export function useLiveKit(joinCode: string) {
     room.on(RoomEvent.ParticipantConnected, updateParticipants);
     room.on(RoomEvent.ParticipantDisconnected, updateParticipants);
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-      console.log("🎥 HOST RECEIVED TRACK", {
+      debugLog("🎥 HOST RECEIVED TRACK", {
         participant: participant.identity,
         source: publication.source,
         kind: publication.kind,
@@ -56,20 +58,27 @@ export function useLiveKit(joinCode: string) {
 
       updateParticipants();
     });
+    room.on(RoomEvent.ParticipantPermissionsChanged, (_prev, participant) => {
+      if (participant !== room.localParticipant || cancelled) return;
+      const allowed = participant.permissions?.canPublish ?? false;
+      canPublishRef.current = allowed;
+      setCanPublish(allowed);
+      setLocalParticipant(room.localParticipant);
+    });
     room.on(RoomEvent.TrackUnsubscribed, updateParticipants);
     room.on(RoomEvent.LocalTrackPublished, updateParticipants);
     room.on(RoomEvent.LocalTrackUnpublished, updateParticipants);
 
     room.on(RoomEvent.ConnectionStateChanged, (state) => {
-      console.log("🟡 CONNECTION STATE:", state);
+      debugLog("🟡 CONNECTION STATE:", state);
     });
 
     room.on(RoomEvent.SignalConnected, () => {
-      console.log("🟢 SIGNAL CONNECTED");
+      debugLog("🟢 SIGNAL CONNECTED");
     });
 
     room.on(RoomEvent.Connected, () => {
-      console.log("🟢 CONNECTED");
+      debugLog("🟢 CONNECTED");
 
       if (!cancelled) {
         setIsConnected(true);
@@ -77,11 +86,11 @@ export function useLiveKit(joinCode: string) {
     });
 
     room.on(RoomEvent.Reconnecting, () => {
-      console.log("🟠 RECONNECTING");
+      debugLog("🟠 RECONNECTING");
     });
 
     room.on(RoomEvent.Reconnected, () => {
-      console.log("🟢 RECONNECTED");
+      debugLog("🟢 RECONNECTED");
 
       if (!cancelled) {
         setIsConnected(true);
@@ -90,8 +99,8 @@ export function useLiveKit(joinCode: string) {
     });
 
     room.on(RoomEvent.Disconnected, (reason) => {
-      console.log("🔴 DISCONNECTED");
-      console.log("Reason:", reason);
+      debugLog("🔴 DISCONNECTED");
+      debugLog("Reason:", reason);
 
       if (!cancelled) {
         setIsConnected(false);
@@ -117,24 +126,25 @@ export function useLiveKit(joinCode: string) {
           token = data.token;
           serverUrl = data.serverUrl;
           publish = data.canPublish;
+          setIsHost(data.isHost);
         }
 
         // Effect was cleaned up while token was being fetched
         if (cancelled) {
-          console.log("⚠️ Connection cancelled before connect");
+          debugLog("⚠️ Connection cancelled before connect");
           return;
         }
 
         setCanPublish(publish);
         canPublishRef.current = publish;
 
-        console.log("🔵 Connecting to:", serverUrl);
+        debugLog("🔵 Connecting to:", serverUrl);
 
         await room.connect(serverUrl, token);
 
         // Effect was cleaned up while connect() was running
         if (cancelled) {
-          console.log("⚠️ Connection completed after cleanup");
+          debugLog("⚠️ Connection completed after cleanup");
           await room.disconnect();
           return;
         }
@@ -146,7 +156,7 @@ export function useLiveKit(joinCode: string) {
 
         setIsConnected(true);
 
-        console.log("✅ LiveKit connection successful");
+        debugLog("✅ LiveKit connection successful");
       } catch (err: any) {
         if (cancelled) return;
 
@@ -163,7 +173,7 @@ export function useLiveKit(joinCode: string) {
     connect();
 
     return () => {
-      console.log("🧹 Cleaning up LiveKit connection");
+      debugLog("🧹 Cleaning up LiveKit connection");
 
       cancelled = true;
       connectingRef.current = false;
@@ -176,25 +186,50 @@ export function useLiveKit(joinCode: string) {
     };
   }, [joinCode]);
 
-  // useEffect(() => {
-  //   const handleVisibilityChange = () => {
-  //     const room = roomRef.current;
-  //     if (!room) return;
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== "visible") return;
 
-  //     if (document.visibilityState === "visible") {
-  //       if (room.state === "disconnected") {
-  //         // Re-run connection by fetching a fresh token
-  //         livekitApi.getToken(joinCode).then((data) => {
-  //           room.connect(data.serverUrl, data.token).catch(console.error);
-  //         });
-  //       }
-  //     }
-  //   };
+      const room = roomRef.current;
+      if (!room || room.state !== "disconnected") return;
+      if (reconnectingRef.current) return;
 
-  //   document.addEventListener("visibilitychange", handleVisibilityChange);
-  //   return () =>
-  //     document.removeEventListener("visibilitychange", handleVisibilityChange);
-  // }, [joinCode]);
+      reconnectingRef.current = true;
+
+      try {
+        const guestToken = getCookie("guest_token");
+        const guestServerUrl = getCookie("livekit_server_url");
+
+        let token: string;
+        let serverUrl: string;
+
+        if (guestToken && guestServerUrl) {
+          token = guestToken;
+          serverUrl = decodeURIComponent(guestServerUrl);
+        } else {
+          const data = await livekitApi.getToken(joinCode);
+          token = data.token;
+          serverUrl = data.serverUrl;
+        }
+
+        await room.connect(serverUrl, token, { autoSubscribe: true });
+
+        setIsConnected(true);
+        setLocalParticipant(room.localParticipant);
+        setRemoteParticipants([...room.remoteParticipants.values()]);
+
+        debugLog("🔄 Reconnected after returning to tab");
+      } catch (err) {
+        console.error("[useLiveKit] Visibility reconnect failed:", err);
+      } finally {
+        reconnectingRef.current = false;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [joinCode]);
 
   const toggleMic = useCallback(async () => {
     const room = roomRef.current;
@@ -253,6 +288,7 @@ export function useLiveKit(joinCode: string) {
     isCameraOff,
     isScreenSharing,
     canPublish,
+    isHost,
     updateCanPublish,
     syncLocalParticipant,
     error,

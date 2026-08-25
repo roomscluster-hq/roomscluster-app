@@ -40,9 +40,9 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
       <Button
         type="submit"
         className="w-full"
-        loading={resetMutation.isPending}
+        disabled={resetMutation.isPending}
       >
-        Send reset link
+        {resetMutation.isPending ? "Sending..." : "Send reset link"}
       </Button>
     </form>
   );
