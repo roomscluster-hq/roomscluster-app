@@ -1,7 +1,11 @@
 "use client";
 
+import { useRef } from "react";
+import Image from "next/image";
+import { Camera, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FONT_OPTIONS } from "@/lib/fontFamily";
 
 interface GeneralSettingsProps {
   orgName: string;
@@ -18,16 +22,16 @@ interface GeneralSettingsProps {
   onSlugSubmit: (e: React.FormEvent) => void;
   isUpdatingSlug: boolean;
 
-  logoUrl: string;
-  onLogoUrlChange: (value: string) => void;
+  currentLogoUrl: string | null;
+  onLogoUpload: (file: File) => void;
+  isUpdatingLogo: boolean;
+
   primaryColor: string;
   onPrimaryColorChange: (value: string) => void;
   fontFamily: string;
   onFontFamilyChange: (value: string) => void;
   onBrandingSubmit: (e: React.FormEvent) => void;
   isUpdatingBranding: boolean;
-  onLogoSubmit: (e: React.FormEvent) => void;
-  isUpdatingLogo: boolean;
 }
 
 export function GeneralSettings({
@@ -43,17 +47,23 @@ export function GeneralSettings({
   onSlugChange,
   onSlugSubmit,
   isUpdatingSlug,
-  logoUrl,
-  onLogoUrlChange,
+  currentLogoUrl,
+  onLogoUpload,
+  isUpdatingLogo,
   primaryColor,
   onPrimaryColorChange,
   fontFamily,
   onFontFamilyChange,
   onBrandingSubmit,
   isUpdatingBranding,
-  onLogoSubmit,
-  isUpdatingLogo,
 }: GeneralSettingsProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) onLogoUpload(file);
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -121,22 +131,56 @@ export function GeneralSettings({
 
       <Card>
         <CardContent className="py-6">
-          <h2 className="font-semibold text-ink-900 mb-1">Logo</h2>
-          <p className="text-xs text-ink-700/50 mb-4">
-            Paste a link to your logo image — from any platform. We'll fetch and
-            host a copy automatically.
-          </p>
-          <form onSubmit={onLogoSubmit} className="flex items-center gap-2">
-            <input
-              value={logoUrl}
-              onChange={(e) => onLogoUrlChange(e.target.value)}
-              placeholder="https://example.com/logo.png"
-              className="flex-1 bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
-            />
-            <Button type="submit" size="sm" disabled={isUpdatingLogo}>
-              {isUpdatingLogo ? "Saving..." : "Save"}
-            </Button>
-          </form>
+          <h2 className="font-semibold text-ink-900 mb-4">Logo</h2>
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="w-20 h-20 rounded-lg bg-surface-50 border border-surface-200 flex items-center justify-center overflow-hidden">
+                {currentLogoUrl ? (
+                  <Image
+                    src={currentLogoUrl}
+                    alt="Organization logo"
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="text-xs text-ink-700/40">No logo</span>
+                )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUpdatingLogo}
+                className="absolute inset-0 rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center disabled:cursor-not-allowed"
+                title="Change logo"
+              >
+                {isUpdatingLogo ? (
+                  <Loader2 size={18} className="text-white animate-spin" />
+                ) : (
+                  <Camera size={18} className="text-white" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+            <div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUpdatingLogo}
+                className="text-sm text-primary-600 hover:underline disabled:opacity-50 cursor-pointer"
+              >
+                {isUpdatingLogo ? "Uploading..." : "Upload logo"}
+              </button>
+              <p className="text-xs text-ink-700/50 mt-0.5">
+                JPEG, PNG, WebP or GIF — up to 5MB
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -163,12 +207,18 @@ export function GeneralSettings({
                 <label className="block text-sm font-medium text-ink-700 mb-1">
                   Font family
                 </label>
-                <input
+                <select
                   value={fontFamily}
                   onChange={(e) => onFontFamilyChange(e.target.value)}
-                  placeholder="Inter, sans-serif"
-                  className="w-full bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
-                />
+                  className="w-full bg-surface-0 text-ink-900 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+                >
+                  <option value="">Default (Inter)</option>
+                  {FONT_OPTIONS.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <Button type="submit" size="sm" disabled={isUpdatingBranding}>

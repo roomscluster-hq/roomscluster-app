@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { invitationsApi } from "@/lib/api/invitations.api";
@@ -55,7 +55,6 @@ export function useOrganizationSettings() {
 
   const brandingMutation = useMutation({
     mutationFn: (data: {
-      logoUrl?: string;
       primaryColor?: string;
       fontFamily?: string;
     }) => organizationsApi.updateDetails(activeOrg!.id, data),
@@ -67,21 +66,23 @@ export function useOrganizationSettings() {
   });
 
   const logoMutation = useMutation({
-    mutationFn: (imageUrl: string) =>
-      organizationsApi.setLogo(activeOrg!.id, imageUrl),
+    mutationFn: (file: File) =>
+      organizationsApi.uploadLogo(activeOrg!.id, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organizations-mine"] });
       toast.success("Logo updated");
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message ?? "Failed to update logo");
+      toast.error(err.response?.data?.message ?? "Failed to upload logo");
     },
   });
 
-  function submitLogo(e: React.FormEvent) {
-    e.preventDefault();
-    if (!logoUrl.trim()) return;
-    logoMutation.mutate(logoUrl.trim());
+  function handleLogoUpload(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+    logoMutation.mutate(file);
   }
 
   function submitSlug(e: React.FormEvent) {
@@ -104,13 +105,6 @@ export function useOrganizationSettings() {
   });
 
   const activeOrg = organizations?.find((o) => o.isActive);
-
-  const logoUrl =
-    logoDraft.organizationId === activeOrg?.id
-      ? logoDraft.value
-      : (activeOrg?.logoUrl ?? "");
-  const setLogoUrl = (value: string) =>
-    setLogoDraft({ organizationId: activeOrg?.id ?? null, value });
 
   const primaryColor =
     colorDraft.organizationId === activeOrg?.id
@@ -312,9 +306,7 @@ export function useOrganizationSettings() {
     submitSlug,
     isUpdatingSlug: slugMutation.isPending,
 
-    logoUrl,
-    setLogoUrl,
-    submitLogo,
+    handleLogoUpload,
     primaryColor,
     setPrimaryColor,
     fontFamily,

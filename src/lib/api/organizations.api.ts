@@ -116,10 +116,13 @@ export const organizationsApi = {
     return unwrap(res);
   },
 
-  setLogo: async (organizationId: string, imageUrl: string) => {
-    const res = await client.patch<{ data: { logoUrl: string } }>(
+  uploadLogo: async (organizationId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("logo", file);
+    const res = await client.post<{ data: { logoUrl: string } }>(
       `/organizations/${organizationId}/logo`,
-      { imageUrl },
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
     );
     return unwrap(res);
   },

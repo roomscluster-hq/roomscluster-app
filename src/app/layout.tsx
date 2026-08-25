@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
+      <body className={`${fontVariables} font-sans`} suppressHydrationWarning>
         <Providers>
           {children}
           <Toaster
