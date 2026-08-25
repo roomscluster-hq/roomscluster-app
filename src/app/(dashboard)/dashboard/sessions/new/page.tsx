@@ -22,6 +22,13 @@ import {
 import { groupsApi } from "@/lib/api/groups.api";
 
 export default function NewSessionPage() {
+  const searchParams = useSearchParams();
+  const urlGroupId = searchParams.get("groupId") ?? undefined;
+
+  return <NewSessionForm key={urlGroupId ?? "no-group"} />;
+}
+
+function NewSessionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
