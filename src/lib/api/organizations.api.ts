@@ -8,6 +8,7 @@ export interface OrgMembership {
   logoUrl: string | null;
   primaryColor: string | null;
   fontFamily: string | null;
+  subdomainEnabled: boolean;
   role: "OWNER" | "ADMIN" | "HOST" | "MEMBER";
   memberCount: number;
   isActive: boolean;

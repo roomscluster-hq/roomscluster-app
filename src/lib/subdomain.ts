@@ -21,18 +21,15 @@ export function getSubdomainSlug(): string | null {
   return null;
 }
 
-export function getRootHost(hostname: string): string {
-  const slug = getSubdomainSlug();
-  if (!slug) return hostname; // already on the root, nothing to strip
+export function getRootHost(host: string): string {
+  const [hostname, port] = host.split(":");
+  const portSuffix = port ? `:${port}` : "";
 
-  const hostWithoutPort = hostname.split(":")[0];
-  const port = hostname.includes(":") ? ":" + hostname.split(":")[1] : "";
-
-  if (hostWithoutPort.endsWith(".roomscluster.com")) {
+  if (hostname.endsWith(".roomscluster.com") || hostname === "roomscluster.com") {
     return "roomscluster.com";
   }
-  if (hostWithoutPort.endsWith(".localhost")) {
-    return "localhost" + port;
+  if (hostname.endsWith(".localhost") || hostname === "localhost") {
+    return `localhost${portSuffix}`;
   }
-  return hostname;
+  return host;
 }
