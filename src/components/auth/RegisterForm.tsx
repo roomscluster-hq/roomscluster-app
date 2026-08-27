@@ -32,8 +32,11 @@ export function RegisterForm() {
     },
   });
 
+  const isSubmitting = registerMutation.isPending;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isSubmitting) return;
     setError("");
     registerMutation.mutate({ name, email, password });
   }
@@ -49,6 +52,7 @@ export function RegisterForm() {
         onChange={(e) => setName(e.target.value)}
         required
         placeholder="John Doe"
+        disabled={isSubmitting}
       />
 
       <Input
@@ -58,22 +62,33 @@ export function RegisterForm() {
         onChange={(e) => setEmail(e.target.value)}
         required
         placeholder="you@example.com"
+        disabled={isSubmitting}
       />
 
       <PasswordInput
         value={password}
         onChange={setPassword}
         helperText="Must be at least 8 characters."
+        disabled={isSubmitting}
       />
 
       <Button
         type="submit"
         className="w-full"
-        disabled={registerMutation.isPending}
+        disabled={isSubmitting}
       >
         <span className="flex items-center justify-center gap-2">
-          Get Started
-          <ArrowRight size={18} />
+          {isSubmitting ? (
+            <>
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Creating account...
+            </>
+          ) : (
+            <>
+              Get Started
+              <ArrowRight size={18} />
+            </>
+          )}
         </span>
       </Button>
 
