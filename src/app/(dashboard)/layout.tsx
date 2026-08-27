@@ -74,7 +74,7 @@ export default function DashboardLayout({
               fallbackSrc="/logo.png"
               width={160}
               height={48}
-              className="h-10 w-auto max-w-45 object-contain"
+              className="h-10 object-cover"
               priority
             />
           </Link>

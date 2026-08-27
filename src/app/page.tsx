@@ -2,10 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, ClipboardList, Folder, Gauge, Hand, Link2, Video } from "lucide-react";
+import {
+  ArrowRight,
+  ClipboardList,
+  Folder,
+  Gauge,
+  Hand,
+  Link2,
+  Video,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSubdomain } from "@/contexts/SubdomainContext";
 import { Spinner } from "@/components/ui/spinner";
+import Image from "next/image";
 
 // ── Animated mock of the live room UI — the hero's signature element ──
 function LiveRoomMock() {
@@ -29,7 +38,9 @@ function LiveRoomMock() {
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <span className="text-white text-sm font-medium">Q3 Product Walkthrough</span>
+            <span className="text-white text-sm font-medium">
+              Q3 Product Walkthrough
+            </span>
             <span className="flex items-center gap-1 text-xs bg-success-600 text-white px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               LIVE
@@ -45,7 +56,9 @@ function LiveRoomMock() {
               key={i}
               className="aspect-video rounded-lg bg-linear-to-br from-ink-700 to-ink-900 flex items-center justify-center"
             >
-              <span className="text-white/60 text-xs font-semibold">{initials}</span>
+              <span className="text-white/60 text-xs font-semibold">
+                {initials}
+              </span>
             </div>
           ))}
         </div>
@@ -56,7 +69,9 @@ function LiveRoomMock() {
             <span className="text-primary-500 text-xs font-medium shrink-0">
               {visibleMessage.name}
             </span>
-            <span className="text-white/70 text-xs truncate">{visibleMessage.text}</span>
+            <span className="text-white/70 text-xs truncate">
+              {visibleMessage.text}
+            </span>
           </div>
         </div>
       </div>
@@ -85,29 +100,50 @@ function NavBar() {
 
   const linkClass = cn(
     "transition-colors",
-    scrolled ? "text-ink-700 hover:text-ink-900" : "text-white/70 hover:text-white"
+    scrolled
+      ? "text-ink-700 hover:text-ink-900"
+      : "text-white/70 hover:text-white",
   );
 
   return (
     <header
       className={cn(
         "fixed top-0 inset-x-0 z-50 transition-all duration-300",
-        scrolled ? "bg-surface-0/80 backdrop-blur-sm shadow-raised" : "bg-transparent"
+        scrolled
+          ? "bg-surface-0/80 backdrop-blur-sm shadow-raised"
+          : "bg-transparent",
       )}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-lg font-bold text-primary-600 tracking-tight">
-            RoomsCluster
+          <Link
+            href="/"
+            className="text-lg font-bold text-primary-600 tracking-tight"
+          >
+            <Image
+              src={"/logo2.png"}
+              alt="logo.png"
+              width={160}
+              height={48}
+              className="h-10 object-cover"
+              priority
+            />
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <a href="#features" className={linkClass}>Features</a>
-            <a href="#how-it-works" className={linkClass}>How it works</a>
+            <a href="#features" className={linkClass}>
+              Features
+            </a>
+            <a href="#how-it-works" className={linkClass}>
+              How it works
+            </a>
           </nav>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href="/login" className={cn("hidden sm:inline text-sm font-medium", linkClass)}>
+          <Link
+            href="/login"
+            className={cn("hidden sm:inline text-sm font-medium", linkClass)}
+          >
             Sign in
           </Link>
           <Link
@@ -128,7 +164,10 @@ function Hero() {
     <section className="relative bg-ink-900 overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(circle at 50% 25%, rgba(36,84,224,0.25), transparent 60%)" }}
+        style={{
+          background:
+            "radial-gradient(circle at 50% 25%, rgba(36,84,224,0.25), transparent 60%)",
+        }}
       />
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-32 pb-14 md:pt-40 text-center">
@@ -174,7 +213,10 @@ function Hero() {
       {/* Product mock */}
       <div className="relative px-4 sm:px-6 pb-20 md:pb-28">
         <div className="relative max-w-md mx-auto">
-          <div className="absolute -inset-6 bg-primary-600/20 rounded-modal blur-3xl" aria-hidden="true" />
+          <div
+            className="absolute -inset-6 bg-primary-600/20 rounded-modal blur-3xl"
+            aria-hidden="true"
+          />
           <div className="relative">
             <LiveRoomMock />
           </div>
@@ -189,17 +231,20 @@ function FeatureBento() {
     {
       icon: Link2,
       title: "One link, no friction",
-      description: "Attendees join from a browser — no app to download, no account to create.",
+      description:
+        "Attendees join from a browser — no app to download, no account to create.",
     },
     {
       icon: Hand,
       title: "Hand-raise, built in",
-      description: "Guests raise their hand, you bring them on mic and camera with one click.",
+      description:
+        "Guests raise their hand, you bring them on mic and camera with one click.",
     },
     {
       icon: Gauge,
       title: "Built for scale",
-      description: "Run sessions up to 1,000 participants without the room slowing down.",
+      description:
+        "Run sessions up to 1,000 participants without the room slowing down.",
     },
   ];
 
@@ -211,7 +256,8 @@ function FeatureBento() {
             Everything a host actually needs
           </h2>
           <p className="text-ink-700/60 mt-3">
-            Not a video call with extra buttons. A room built around the job of running a session.
+            Not a video call with extra buttons. A room built around the job of
+            running a session.
           </p>
         </div>
 
@@ -228,7 +274,9 @@ function FeatureBento() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-ink-900">{f.title}</h3>
-                  <p className="text-sm text-ink-700/60 mt-1.5 leading-relaxed">{f.description}</p>
+                  <p className="text-sm text-ink-700/60 mt-1.5 leading-relaxed">
+                    {f.description}
+                  </p>
                 </div>
               </div>
             );
@@ -243,20 +291,26 @@ function HowItWorks() {
   const steps = [
     {
       title: "Create a session",
-      description: "Give it a title, set a time, or start instantly. Takes 30 seconds.",
+      description:
+        "Give it a title, set a time, or start instantly. Takes 30 seconds.",
     },
     {
       title: "Share the link",
-      description: "Send your join link by email, chat, or post it anywhere. No accounts needed to join.",
+      description:
+        "Send your join link by email, chat, or post it anywhere. No accounts needed to join.",
     },
     {
       title: "Run the room",
-      description: "Bring guests on mic, manage chat, switch to whiteboard, and end whenever you're done.",
+      description:
+        "Bring guests on mic, manage chat, switch to whiteboard, and end whenever you're done.",
     },
   ];
 
   return (
-    <section id="how-it-works" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24 border-t border-surface-200">
+    <section
+      id="how-it-works"
+      className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24 border-t border-surface-200"
+    >
       <h2 className="text-2xl md:text-3xl font-bold text-ink-900 tracking-tight mb-12">
         From idea to live, in three steps
       </h2>
@@ -268,7 +322,9 @@ function HowItWorks() {
               {String(i + 1).padStart(2, "0")}
             </div>
             <h3 className="font-semibold text-ink-900 text-lg">{step.title}</h3>
-            <p className="text-sm text-ink-700/60 mt-2 leading-relaxed">{step.description}</p>
+            <p className="text-sm text-ink-700/60 mt-2 leading-relaxed">
+              {step.description}
+            </p>
           </div>
         ))}
       </div>
@@ -296,9 +352,15 @@ function ContentBento() {
                 workspaces, and keep every recording and transcript where you
                 can find it.
               </p>
-              <Link href="/register" className="text-primary-600 font-semibold text-sm inline-flex items-center gap-1.5 group">
+              <Link
+                href="/register"
+                className="text-primary-600 font-semibold text-sm inline-flex items-center gap-1.5 group"
+              >
                 Explore workspaces
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={16}
+                  className="group-hover:translate-x-1 transition-transform"
+                />
               </Link>
             </div>
             <div className="flex gap-3 mt-8">
@@ -319,22 +381,31 @@ function ContentBento() {
               <div className="w-11 h-11 rounded-lg bg-white/10 flex items-center justify-center text-primary-500 mb-6">
                 <ClipboardList size={22} />
               </div>
-              <h3 className="text-xl font-bold mb-3">Know exactly who showed up</h3>
+              <h3 className="text-xl font-bold mb-3">
+                Know exactly who showed up
+              </h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                Full attendance with join and leave times. Export the list —
-                and the chat transcript — as CSV or TXT the moment a session
-                ends.
+                Full attendance with join and leave times. Export the list — and
+                the chat transcript — as CSV or TXT the moment a session ends.
               </p>
             </div>
             <div className="mt-8">
               <div className="flex items-end gap-1.5 h-12 mb-3">
                 {[55, 85, 70].map((h, i) => (
-                  <div key={i} className="w-full bg-primary-500/20 rounded-sm h-full relative overflow-hidden">
-                    <div className="absolute bottom-0 inset-x-0 bg-primary-500/60" style={{ height: `${h}%` }} />
+                  <div
+                    key={i}
+                    className="w-full bg-primary-500/20 rounded-sm h-full relative overflow-hidden"
+                  >
+                    <div
+                      className="absolute bottom-0 inset-x-0 bg-primary-500/60"
+                      style={{ height: `${h}%` }}
+                    />
                   </div>
                 ))}
               </div>
-              <p className="text-xs font-mono text-white/40">CSV · TXT · Instant export</p>
+              <p className="text-xs font-mono text-white/40">
+                CSV · TXT · Instant export
+              </p>
             </div>
           </div>
         </div>
@@ -347,8 +418,14 @@ function FinalCTA() {
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24">
       <div className="relative bg-primary-600 rounded-modal px-6 sm:px-8 md:px-16 py-14 md:py-20 text-center overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-3xl" aria-hidden="true" />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-ink-900/20 rounded-full blur-3xl" aria-hidden="true" />
+        <div
+          className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute -bottom-24 -left-24 w-72 h-72 bg-ink-900/20 rounded-full blur-3xl"
+          aria-hidden="true"
+        />
         <div className="relative">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">
             Your next session is one link away
@@ -374,7 +451,9 @@ function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid sm:grid-cols-3 gap-10 mb-10">
           <div>
-            <span className="font-bold text-primary-600 text-lg">RoomsCluster</span>
+            <span className="font-bold text-primary-600 text-lg">
+              RoomsCluster
+            </span>
             <p className="text-sm text-ink-700/60 mt-3 max-w-xs">
               The webinar platform built for hosts who run real sessions.
             </p>
@@ -382,15 +461,43 @@ function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-ink-900 mb-4">Product</h4>
             <ul className="space-y-2.5 text-sm">
-              <li><a href="#features" className="text-ink-700/60 hover:text-primary-600 transition-colors">Features</a></li>
-              <li><a href="#how-it-works" className="text-ink-700/60 hover:text-primary-600 transition-colors">How it works</a></li>
+              <li>
+                <a
+                  href="#features"
+                  className="text-ink-700/60 hover:text-primary-600 transition-colors"
+                >
+                  Features
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#how-it-works"
+                  className="text-ink-700/60 hover:text-primary-600 transition-colors"
+                >
+                  How it works
+                </a>
+              </li>
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-ink-900 mb-4">Account</h4>
             <ul className="space-y-2.5 text-sm">
-              <li><Link href="/login" className="text-ink-700/60 hover:text-primary-600 transition-colors">Sign in</Link></li>
-              <li><Link href="/register" className="text-ink-700/60 hover:text-primary-600 transition-colors">Sign up</Link></li>
+              <li>
+                <Link
+                  href="/login"
+                  className="text-ink-700/60 hover:text-primary-600 transition-colors"
+                >
+                  Sign in
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/register"
+                  className="text-ink-700/60 hover:text-primary-600 transition-colors"
+                >
+                  Sign up
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -412,7 +519,7 @@ export default function LandingPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="bg-surface-0">
       <NavBar />
