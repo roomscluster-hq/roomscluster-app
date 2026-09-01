@@ -11,6 +11,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useGroupManagement } from "@/hooks/useGroupManagement";
 import { useRouter, useSearchParams } from "next/navigation";
+import { BillingPanel } from "@/components/dashboard/settings/BillingPanel";
 
 export default function OrganizationSettingsPage() {
   const router = useRouter();
@@ -108,7 +109,9 @@ export default function OrganizationSettingsPage() {
 
         {/* Content */}
         <section className="flex-1 min-w-0">
-          {tab === "groups" ? (
+          {tab === "billing" ? (
+            <BillingPanel organizationId={activeOrg.id} />
+          ) : tab === "groups" ? (
             <GroupsPanel {...groupManagement} />
           ) : tab === "general" ? (
             <GeneralSettings

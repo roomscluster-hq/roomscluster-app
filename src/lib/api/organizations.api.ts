@@ -12,6 +12,8 @@ export interface OrgMembership {
   role: "OWNER" | "ADMIN" | "HOST" | "MEMBER";
   memberCount: number;
   isActive: boolean;
+  plan: "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
+  maxTeammates: number | null;
 }
 
 export interface PublicOrgBranding {
