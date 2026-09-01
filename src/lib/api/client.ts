@@ -41,7 +41,10 @@ client.interceptors.response.use(
         url.includes("/auth/") && !url.includes("/auth/me");
       const isGuestLiveKitRequest = url.includes("/livekit/guest-token");
 
-      if (isAuthEndpoint || isGuestLiveKitRequest) {
+      const hadToken =
+        typeof window !== "undefined" && !!localStorage.getItem("access_token");
+
+      if (isAuthEndpoint || isGuestLiveKitRequest || !hadToken) {
         return Promise.reject(error);
       }
 
