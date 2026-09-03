@@ -21,6 +21,7 @@ import {
   RecurrenceOptions,
 } from "@/components/dashboard/sessions/RecurrenceForm";
 import { AlertTriangle } from "lucide-react";
+import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
 
 export default function EditSeriesPage() {
   const { ruleId } = useParams<{ ruleId: string }>();
@@ -55,7 +56,9 @@ export default function EditSeriesPage() {
     queryFn: organizationsApi.listMine,
     enabled: !!session?.organizationId,
   });
-  const activeOrg = organizations?.find((o) => o.id === session?.organizationId);
+  const activeOrg = organizations?.find(
+    (o) => o.id === session?.organizationId,
+  );
 
   // Populate form when series data loads
   useEffect(() => {
@@ -104,7 +107,9 @@ export default function EditSeriesPage() {
       queryClient.invalidateQueries({ queryKey: ["series", ruleId] });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       queryClient.invalidateQueries({ queryKey: ["folder-contents"] });
-      toast.success(`Series updated successfully. ${result.updated} sessions affected.`);
+      toast.success(
+        `Series updated successfully. ${result.updated} sessions affected.`,
+      );
       router.push("/dashboard/sessions");
     },
     onError: handleUpdateError,
@@ -175,8 +180,8 @@ export default function EditSeriesPage() {
               Changes apply to all sessions
             </p>
             <p className="text-xs text-warning-700/80 mt-1">
-              This will update {sessions.length} sessions in the series. 
-              Any session-specific changes will be overwritten.
+              This will update {sessions.length} sessions in the series. Any
+              session-specific changes will be overwritten.
             </p>
           </div>
         </div>
@@ -239,10 +244,20 @@ export default function EditSeriesPage() {
                   currentUserId={user?.id ?? ""}
                   value={cohosts}
                   onChange={setCohosts}
+                  maxCoHosts={activeOrg.maxCoHostsPerSession}
+                  onUpgradeClick={() =>
+                    useUpgradePromptStore
+                      .getState()
+                      .show(
+                        "You've reached your plan's co-host limit for this session.",
+                        "PRO",
+                      )
+                  }
                 />
                 {cohosts.length > 2 && (
                   <p className="text-xs text-danger-600 mt-2">
-                    Maximum 2 co-hosts allowed. Please remove {cohosts.length - 2} co-host(s).
+                    Maximum 2 co-hosts allowed. Please remove{" "}
+                    {cohosts.length - 2} co-host(s).
                   </p>
                 )}
               </div>
@@ -268,7 +283,13 @@ export default function EditSeriesPage() {
                 variant="default"
                 className="w-full sm:w-auto"
               >
-                {updateMutation.isPending ? (showConfirmation ? "Confirming..." : "Updating...") : (showConfirmation ? "Confirm Update" : "Update Series")}
+                {updateMutation.isPending
+                  ? showConfirmation
+                    ? "Confirming..."
+                    : "Updating..."
+                  : showConfirmation
+                    ? "Confirm Update"
+                    : "Update Series"}
               </Button>
             </div>
           </form>
