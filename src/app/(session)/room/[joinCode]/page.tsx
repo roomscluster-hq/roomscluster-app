@@ -30,6 +30,8 @@ import { QAPanel } from "@/components/session/QAPanel";
 import { PollPanel } from "@/components/session/PollPanel";
 import { FloatingReactions } from "@/components/session/FloatingReactions";
 import { useHomeRoute } from "@/hooks/useHomeRoute";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
+import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
 
 type MainView = "video" | "whiteboard";
 
@@ -59,6 +61,13 @@ function RoomContent({ joinCode }: RoomContentProps) {
     },
     [],
   );
+
+  const { activeOrg } = useActiveOrganization();
+  const showUpgrade = useUpgradePromptStore((s) => s.show);
+
+  function handleUpgradeClick() {
+    showUpgrade("This feature requires a higher plan.", "PRO");
+  }
 
   const {
     session,
@@ -373,6 +382,10 @@ function RoomContent({ joinCode }: RoomContentProps) {
           onToggleLock={toggleLock}
           isLocked={isLocked}
           onSendReaction={sendReaction}
+          lockEnabled={activeOrg?.advancedSessionSettingsEnabled ?? false}
+          videoRecordingEnabled={activeOrg?.canRecordVideo ?? false}
+          bothRecordingEnabled={activeOrg?.canRecordBothSimultaneously ?? false}
+          onUpgradeClick={handleUpgradeClick}
         />
       </footer>
     </div>

@@ -15,6 +15,8 @@ export interface OrgMembership {
   plan: "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
   maxTeammates: number | null;
   advancedSessionSettingsEnabled: boolean;
+  canRecordVideo: boolean;
+  canRecordBothSimultaneously: boolean;
 }
 
 export interface PublicOrgBranding {

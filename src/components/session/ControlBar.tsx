@@ -3,11 +3,26 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { 
-  Mic, MicOff, Video, VideoOff, Hand, Music, 
-  MonitorUp, MoreHorizontal, Lock, Unlock, X, Presentation,
-  Square, Circle, Loader2, MessageSquare, Users, LogOut as LeaveIconLucide,
-  VideoIcon
+import {
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  Hand,
+  Music,
+  MonitorUp,
+  MoreHorizontal,
+  Lock,
+  Unlock,
+  X,
+  Presentation,
+  Square,
+  Circle,
+  Loader2,
+  MessageSquare,
+  Users,
+  LogOut as LeaveIconLucide,
+  VideoIcon,
 } from "lucide-react";
 
 interface ControlBarProps {
@@ -31,7 +46,7 @@ interface ControlBarProps {
   onToggleCamera: () => void;
   onToggleScreenShare: () => void;
   onRaiseHand: () => void;
-  onStartRecording: (type: 'VIDEO' | 'AUDIO' | 'BOTH') => void;
+  onStartRecording: (type: "VIDEO" | "AUDIO" | "BOTH") => void;
   onStopRecording: () => void;
   onToggleWhiteboard: () => void;
   onOpenChat: () => void;
@@ -41,6 +56,10 @@ interface ControlBarProps {
   isLocked: boolean;
   onToggleLock: () => void;
   onSendReaction: (emoji: string) => void;
+  lockEnabled: boolean;
+  onUpgradeClick: () => void;
+  videoRecordingEnabled: boolean;
+  bothRecordingEnabled: boolean;
 }
 
 function ControlButton({
@@ -94,7 +113,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
   </span>
 );
 
-const QUICK_REACTIONS = ['👏', '❤️', '😂', '🎉', '👍', '🔥', '😮', '🙌'];
+const QUICK_REACTIONS = ["👏", "❤️", "😂", "🎉", "👍", "🔥", "😮", "🙌"];
 
 const ScreenShareIcon = () => <MonitorUp className="w-5 h-5" />;
 const BoardIcon = () => <Presentation className="w-5 h-5" />;
@@ -150,11 +169,16 @@ export function ControlBar(props: ControlBarProps) {
     isLocked,
     onToggleLock,
     onSendReaction,
+    lockEnabled,
+    onUpgradeClick,
+    videoRecordingEnabled,
+    bothRecordingEnabled,
   } = props;
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [recordingOptionsOpen, setRecordingOptionsOpen] = useState(false);
-  const [desktopRecordingMenuOpen, setDesktopRecordingMenuOpen] = useState(false);
+  const [desktopRecordingMenuOpen, setDesktopRecordingMenuOpen] =
+    useState(false);
 
   const canManage = isHost || isCohost;
 
@@ -239,58 +263,86 @@ export function ControlBar(props: ControlBarProps) {
                       : "Start recording"
                 }
               >
-                <RecordIcon recording={isRecording} loading={recordingLoading} />
+                <RecordIcon
+                  recording={isRecording}
+                  loading={recordingLoading}
+                />
                 <Label>{isRecording ? "Stop Rec" : "Record"}</Label>
               </ControlButton>
 
               {/* Recording options dropdown — shown when not recording and menu is open */}
-              {!isRecording && !recordingLoading && recordingEnabled && desktopRecordingMenuOpen && (
-                <>
-                  {/* Backdrop to close menu when clicking outside */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setDesktopRecordingMenuOpen(false)}
-                  />
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center gap-1 z-50">
-                    <div className="bg-black/90 backdrop-blur-sm border border-white/10 rounded-xl p-1.5 flex flex-col gap-1 min-w-35 shadow-xl">
-                      <button
-                        onClick={() => {
-                          onStartRecording('VIDEO');
-                          setDesktopRecordingMenuOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
-                      >
-                        <VideoIcon className="w-4 h-4" />
-                        Video only
-                      </button>
-                      <button
-                        onClick={() => {
-                          onStartRecording('AUDIO');
-                          setDesktopRecordingMenuOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
-                      >
-                        <Music className="w-4 h-4" />
-                        Audio only
-                      </button>
-                      <button
-                        onClick={() => {
-                          onStartRecording('BOTH');
-                          setDesktopRecordingMenuOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
-                      >
-                        <div className="flex -space-x-1">
-                          <VideoIcon className="w-4 h-4" />
+              {!isRecording &&
+                !recordingLoading &&
+                recordingEnabled &&
+                desktopRecordingMenuOpen && (
+                  <>
+                    {/* Backdrop to close menu when clicking outside */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setDesktopRecordingMenuOpen(false)}
+                    />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center gap-1 z-50">
+                      <div className="bg-black/90 backdrop-blur-sm border border-white/10 rounded-xl p-1.5 flex flex-col gap-1 min-w-35 shadow-xl">
+                        <button
+                          onClick={() => {
+                            if (!videoRecordingEnabled) {
+                              onUpgradeClick();
+                              return;
+                            }
+                            onStartRecording("VIDEO");
+                            setDesktopRecordingMenuOpen(false);
+                          }}
+                          className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
+                        >
+                          <span className="flex items-center gap-2">
+                            <VideoIcon className="w-4 h-4" />
+                            Video only
+                          </span>
+                          {!videoRecordingEnabled && (
+                            <span className="text-[9px] font-semibold uppercase bg-primary-600 px-1.5 py-0.5 rounded">
+                              Upgrade
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            onStartRecording("AUDIO");
+                            setDesktopRecordingMenuOpen(false);
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
+                        >
                           <Music className="w-4 h-4" />
-                        </div>
-                        Video + Audio
-                      </button>
+                          Audio only
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (!bothRecordingEnabled) {
+                              onUpgradeClick();
+                              return;
+                            }
+                            onStartRecording("BOTH");
+                            setDesktopRecordingMenuOpen(false);
+                          }}
+                          className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-white hover:bg-white/10 rounded-lg transition"
+                        >
+                          <span className="flex items-center gap-2">
+                            <div className="flex -space-x-1">
+                              <VideoIcon className="w-4 h-4" />
+                              <Music className="w-4 h-4" />
+                            </div>
+                            Video + Audio
+                          </span>
+                          {!bothRecordingEnabled && (
+                            <span className="text-[9px] font-semibold uppercase bg-primary-600 px-1.5 py-0.5 rounded">
+                              Upgrade
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                      <div className="w-2 h-2 bg-black/90 rotate-45 border-b border-r border-white/10" />
                     </div>
-                    <div className="w-2 h-2 bg-black/90 rotate-45 border-b border-r border-white/10" />
-                  </div>
-                </>
-              )}
+                  </>
+                )}
             </div>
           ) : (
             <ControlButton
@@ -305,12 +357,21 @@ export function ControlBar(props: ControlBarProps) {
 
           {canManage && (
             <ControlButton
-              onClick={onToggleLock}
+              onClick={lockEnabled ? onToggleLock : onUpgradeClick}
               active={isLocked}
-              title={isLocked ? "Unlock session" : "Lock session"}
+              disabled={false}
+              title={
+                lockEnabled
+                  ? isLocked
+                    ? "Unlock session"
+                    : "Lock session"
+                  : "Requires Pro plan — click to upgrade"
+              }
             >
               <LockIcon locked={isLocked} />
-              <Label>{isLocked ? "Unlock" : "Lock"}</Label>
+              <Label>
+                {lockEnabled ? (isLocked ? "Unlock" : "Lock") : "Upgrade"}
+              </Label>
             </ControlButton>
           )}
         </div>
@@ -494,39 +555,60 @@ export function ControlBar(props: ControlBarProps) {
         <div className="p-2 pb-4 flex flex-col gap-1">
           <button
             onClick={() => {
-              onStartRecording('VIDEO');
+              if (!videoRecordingEnabled) {
+                onUpgradeClick();
+                setRecordingOptionsOpen(false);
+                return;
+              }
+              onStartRecording("VIDEO");
               setRecordingOptionsOpen(false);
             }}
-            disabled={!recordingEnabled}
-            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
+            className="flex items-center justify-between gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5"
           >
-            <VideoIcon className="w-5 h-5" />
-            Video only
+            <span className="flex items-center gap-3">
+              <VideoIcon className="w-5 h-5" />
+              Video only
+            </span>
+            {!videoRecordingEnabled && (
+              <span className="text-[10px] font-semibold uppercase bg-primary-600 px-2 py-0.5 rounded">
+                Upgrade
+              </span>
+            )}
           </button>
           <button
             onClick={() => {
-              onStartRecording('AUDIO');
+              onStartRecording("AUDIO");
               setRecordingOptionsOpen(false);
             }}
-            disabled={!recordingEnabled}
-            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
+            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5"
           >
             <Music className="w-5 h-5" />
             Audio only
           </button>
           <button
             onClick={() => {
-              onStartRecording('BOTH');
+              if (!bothRecordingEnabled) {
+                onUpgradeClick();
+                setRecordingOptionsOpen(false);
+                return;
+              }
+              onStartRecording("BOTH");
               setRecordingOptionsOpen(false);
             }}
-            disabled={!recordingEnabled}
-            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-40"
+            className="flex items-center justify-between gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5"
           >
-            <div className="flex -space-x-1">
-              <VideoIcon className="w-5 h-5" />
-              <Music className="w-5 h-5" />
-            </div>
-            Video + Audio
+            <span className="flex items-center gap-3">
+              <div className="flex -space-x-1">
+                <VideoIcon className="w-5 h-5" />
+                <Music className="w-5 h-5" />
+              </div>
+              Video + Audio
+            </span>
+            {!bothRecordingEnabled && (
+              <span className="text-[10px] font-semibold uppercase bg-primary-600 px-2 py-0.5 rounded">
+                Upgrade
+              </span>
+            )}
           </button>
         </div>
       </BottomSheet>
@@ -574,13 +656,21 @@ export function ControlBar(props: ControlBarProps) {
           {canManage && (
             <button
               onClick={() => {
-                onToggleLock();
+                if (lockEnabled) {
+                  onToggleLock();
+                } else {
+                  onUpgradeClick();
+                }
                 setMoreOpen(false);
               }}
               className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/5"
             >
               <LockIcon locked={isLocked} />
-              {isLocked ? "Unlock session" : "Lock session"}
+              {lockEnabled
+                ? isLocked
+                  ? "Unlock session"
+                  : "Lock session"
+                : "Lock session (Upgrade to Pro)"}
             </button>
           )}
 
