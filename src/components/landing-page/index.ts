@@ -1,0 +1,12 @@
+export { NavBar } from "./NavBar";
+export { Hero } from "./Hero";
+export { LiveRoomMock } from "./LiveRoomMock";
+export { ProblemSection } from "./ProblemSection";
+export { FeatureGrid } from "./FeatureGrid";
+export { FeatureBento } from "./FeatureBento";
+export { HowItWorks } from "./HowItWorks";
+export { PricingSection } from "./PricingSection";
+export { SocialProofSection } from "./SocialProofSection";
+export { FAQSection } from "./FAQSection";
+export { FinalCTA } from "./FinalCTA";
+export { Footer } from "./Footer";

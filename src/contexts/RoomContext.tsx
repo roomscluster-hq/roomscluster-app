@@ -268,7 +268,24 @@ export function RoomProvider({
       }
     };
 
-    const handleSocketError = (data: { message?: string }) => {
+    const handleSocketError = (data: {
+      message?: string;
+      upgradeRequired?: boolean;
+      suggestedPlan?: "PRO" | "BUSINESS";
+    }) => {
+      if (data.upgradeRequired) {
+        import("@/store/upgrade-prompt.store").then(
+          ({ useUpgradePromptStore }) => {
+            useUpgradePromptStore
+              .getState()
+              .show(
+                data.message ?? "This requires a higher plan.",
+                data.suggestedPlan ?? null,
+              );
+          },
+        );
+        return;
+      }
       toast.error(data.message ?? "Something went wrong, contact support");
     };
 

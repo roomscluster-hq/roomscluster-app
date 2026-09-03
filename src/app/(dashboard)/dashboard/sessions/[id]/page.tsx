@@ -17,6 +17,8 @@ import {
 } from "@/components/dashboard/sessions";
 import { PostSessionSummary } from "@/components/dashboard/sessions/PostSessionSummary";
 import { formatDateTime, getJoinUrl } from "@/lib/utils";
+import { QAHistoryCard } from "@/components/dashboard/sessions/QAHistoryCard";
+import { PollHistoryCard } from "@/components/dashboard/sessions/PollHistoryCard";
 
 export default function SessionDetailPage() {
   const {
@@ -155,6 +157,9 @@ export default function SessionDetailPage() {
         onDownloadCsv={() => handleDownloadAttendance("csv")}
         formatDateTime={formatDateTime}
       />
+
+      <QAHistoryCard sessionId={id} />
+      <PollHistoryCard sessionId={id} />
     </div>
   );
 }

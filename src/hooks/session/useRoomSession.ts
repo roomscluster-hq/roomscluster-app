@@ -8,10 +8,12 @@ import { useAuthStore } from "@/store/auth.store";
 import { getCookie } from "@/lib/cookies";
 import { useRoom } from "@/contexts/RoomContext";
 import { toast } from "sonner";
+import { useActiveOrganization } from "../useOrganizationsMine";
 
 export function useRoomSession() {
   const { joinCode } = useParams<{ joinCode: string }>() as { joinCode: string };
   const { user, isAuthenticated } = useAuthStore();
+  const { activeOrg } = useActiveOrganization();
   
   const [handRaised, setHandRaised] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -91,26 +93,31 @@ export function useRoomSession() {
   }, [session, joinCode, isGuest]);
 
   // Elapsed timer + 4-hour warning
-  useEffect(() => {
-    if (!session?.startedAt) return;
-    const startTime = new Date(session.startedAt).getTime();
+ useEffect(() => {
+  if (!session?.startedAt) return;
+  const startTime = new Date(session.startedAt).getTime();
+  const maxMinutes = activeOrg?.maxSessionMinutes;
 
-    function updateElapsed() {
-      const seconds = Math.floor((Date.now() - startTime) / 1000);
-      setElapsedSeconds(seconds);
-      const tenMinutesBeforeLimit = 4 * 60 * 60 - 10 * 60;
-      if (seconds >= tenMinutesBeforeLimit && !warnedRef.current) {
-        warnedRef.current = true;
-        toast("This session will end automatically in 10 minutes (4-hour limit)", {
-          duration: 10000,
-        });
-      }
+  function updateElapsed() {
+    const seconds = Math.floor((Date.now() - startTime) / 1000);
+    setElapsedSeconds(seconds);
+
+    // Unlimited plan (Business) — nothing to warn about
+    if (maxMinutes == null) return;
+
+    const tenMinutesBeforeLimit = maxMinutes * 60 - 10 * 60;
+    if (seconds >= tenMinutesBeforeLimit && !warnedRef.current) {
+      warnedRef.current = true;
+      toast(`This session will end automatically in 10 minutes (${maxMinutes}-minute limit)`, {
+        duration: 10000,
+      });
     }
+  }
 
-    updateElapsed();
-    const interval = setInterval(updateElapsed, 1000);
-    return () => clearInterval(interval);
-  }, [session?.startedAt]);
+  updateElapsed();
+  const interval = setInterval(updateElapsed, 1000);
+  return () => clearInterval(interval);
+}, [session?.startedAt, activeOrg?.maxSessionMinutes]);
 
   // Auto-switch to waiting tab when first guest arrives
   const prevWaitingCountRef = useRef(0);

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { sessionsApi } from "@/lib/api";
-import { organizationsApi } from "@/lib/api/organizations.api";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { useAuthStore } from "@/store/auth.store";
 import { StatusBadge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -26,11 +26,7 @@ export default function DashboardPage() {
     queryFn: () => sessionsApi.getAll("ALL"),
   });
 
-  const { data: organizations } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
-  const activeOrg = organizations?.find((o) => o.isActive);
+  const { activeOrg } = useActiveOrganization();
 
   const stats = {
     total: sessions?.length ?? 0,

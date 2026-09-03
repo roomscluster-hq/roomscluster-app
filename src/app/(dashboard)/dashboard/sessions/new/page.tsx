@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionsApi } from "@/lib/api";
-import { organizationsApi } from "@/lib/api/organizations.api";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import {
   SelectedCoHost,
 } from "@/components/session/CoHostSelector";
 import { groupsApi } from "@/lib/api/groups.api";
+import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
 
 export default function NewSessionPage() {
   const searchParams = useSearchParams();
@@ -50,11 +51,7 @@ function NewSessionForm() {
     endCount: 4,
   });
 
-  const { data: organizations } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
-  const activeOrg = organizations?.find((o) => o.isActive);
+  const { activeOrg } = useActiveOrganization();
 
   const urlGroupId = searchParams.get("groupId") ?? undefined;
   const [selectedGroupId, setSelectedGroupId] = useState("");
@@ -281,6 +278,15 @@ function NewSessionForm() {
                   currentUserId={user?.id ?? ""}
                   value={cohosts}
                   onChange={setCohosts}
+                  maxCoHosts={activeOrg.maxCoHostsPerSession}
+                  onUpgradeClick={() =>
+                    useUpgradePromptStore
+                      .getState()
+                      .show(
+                        "You've reached your plan's co-host limit for this session.",
+                        "PRO",
+                      )
+                  }
                 />
               </div>
             )}

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
 import { organizationsApi, OrgMember } from "@/lib/api/organizations.api";
 import { getInitials } from "@/lib/utils";
 import { X, Search } from "lucide-react";
@@ -18,6 +19,8 @@ interface CoHostSelectorProps {
   currentUserId: string; // exclude the host themselves
   value: SelectedCoHost[];
   onChange: (value: SelectedCoHost[]) => void;
+  maxCoHosts: number;
+  onUpgradeClick: () => void;
 }
 
 export function CoHostSelector({
@@ -25,6 +28,8 @@ export function CoHostSelector({
   currentUserId,
   value,
   onChange,
+  maxCoHosts,
+  onUpgradeClick,
 }: CoHostSelectorProps) {
   const [search, setSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -36,7 +41,6 @@ export function CoHostSelector({
     enabled: !!organizationId,
   });
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -47,7 +51,8 @@ export function CoHostSelector({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter members — exclude current user and already selected
+  const atLimit = value.length >= maxCoHosts;
+
   const selectedIds = new Set(value.map((c) => c.userId));
   const filtered = members.filter((m: OrgMember) => {
     if (m.user.id === currentUserId) return false;
@@ -61,6 +66,7 @@ export function CoHostSelector({
   });
 
   function select(member: OrgMember) {
+    if (atLimit) return; // safety net — UI already prevents reaching here
     onChange([
       ...value,
       {
@@ -80,9 +86,14 @@ export function CoHostSelector({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-ink-700 mb-1.5">
-        Pre-assign Co-hosts
-      </label>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="block text-sm font-medium text-ink-700">
+          Pre-assign Co-hosts
+        </label>
+        <span className={`text-xs ${atLimit ? "text-primary-600 font-medium" : "text-ink-700/40"}`}>
+          {value.length} / {maxCoHosts}
+        </span>
+      </div>
       <p className="text-xs text-ink-700/50 mb-2">
         These members will automatically have co-host permissions when they join.
       </p>
@@ -96,9 +107,11 @@ export function CoHostSelector({
               className="flex items-center gap-1.5 bg-primary-50 border border-primary-100 rounded-full pl-1 pr-2 py-0.5"
             >
               {cohost.image ? (
-                <img
+                <Image
                   src={cohost.image}
                   alt={cohost.name}
+                  width={20}
+                  height={20}
                   className="w-5 h-5 rounded-full object-cover shrink-0"
                 />
               ) : (
@@ -121,68 +134,78 @@ export function CoHostSelector({
         </div>
       )}
 
-      {/* Search input */}
-      <div ref={containerRef} className="relative">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-700/40 pointer-events-none" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setDropdownOpen(true);
-            }}
-            onFocus={() => setDropdownOpen(true)}
-            placeholder="Search members by name or email..."
-            className="w-full border border-surface-200 bg-surface-0 text-ink-900 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
-          />
-        </div>
-
-        {/* Dropdown */}
-        {dropdownOpen && (
-          <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised max-h-48 overflow-y-auto">
-            {isLoading ? (
-              <div className="px-3 py-4 text-center">
-                <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="px-3 py-3 text-sm text-ink-700/50 text-center">
-                {search ? "No members found" : "No other members in this organization"}
-              </div>
-            ) : (
-              filtered.map((member: OrgMember) => (
-                <button
-                  key={member.user.id}
-                  type="button"
-                  onClick={() => select(member)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-50 transition-colors text-left"
-                >
-                  {member.user.image ? (
-                    <img
-                      src={member.user.image}
-                      alt={member.user.name ?? ""}
-                      className="w-7 h-7 rounded-full object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {getInitials(member.user.name ?? member.user.email)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink-900 truncate">
-                      {member.user.name ?? member.user.email}
-                    </p>
-                    <p className="text-xs text-ink-700/50 truncate">{member.user.email}</p>
-                  </div>
-                  <span className="ml-auto shrink-0 text-xs text-ink-700/40 capitalize">
-                    {member.role.toLowerCase()}
-                  </span>
-                </button>
-              ))
-            )}
+      {atLimit ? (
+        <button
+          type="button"
+          onClick={onUpgradeClick}
+          className="w-full flex items-center justify-center gap-2 text-sm font-medium bg-primary-50 text-primary-700 border border-primary-100 rounded-lg py-2.5 hover:bg-primary-100 cursor-pointer"
+        >
+          Upgrade to add more co-hosts
+        </button>
+      ) : (
+        <div ref={containerRef} className="relative">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-700/40 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setDropdownOpen(true);
+              }}
+              onFocus={() => setDropdownOpen(true)}
+              placeholder="Search members by name or email..."
+              className="w-full border border-surface-200 bg-surface-0 text-ink-900 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+            />
           </div>
-        )}
-      </div>
+
+          {dropdownOpen && (
+            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-surface-0 border border-surface-200 rounded-lg shadow-raised max-h-48 overflow-y-auto">
+              {isLoading ? (
+                <div className="px-3 py-4 text-center">
+                  <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="px-3 py-3 text-sm text-ink-700/50 text-center">
+                  {search ? "No members found" : "No other members in this organization"}
+                </div>
+              ) : (
+                filtered.map((member: OrgMember) => (
+                  <button
+                    key={member.user.id}
+                    type="button"
+                    onClick={() => select(member)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-50 transition-colors text-left"
+                  >
+                    {member.user.image ? (
+                      <Image
+                        src={member.user.image}
+                        alt={member.user.name ?? ""}
+                        width={28}
+                        height={28}
+                        className="w-7 h-7 rounded-full object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {getInitials(member.user.name ?? member.user.email)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-900 truncate">
+                        {member.user.name ?? member.user.email}
+                      </p>
+                      <p className="text-xs text-ink-700/50 truncate">{member.user.email}</p>
+                    </div>
+                    <span className="ml-auto shrink-0 text-xs text-ink-700/40 capitalize">
+                      {member.role.toLowerCase()}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

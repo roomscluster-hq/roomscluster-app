@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import {
   FolderPlus,
@@ -12,7 +11,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { organizationsApi } from "@/lib/api/organizations.api";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { StatusBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -129,11 +128,7 @@ export default function SessionsExplorerPage() {
   };
 
   // Get active organization
-  const { data: organizations } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
-  const activeOrg = organizations?.find((o) => o.isActive);
+  const { activeOrg } = useActiveOrganization();
 
   // Deduplicate sessions by id (backend now handles status filtering)
   const sessions = useMemo(() => {

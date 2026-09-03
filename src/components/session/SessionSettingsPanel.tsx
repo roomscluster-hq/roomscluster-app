@@ -1,10 +1,15 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { sessionSettingsApi, SessionSettings } from "@/lib/api/session-settings.api";
+import {
+  sessionSettingsApi,
+  SessionSettings,
+} from "@/lib/api/session-settings.api";
 import { useRoom } from "@/contexts/RoomContext";
 import { toast } from "sonner";
 import { Socket } from "socket.io-client";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
+import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
 
 interface ToggleRowProps {
   label: string;
@@ -13,27 +18,54 @@ interface ToggleRowProps {
   onChange: () => void;
   disabled?: boolean;
   dark?: boolean;
+  locked?: boolean;
+  onUpgradeClick?: () => void;
 }
 
-function ToggleRow({ label, description, checked, onChange, disabled, dark }: ToggleRowProps) {
+function ToggleRow({
+  label,
+  description,
+  checked,
+  onChange,
+  disabled,
+  dark,
+  locked,
+  onUpgradeClick,
+}: ToggleRowProps) {
   return (
     <div className="flex items-center justify-between py-3">
       <div className="min-w-0 pr-4">
-        <p className={`text-sm font-medium ${dark ? "text-white" : "text-ink-900"}`}>{label}</p>
-        <p className={`text-xs mt-0.5 ${dark ? "text-white/50" : "text-ink-700/60"}`}>{description}</p>
+        <div className="flex items-center gap-2">
+          <p
+            className={`text-sm font-medium ${dark ? "text-white" : "text-ink-900"}`}
+          >
+            {label}
+          </p>
+          {locked && (
+            <button
+              onClick={onUpgradeClick}
+              className="text-[10px] font-semibold uppercase tracking-wide bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded cursor-pointer hover:bg-primary-100"
+            >
+              Upgrade
+            </button>
+          )}
+        </div>
+        <p
+          className={`text-xs mt-0.5 ${dark ? "text-white/50" : "text-ink-700/60"}`}
+        >
+          {description}
+        </p>
       </div>
       <button
         type="button"
-        disabled={disabled}
-        onClick={onChange}
+        disabled={disabled || locked}
+        onClick={locked ? onUpgradeClick : onChange}
         className={`relative shrink-0 w-11 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 ${
           checked ? "bg-primary-600" : dark ? "bg-white/10" : "bg-surface-200"
-        } ${dark ? "focus:ring-offset-ink-900" : ""} ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+        } ${dark ? "focus:ring-offset-ink-900" : ""} ${disabled || locked ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-            checked ? "translate-x-5" : "translate-x-0"
-          }`}
+          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`}
         />
       </button>
     </div>
@@ -49,7 +81,7 @@ interface SessionSettingsPanelProps {
 function updateSettingsViaSocket(
   socket: Socket,
   joinCode: string,
-  settings: Partial<Omit<SessionSettings, "id" | "sessionId">>
+  settings: Partial<Omit<SessionSettings, "id" | "sessionId">>,
 ): Promise<SessionSettings> {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
@@ -78,8 +110,22 @@ function updateSettingsViaSocket(
   });
 }
 
-export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: SessionSettingsPanelProps) {
+export function SessionSettingsPanel({
+  sessionId,
+  joinCode,
+  compact = false,
+}: SessionSettingsPanelProps) {
   const queryClient = useQueryClient();
+
+  const { activeOrg } = useActiveOrganization();
+  const showUpgrade = useUpgradePromptStore((s) => s.show);
+
+  function handleUpgradeClick() {
+    showUpgrade(
+      "Enabling participant video or microphone requires the Pro plan.",
+      "PRO",
+    );
+  }
 
   // These are only available inside RoomProvider (live room)
   // Outside the room (session detail page), useRoom() throws — guard with try/catch
@@ -103,10 +149,14 @@ export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: S
     queryFn: () => sessionSettingsApi.get(sessionId),
   });
 
-  const shouldUseSocket = Boolean(joinCode && socketRef?.current && isSocketConnected);
+  const shouldUseSocket = Boolean(
+    joinCode && socketRef?.current && isSocketConnected,
+  );
 
   const updateMutation = useMutation({
-    mutationFn: async (data: Partial<Omit<SessionSettings, "id" | "sessionId">>) => {
+    mutationFn: async (
+      data: Partial<Omit<SessionSettings, "id" | "sessionId">>,
+    ) => {
       if (shouldUseSocket && socketRef?.current) {
         return updateSettingsViaSocket(socketRef.current, joinCode!, data);
       } else {
@@ -117,7 +167,9 @@ export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: S
       queryClient.setQueryData(["session-settings", sessionId], updated);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Failed to update settings");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update settings",
+      );
     },
   });
 
@@ -167,7 +219,11 @@ export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: S
   ];
 
   return (
-    <div className={compact ? "divide-y divide-white/10" : "divide-y divide-surface-200"}>
+    <div
+      className={
+        compact ? "divide-y divide-white/10" : "divide-y divide-surface-200"
+      }
+    >
       {/* ── Lock session toggle — only shown inside live room ── */}
       {toggleLock && (
         <ToggleRow
@@ -180,17 +236,25 @@ export function SessionSettingsPanel({ sessionId, joinCode, compact = false }: S
       )}
 
       {/* ── Standard settings rows ── */}
-      {rows.map((row) => (
-        <ToggleRow
-          key={row.key}
-          label={row.label}
-          description={row.description}
-          checked={settings[row.key]}
-          onChange={() => toggle(row.key)}
-          disabled={updateMutation.isPending}
-          dark={compact}
-        />
-      ))}
+      {rows.map((row) => {
+        const isAdvanced =
+          row.key === "participantVideoEnabled" ||
+          row.key === "participantMicEnabled";
+        const locked = isAdvanced && !activeOrg?.advancedSessionSettingsEnabled;
+        return (
+          <ToggleRow
+            key={row.key}
+            label={row.label}
+            description={row.description}
+            checked={locked ? false : settings[row.key]}
+            onChange={() => toggle(row.key)}
+            disabled={updateMutation.isPending}
+            dark={compact}
+            locked={locked}
+            onUpgradeClick={handleUpgradeClick}
+          />
+        );
+      })}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
 } from "@/components/session/CoHostSelector";
 import { Folder } from "@/types";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
 
 export default function EditSessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +49,9 @@ export default function EditSessionPage() {
     queryFn: organizationsApi.listMine,
     enabled: !!session?.organizationId,
   });
-  const activeOrg = organizations?.find((o) => o.id === session?.organizationId);
+  const activeOrg = organizations?.find(
+    (o) => o.id === session?.organizationId,
+  );
 
   // Fetch folders for folder selector
   const { data: foldersData } = useQuery({
@@ -70,15 +73,17 @@ export default function EditSessionPage() {
 
   // Populate form when session data loads
   useEffect(() => {
-    if (session) {
+    if (!session) return;
+
+    const timeoutId = window.setTimeout(() => {
       setTitle(session.title);
       setDescription(session.description ?? "");
       // Format scheduledAt for datetime-local input (YYYY-MM-DDTHH:mm)
-      if (session.scheduledAt) {
-        const date = new Date(session.scheduledAt);
-        const formatted = date.toISOString().slice(0, 16);
-        setScheduledAt(formatted);
-      }
+      setScheduledAt(
+        session.scheduledAt
+          ? new Date(session.scheduledAt).toISOString().slice(0, 16)
+          : "",
+      );
       setPasscode(session.passcode ?? "");
       setFolderId(session.folderId ?? null);
 
@@ -94,13 +99,15 @@ export default function EditSessionPage() {
           }));
         setCohosts(existingCohosts);
       }
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [session]);
 
   // Handle co-host validation errors
   const handleUpdateError = (err: AxiosError<{ message?: string }>) => {
     const message = err.response?.data?.message;
-    
+
     if (err.response?.status === 400 && message) {
       switch (message) {
         case "Maximum of 2 co-hosts allowed per session":
@@ -199,9 +206,7 @@ export default function EditSessionPage() {
         <h1 className="text-xl md:text-2xl font-bold text-ink-900">
           Edit Session
         </h1>
-        <p className="text-ink-700/60 text-sm mt-1">
-          Update session details
-        </p>
+        <p className="text-ink-700/60 text-sm mt-1">Update session details</p>
       </div>
 
       <Card>
@@ -278,7 +283,9 @@ export default function EditSessionPage() {
                     type="button"
                     onClick={handleMoveToRoot}
                     className={`w-full text-left px-3 py-2.5 text-sm hover:bg-surface-50 transition-colors ${
-                      folderId === null ? "bg-primary-50 text-primary-700" : "text-ink-700"
+                      folderId === null
+                        ? "bg-primary-50 text-primary-700"
+                        : "text-ink-700"
                     }`}
                   >
                     All Sessions (Root)
@@ -289,7 +296,9 @@ export default function EditSessionPage() {
                       type="button"
                       onClick={() => handleMoveToFolder(folder.id)}
                       className={`w-full text-left px-3 py-2.5 text-sm hover:bg-surface-50 transition-colors ${
-                        folderId === folder.id ? "bg-primary-50 text-primary-700" : "text-ink-700"
+                        folderId === folder.id
+                          ? "bg-primary-50 text-primary-700"
+                          : "text-ink-700"
                       }`}
                     >
                       {folder.name}
@@ -307,10 +316,20 @@ export default function EditSessionPage() {
                   currentUserId={user?.id ?? ""}
                   value={cohosts}
                   onChange={setCohosts}
+                  maxCoHosts={activeOrg.maxCoHostsPerSession}
+                  onUpgradeClick={() =>
+                    useUpgradePromptStore
+                      .getState()
+                      .show(
+                        "You've reached your plan's co-host limit for this session.",
+                        "PRO",
+                      )
+                  }
                 />
                 {cohosts.length > 2 && (
                   <p className="text-xs text-danger-600 mt-2">
-                    Maximum 2 co-hosts allowed. Please remove {cohosts.length - 2} co-host(s).
+                    Maximum 2 co-hosts allowed. Please remove{" "}
+                    {cohosts.length - 2} co-host(s).
                   </p>
                 )}
               </div>

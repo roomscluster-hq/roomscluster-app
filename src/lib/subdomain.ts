@@ -1,4 +1,4 @@
-const ROOT_DOMAINS = ["roomscluster.com", "localhost", "vercel.app"];
+const ROOT_DOMAINS = ["roomscluster.com", "staging.roomscluster.com", "localhost", "vercel.app"];
 
 export function getSubdomainSlug(): string | null {
   if (typeof window === "undefined") return null;
