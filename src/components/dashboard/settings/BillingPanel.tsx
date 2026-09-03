@@ -154,6 +154,28 @@ export function BillingPanel({ organizationId }: BillingPanelProps) {
           Contact us about Enterprise
         </a>.
       </p>
+
+      <p className="text-xs text-ink-700/50">
+        By upgrading, you agree to our{" "}
+        <a
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary-600 hover:underline"
+        >
+          Terms
+        </a>{" "}
+        and{" "}
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary-600 hover:underline"
+        >
+          Privacy Policy
+        </a>
+        .
+      </p>
     </div>
   );
 }
