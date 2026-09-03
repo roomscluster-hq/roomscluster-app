@@ -17,6 +17,11 @@ export interface OrgMembership {
   advancedSessionSettingsEnabled: boolean;
   canRecordVideo: boolean;
   canRecordBothSimultaneously: boolean;
+  maxSessionMinutes: number;
+  maxCoHostsPerSession: number;
+  customBrandingEntitled: boolean;
+  groupsEnabled: boolean;
+  qaPollsHistoryEnabled: boolean
 }
 
 export interface PublicOrgBranding {

@@ -20,6 +20,7 @@ import {
   SelectedCoHost,
 } from "@/components/session/CoHostSelector";
 import { groupsApi } from "@/lib/api/groups.api";
+import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
 
 export default function NewSessionPage() {
   const searchParams = useSearchParams();
@@ -277,6 +278,15 @@ function NewSessionForm() {
                   currentUserId={user?.id ?? ""}
                   value={cohosts}
                   onChange={setCohosts}
+                  maxCoHosts={activeOrg.maxCoHostsPerSession}
+                  onUpgradeClick={() =>
+                    useUpgradePromptStore
+                      .getState()
+                      .show(
+                        "You've reached your plan's co-host limit for this session.",
+                        "PRO",
+                      )
+                  }
                 />
               </div>
             )}

@@ -257,6 +257,8 @@ export function useOrganizationSettings() {
     [pendingInvitations, q],
   );
 
+  const teammatesUsed = (members?.filter((m) => m.role !== "OWNER").length ?? 0) + pendingInvitations.length;
+
   return {
     activeOrg,
     members,
@@ -303,5 +305,7 @@ export function useOrganizationSettings() {
     submitBranding,
     isUpdatingBranding: brandingMutation.isPending,
     isUpdatingLogo: logoMutation.isPending,
+
+    teammatesUsed,
   };
 }
