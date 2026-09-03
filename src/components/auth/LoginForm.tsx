@@ -48,8 +48,11 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
     },
   });
 
+  const isSubmitting = loginMutation.isPending || magicLinkLoading;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isSubmitting) return; // Prevent duplicate submissions
 
     // Validate email format
     if (!isValidEmail(email)) {
@@ -63,6 +66,8 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   }
 
   async function handleMagicLink() {
+    if (isSubmitting) return; // Prevent duplicate submissions
+    
     if (!email.trim()) {
       toast.error("Enter your email first");
       return;
@@ -91,12 +96,14 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       <div className="bg-surface-100 rounded-lg p-1 flex gap-1 dark:bg-surface-50">
         <button
           type="button"
-          onClick={() => setMethod("password")}
+          onClick={() => !isSubmitting && setMethod("password")}
+          disabled={isSubmitting}
           className={cn(
             "flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200",
             method === "password"
               ? "bg-surface-0 text-ink-900 shadow-sm"
               : "text-ink-600 hover:text-ink-800",
+            isSubmitting && "opacity-50 cursor-not-allowed"
           )}
         >
           <span className="flex items-center justify-center gap-2">
@@ -118,12 +125,14 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
         </button>
         <button
           type="button"
-          onClick={() => setMethod("magic-link")}
+          onClick={() => !isSubmitting && setMethod("magic-link")}
+          disabled={isSubmitting}
           className={cn(
             "flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200",
             method === "magic-link"
               ? "bg-surface-0 text-ink-900 shadow-sm"
               : "text-ink-600 hover:text-ink-800",
+            isSubmitting && "opacity-50 cursor-not-allowed"
           )}
         >
           <span className="flex items-center justify-center gap-2">
@@ -153,11 +162,12 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
-            setEmailError(""); // Clear error on type
+            setEmailError("");
           }}
           required
           placeholder="you@example.com"
           error={emailError}
+          disabled={isSubmitting}
         />
       </div>
 
@@ -168,7 +178,11 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
             <label className="text-sm font-medium text-ink-700">Password</label>
             <Link
               href="/forgot-password"
-              className="text-sm text-primary-600 hover:underline font-medium"
+              className={cn(
+                "text-sm text-primary-600 hover:underline font-medium",
+                isSubmitting && "pointer-events-none opacity-50"
+              )}
+              tabIndex={isSubmitting ? -1 : 0}
             >
               Forgot password?
             </Link>
@@ -178,6 +192,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
             onChange={setPassword}
             label=""
             required
+            disabled={isSubmitting}
           />
         </div>
       )}
@@ -195,9 +210,18 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
         <Button
           type="submit"
           className="w-full"
-          disabled={loginMutation.status === "pending"}
+          disabled={isSubmitting}
         >
-          Sign In
+          <span className="flex items-center justify-center gap-2">
+            {isSubmitting ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Signing in...
+              </>
+            ) : (
+              "Sign In"
+            )}
+          </span>
         </Button>
       ) : magicLinkSent ? (
         <div className="text-center py-4 px-4 bg-success-50 border border-success-100 rounded-lg">
@@ -228,7 +252,8 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
               setMagicLinkSent(false);
               setEmail("");
             }}
-            className="text-xs text-success-600 hover:underline mt-3 inline-block"
+            disabled={isSubmitting}
+            className="text-xs text-success-600 hover:underline mt-3 inline-block disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Use a different email
           </button>
@@ -238,9 +263,18 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
           type="button"
           className="w-full"
           onClick={handleMagicLink}
-          disabled={magicLinkLoading}
+          disabled={isSubmitting}
         >
-          Send Magic Link
+          <span className="flex items-center justify-center gap-2">
+            {isSubmitting ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Sending...
+              </>
+            ) : (
+              "Send Magic Link"
+            )}
+          </span>
         </Button>
       )}
 
@@ -249,7 +283,11 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       {/* Google Sign In */}
       <a
         href={`${API_URL}/auth/google`}
-        className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-surface-200 rounded-lg hover:bg-surface-50 transition-colors text-sm font-medium text-ink-700"
+        className={cn(
+          "w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-surface-200 rounded-lg hover:bg-surface-50 transition-colors text-sm font-medium text-ink-700",
+          isSubmitting && "pointer-events-none opacity-50"
+        )}
+        tabIndex={isSubmitting ? -1 : 0}
       >
         <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
           <path
@@ -276,7 +314,11 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
         No account?{" "}
         <a
           href="/register"
-          className="text-primary-600 hover:underline font-medium"
+          className={cn(
+            "text-primary-600 hover:underline font-medium",
+            isSubmitting && "pointer-events-none opacity-50"
+          )}
+          tabIndex={isSubmitting ? -1 : 0}
         >
           Register
         </a>
