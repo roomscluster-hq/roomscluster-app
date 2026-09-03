@@ -62,7 +62,9 @@ export default function EditSeriesPage() {
 
   // Populate form when series data loads
   useEffect(() => {
-    if (session) {
+    if (!session) return;
+
+    const timeoutId = window.setTimeout(() => {
       setTitle(session.title);
       setDescription(session.description ?? "");
       setPasscode(session.passcode ?? "");
@@ -79,7 +81,9 @@ export default function EditSeriesPage() {
           }));
         setCohosts(existingCohosts);
       }
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [session]);
 
   // Handle update error
