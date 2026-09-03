@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { groupsApi } from "@/lib/api/groups.api";
-import { organizationsApi } from "@/lib/api/organizations.api";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { GroupMembersTable } from "@/components/dashboard/settings";
 import { GroupHeaderCard } from "@/components/dashboard/settings/GroupHeaderCard";
 import { HostAssignmentPanel } from "@/components/dashboard/settings/HostAssignmentPanel";
@@ -20,11 +20,7 @@ export default function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const [tab, setTab] = useState<"members" | "hosts">("members");
 
-  const { data: organizations } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
-  const activeOrg = organizations?.find((o) => o.isActive);
+  const { activeOrg } = useActiveOrganization();
 
   const { data, isLoading: groupLoading } = useQuery({
     queryKey: ["groups", activeOrg?.id],

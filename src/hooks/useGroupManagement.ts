@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Group, groupsApi } from "@/lib/api/groups.api";
-import { organizationsApi } from "@/lib/api/organizations.api";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { parseCsvEmails } from "@/lib/utils/parseCsv";
 
 export function useGroupManagement() {
@@ -27,11 +27,7 @@ export function useGroupManagement() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
-  const { data: organizations, isLoading: orgsLoading } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
-  const activeOrg = organizations?.find((o) => o.isActive);
+  const { activeOrg, isLoading: orgsLoading } = useActiveOrganization();
 
   const { data, isLoading: groupsLoading } = useQuery({
     queryKey: ["groups", activeOrg?.id, page],

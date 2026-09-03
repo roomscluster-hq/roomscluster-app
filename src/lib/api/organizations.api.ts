@@ -14,6 +14,7 @@ export interface OrgMembership {
   isActive: boolean;
   plan: "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
   maxTeammates: number | null;
+  advancedSessionSettingsEnabled: boolean;
 }
 
 export interface PublicOrgBranding {

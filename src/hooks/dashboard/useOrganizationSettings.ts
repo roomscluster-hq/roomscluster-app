@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { organizationsApi } from "@/lib/api/organizations.api";
 import { invitationsApi } from "@/lib/api/invitations.api";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { toast } from "sonner";
 
 export function useOrganizationSettings() {
@@ -92,12 +93,7 @@ export function useOrganizationSettings() {
     });
   }
 
-  const { data: organizations } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
-
-  const activeOrg = organizations?.find((o) => o.isActive);
+  const { activeOrg } = useActiveOrganization();
 
   const primaryColor =
     colorDraft.organizationId === activeOrg?.id
