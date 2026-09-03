@@ -9,6 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/docs
 
 # testing
 /coverage
@@ -43,3 +44,4 @@ PRODUCT_FEATURES.md
 # .npmrc
 config.bat
 .env
+CLAUDE.md

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { organizationsApi } from "@/lib/api/organizations.api";
+import { useOrganizationsMine } from "@/hooks/useOrganizationsMine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getRootHost } from "@/lib/subdomain";
@@ -14,10 +15,7 @@ export function OrgSwitcher({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: organizations, isLoading } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
+  const { data: organizations, isLoading } = useOrganizationsMine();
 
   const switchMutation = useMutation({
     mutationFn: (organizationId: string) =>

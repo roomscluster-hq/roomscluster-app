@@ -37,6 +37,9 @@ interface TeammatesTableProps {
   isInviting: boolean;
   updatingUserId?: string | null;
   viewerRole?: "OWNER" | "ADMIN" | "HOST";
+  maxTeammates: number | null;
+  teammatesUsed: number;
+  onUpgradeClick: () => void;
 }
 
 export function TeammatesTable({
@@ -54,6 +57,9 @@ export function TeammatesTable({
   isInviting,
   updatingUserId,
   viewerRole,
+  maxTeammates,
+  teammatesUsed,
+  onUpgradeClick,
 }: TeammatesTableProps) {
   if (isLoading) {
     return (
@@ -64,6 +70,8 @@ export function TeammatesTable({
       </Card>
     );
   }
+
+  const atLimit = maxTeammates !== null && teammatesUsed >= maxTeammates;
 
   return (
     <Card>
@@ -76,26 +84,42 @@ export function TeammatesTable({
             {invitations.length > 0 &&
               ` · ${invitations.length} pending invitation${invitations.length !== 1 ? "s" : ""}`}
           </p>
+          <p className="text-xs text-ink-700/40 mt-0.5">
+            {maxTeammates === null
+              ? `${teammatesUsed} teammate slot${teammatesUsed === 1 ? "" : "s"} used`
+              : `${teammatesUsed} of ${maxTeammates} teammate slot${maxTeammates === 1 ? "" : "s"} used`}
+          </p>
         </div>
-        <form onSubmit={onInvite} className="flex flex-wrap gap-2">
-          <input
-            type="email"
-            value={inviteEmail}
-            onChange={(e) => onInviteEmailChange(e.target.value)}
-            placeholder="colleague@example.com"
-            required
-            className="flex-1 min-w-45 sm:w-56 sm:flex-none bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={isInviting}
-            className="shrink-0"
+
+        {atLimit ? (
+          <button
+            onClick={onUpgradeClick}
+            className="flex items-center gap-2 text-sm font-medium bg-primary-50 text-primary-700 px-4 py-2 rounded-lg hover:bg-primary-100 cursor-pointer shrink-0"
           >
-            {isInviting ? <Spinner /> : <UserPlus size={16} />}
-            Invite
-          </Button>
-        </form>
+            <UserPlus size={16} />
+            Upgrade to add more teammates
+          </button>
+        ) : (
+          <form onSubmit={onInvite} className="flex flex-wrap gap-2">
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => onInviteEmailChange(e.target.value)}
+              placeholder="colleague@example.com"
+              required
+              className="flex-1 min-w-45 sm:w-56 sm:flex-none bg-surface-0 text-ink-900 placeholder:text-ink-700/40 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              disabled={isInviting}
+              className="shrink-0"
+            >
+              {isInviting ? <Spinner /> : <UserPlus size={16} />}
+              Invite
+            </Button>
+          </form>
+        )}
       </div>
 
       {/* Search */}

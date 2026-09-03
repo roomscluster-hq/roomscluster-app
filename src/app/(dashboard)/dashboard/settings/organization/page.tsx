@@ -11,6 +11,8 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useGroupManagement } from "@/hooks/useGroupManagement";
 import { useRouter, useSearchParams } from "next/navigation";
+import { BillingPanel } from "@/components/dashboard/settings/BillingPanel";
+import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
 
 export default function OrganizationSettingsPage() {
   const router = useRouter();
@@ -64,6 +66,7 @@ export default function OrganizationSettingsPage() {
     isUpdatingBranding,
     isUpdatingLogo,
     handleLogoUpload,
+    teammatesUsed,
   } = useOrganizationSettings();
 
   const groupManagement = useGroupManagement();
@@ -108,8 +111,18 @@ export default function OrganizationSettingsPage() {
 
         {/* Content */}
         <section className="flex-1 min-w-0">
-          {tab === "groups" ? (
-            <GroupsPanel {...groupManagement} />
+          {tab === "billing" ? (
+            <BillingPanel organizationId={activeOrg.id} />
+          ) : tab === "groups" ? (
+            <GroupsPanel
+              {...groupManagement}
+              groupsEnabled={activeOrg?.groupsEnabled ?? false}
+              onUpgradeClick={() =>
+                useUpgradePromptStore
+                  .getState()
+                  .show("Groups require the Pro plan.", "PRO")
+              }
+            />
           ) : tab === "general" ? (
             <GeneralSettings
               orgName={activeOrg.name}
@@ -133,6 +146,17 @@ export default function OrganizationSettingsPage() {
               isUpdatingLogo={isUpdatingLogo}
               currentLogoUrl={activeOrg?.logoUrl ?? null}
               onLogoUpload={handleLogoUpload}
+              customBrandingEntitled={
+                activeOrg?.customBrandingEntitled ?? false
+              }
+              onUpgradeClick={() =>
+                useUpgradePromptStore
+                  .getState()
+                  .show(
+                    "Custom branding requires the Business plan.",
+                    "BUSINESS",
+                  )
+              }
             />
           ) : (
             <TeammatesTable
@@ -150,6 +174,13 @@ export default function OrganizationSettingsPage() {
               isInviting={isInviting}
               updatingUserId={updatingUserId}
               viewerRole={activeOrg?.role}
+              maxTeammates={activeOrg?.maxTeammates ?? null}
+              teammatesUsed={teammatesUsed}
+              onUpgradeClick={() =>
+                useUpgradePromptStore
+                  .getState()
+                  .show("You've reached your plan's teammate limit.", "PRO")
+              }
             />
           )}
         </section>

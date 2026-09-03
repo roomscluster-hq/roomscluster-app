@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FONT_OPTIONS } from "@/lib/fontFamily";
@@ -32,6 +32,9 @@ interface GeneralSettingsProps {
   onFontFamilyChange: (value: string) => void;
   onBrandingSubmit: (e: React.FormEvent) => void;
   isUpdatingBranding: boolean;
+
+  customBrandingEntitled: boolean;
+  onUpgradeClick: () => void;
 }
 
 export function GeneralSettings({
@@ -56,6 +59,8 @@ export function GeneralSettings({
   onFontFamilyChange,
   onBrandingSubmit,
   isUpdatingBranding,
+  customBrandingEntitled,
+  onUpgradeClick,
 }: GeneralSettingsProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,35 +108,58 @@ export function GeneralSettings({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={!customBrandingEntitled ? "opacity-60" : ""}>
         <CardContent className="py-6">
-          <h2 className="font-semibold text-ink-900 mb-1">Subdomain</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="font-semibold text-ink-900">Subdomain</h2>
+            {!customBrandingEntitled && (
+              <button
+                onClick={onUpgradeClick}
+                className="text-[10px] font-semibold uppercase tracking-wide bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded cursor-pointer hover:bg-primary-100 flex items-center gap-1"
+              >
+                <Lock size={9} />
+                Upgrade
+              </button>
+            )}
+          </div>
           <p className="text-xs text-ink-700/50 mb-4">
             Members and hosts can reach your organization directly at this
             address.
           </p>
-          <form onSubmit={onSlugSubmit} className="flex items-center gap-2">
+          <form onSubmit={customBrandingEntitled ? onSlugSubmit : (e) => { e.preventDefault(); onUpgradeClick(); }} className="flex items-center gap-2">
             <div className="flex-1 flex items-center border border-surface-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-600">
               <input
                 value={slugValue}
                 onChange={(e) => onSlugChange(e.target.value)}
+                disabled={!customBrandingEntitled}
                 placeholder="your-org"
-                className="flex-1 bg-surface-0 text-ink-900 placeholder:text-ink-700/40 px-3 py-2 text-sm focus:outline-none"
+                className="flex-1 bg-surface-0 text-ink-900 placeholder:text-ink-700/40 px-3 py-2 text-sm focus:outline-none disabled:cursor-not-allowed"
               />
               <span className="px-3 py-2 text-sm text-ink-700/50 bg-surface-50 border-l border-surface-200">
                 .roomscluster.com
               </span>
             </div>
-            <Button type="submit" size="sm" disabled={isUpdatingSlug}>
+            <Button type="submit" size="sm" disabled={isUpdatingSlug || !customBrandingEntitled}>
               {isUpdatingSlug ? "Saving..." : "Save"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={!customBrandingEntitled ? "opacity-60" : ""}>
         <CardContent className="py-6">
-          <h2 className="font-semibold text-ink-900 mb-4">Logo</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="font-semibold text-ink-900">Logo</h2>
+            {!customBrandingEntitled && (
+              <button
+                onClick={onUpgradeClick}
+                className="text-[10px] font-semibold uppercase tracking-wide bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded cursor-pointer hover:bg-primary-100 flex items-center gap-1"
+              >
+                <Lock size={9} />
+                Upgrade
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-4">
             <div className="relative group">
               <div className="w-20 h-20 rounded-lg bg-surface-50 border border-surface-200 flex items-center justify-center overflow-hidden">
@@ -149,7 +177,7 @@ export function GeneralSettings({
                 )}
               </div>
               <button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={customBrandingEntitled ? () => fileInputRef.current?.click() : onUpgradeClick}
                 disabled={isUpdatingLogo}
                 className="absolute inset-0 rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center disabled:cursor-not-allowed"
                 title="Change logo"
@@ -170,7 +198,7 @@ export function GeneralSettings({
             </div>
             <div>
               <button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={customBrandingEntitled ? () => fileInputRef.current?.click() : onUpgradeClick}
                 disabled={isUpdatingLogo}
                 className="text-sm text-primary-600 hover:underline disabled:opacity-50 cursor-pointer"
               >
@@ -184,13 +212,24 @@ export function GeneralSettings({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={!customBrandingEntitled ? "opacity-60" : ""}>
         <CardContent className="py-6">
-          <h2 className="font-semibold text-ink-900 mb-1">Branding</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="font-semibold text-ink-900">Branding</h2>
+            {!customBrandingEntitled && (
+              <button
+                onClick={onUpgradeClick}
+                className="text-[10px] font-semibold uppercase tracking-wide bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded cursor-pointer hover:bg-primary-100 flex items-center gap-1"
+              >
+                <Lock size={9} />
+                Upgrade
+              </button>
+            )}
+          </div>
           <p className="text-xs text-ink-700/50 mb-4">
             Applied on your subdomain and in invitation emails.
           </p>
-          <form onSubmit={onBrandingSubmit} className="space-y-4">
+          <form onSubmit={customBrandingEntitled ? onBrandingSubmit : (e) => { e.preventDefault(); onUpgradeClick(); }} className="space-y-4">
             <div className="flex gap-4">
               <div>
                 <label className="block text-sm font-medium text-ink-700 mb-1">
@@ -200,7 +239,8 @@ export function GeneralSettings({
                   type="color"
                   value={primaryColor || "#2563eb"}
                   onChange={(e) => onPrimaryColorChange(e.target.value)}
-                  className="w-16 h-10 border border-surface-200 rounded-lg cursor-pointer"
+                  disabled={!customBrandingEntitled}
+                  className="w-16 h-10 border border-surface-200 rounded-lg cursor-pointer disabled:cursor-not-allowed"
                 />
               </div>
               <div className="flex-1">
@@ -210,7 +250,8 @@ export function GeneralSettings({
                 <select
                   value={fontFamily}
                   onChange={(e) => onFontFamilyChange(e.target.value)}
-                  className="w-full bg-surface-0 text-ink-900 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+                  disabled={!customBrandingEntitled}
+                  className="w-full bg-surface-0 text-ink-900 border border-surface-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:cursor-not-allowed"
                 >
                   <option value="">Default (Inter)</option>
                   {FONT_OPTIONS.map((f) => (
@@ -221,7 +262,7 @@ export function GeneralSettings({
                 </select>
               </div>
             </div>
-            <Button type="submit" size="sm" disabled={isUpdatingBranding}>
+            <Button type="submit" size="sm" disabled={isUpdatingBranding || !customBrandingEntitled}>
               {isUpdatingBranding ? "Saving..." : "Save branding"}
             </Button>
           </form>

@@ -3,10 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth.store";
-import { organizationsApi } from "@/lib/api/organizations.api";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { cn } from "@/lib/utils";
 
 export function UserMenu({ compact = false }: { compact?: boolean }) {
@@ -15,11 +14,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const { user, clearAuth } = useAuthStore();
 
-  const { data: organizations } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
-  const activeOrg = organizations?.find((o) => o.isActive);
+  const { activeOrg } = useActiveOrganization();
   const isMemberOnly = activeOrg?.role === "MEMBER";
 
   useEffect(() => {

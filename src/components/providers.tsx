@@ -6,6 +6,7 @@ import { useState } from "react";
 import { SubdomainProvider, useSubdomain } from "@/contexts/SubdomainContext";
 import { SubdomainErrorPage } from "@/components/SubdomainErrorPage";
 import { useAuthStore } from "@/store/auth.store";
+import { UpgradePromptModal } from "@/components/UpgradePromptModal";
 
 function SubdomainGate({ children }: { children: React.ReactNode }) {
   const { accessDenied } = useSubdomain();
@@ -36,6 +37,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <SubdomainProvider>
         <SubdomainGate>{children}</SubdomainGate>
       </SubdomainProvider>
+      <UpgradePromptModal />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

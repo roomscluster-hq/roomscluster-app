@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ROOT_HOSTS = ["roomscluster.com", "www.roomscluster.com", "localhost:3000", "localhost"];
+const ROOT_HOSTS = ["roomscluster.com", "www.roomscluster.com", "staging.roomscluster.com", "localhost:3000", "localhost"];
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
 const VERIFIED_COOKIE = "org_verified";
 const VERIFIED_TTL_SECONDS = 5 * 60;

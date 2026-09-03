@@ -12,6 +12,16 @@ export interface OrgMembership {
   role: "OWNER" | "ADMIN" | "HOST" | "MEMBER";
   memberCount: number;
   isActive: boolean;
+  plan: "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
+  maxTeammates: number | null;
+  advancedSessionSettingsEnabled: boolean;
+  canRecordVideo: boolean;
+  canRecordBothSimultaneously: boolean;
+  maxSessionMinutes: number;
+  maxCoHostsPerSession: number;
+  customBrandingEntitled: boolean;
+  groupsEnabled: boolean;
+  qaPollsHistoryEnabled: boolean
 }
 
 export interface PublicOrgBranding {

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { portalApi } from "@/lib/api/portal.api";
-import { organizationsApi } from "@/lib/api/organizations.api";
+import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { OrgSwitcher } from "@/components/dashboard/OrgSwitcher";
 import { Spinner } from "@/components/ui/spinner";
 import { Inbox } from "lucide-react";
@@ -10,11 +10,7 @@ import { PortalGroupSection } from "@/components/portal/PortalGroupSection";
 import { UserMenu } from "@/components/dashboard/UserMenu";
 
 export default function PortalPage() {
-  const { data: organizations } = useQuery({
-    queryKey: ["organizations-mine"],
-    queryFn: organizationsApi.listMine,
-  });
-  const activeOrg = organizations?.find((o) => o.isActive);
+  const { activeOrg } = useActiveOrganization();
 
   const { data, isLoading } = useQuery({
     queryKey: ["portal-dashboard"],

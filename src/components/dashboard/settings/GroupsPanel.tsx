@@ -12,7 +12,12 @@ import { useGroupManagement } from "@/hooks/useGroupManagement";
 
 type GroupManagement = ReturnType<typeof useGroupManagement>;
 
-export function GroupsPanel(props: GroupManagement) {
+interface GroupsPanelProps extends GroupManagement {
+  groupsEnabled: boolean;
+  onUpgradeClick: () => void;
+}
+
+export function GroupsPanel(props: GroupsPanelProps) {
   const {
     groups,
     page,
@@ -50,6 +55,8 @@ export function GroupsPanel(props: GroupManagement) {
     submitRename,
     cancelRename,
     isRenaming,
+    groupsEnabled,
+    onUpgradeClick,
   } = props;
 
   const columns: DataTableColumn<Group>[] = [
@@ -141,9 +148,19 @@ export function GroupsPanel(props: GroupManagement) {
   return (
     <Card>
       {/* Header */}
-      <div className="p-6 border-b border-surface-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+<div className="p-6 border-b border-surface-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="font-semibold text-ink-900">Groups</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-ink-900">Groups</h2>
+            {!groupsEnabled && (
+              <button
+                onClick={onUpgradeClick}
+                className="text-[10px] font-semibold uppercase tracking-wide bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded cursor-pointer hover:bg-primary-100"
+              >
+                Upgrade
+              </button>
+            )}
+          </div>
           <p className="text-sm text-ink-700/50 mt-0.5">
             {groups.length} group{groups.length !== 1 ? "s" : ""}  sessions
             attached to a group require enrollment to join
@@ -151,7 +168,10 @@ export function GroupsPanel(props: GroupManagement) {
         </div>
         <div className="flex gap-2">
           {!creatingGroup && (
-            <Button size="sm" onClick={() => setCreatingGroup(true)}>
+            <Button
+              size="sm"
+              onClick={groupsEnabled ? () => setCreatingGroup(true) : onUpgradeClick}
+            >
               <Plus size={16} />
               New Group
             </Button>
@@ -159,7 +179,7 @@ export function GroupsPanel(props: GroupManagement) {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setBulkCreateOpen(!bulkCreateOpen)}
+            onClick={groupsEnabled ? () => setBulkCreateOpen(!bulkCreateOpen) : onUpgradeClick}
           >
             <Upload size={16} />
             Bulk create
