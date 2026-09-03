@@ -105,9 +105,31 @@ export function UpgradePromptModal() {
           })}
         </div>
 
+        <p className="text-center text-xs text-ink-700/40 mt-4">
+          By upgrading, you agree to our{" "}
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary-600 hover:underline"
+          >
+            Terms
+          </a>{" "}
+          and{" "}
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary-600 hover:underline"
+          >
+            Privacy Policy
+          </a>
+          .
+        </p>
+
         <button
           onClick={close}
-          className="w-full text-center text-sm text-ink-700/60 hover:text-ink-700 mt-4 cursor-pointer"
+          className="w-full text-center text-sm text-ink-700/60 hover:text-ink-700 mt-3 cursor-pointer"
         >
           Not now
         </button>
