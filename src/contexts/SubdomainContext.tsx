@@ -118,10 +118,13 @@ export function SubdomainProvider({
       });
   }, [org, isAuthenticated, user?.id, pathname, router, accessDenied]);
 
-  // Reset stale denial state once the user is no longer authenticated
-  // as anyone (e.g. they explicitly log out, or clearAuth() ran after
-  // a denied switchActive) — so a fresh login attempt isn't wrongly
-  // blocked by leftover state.
+  // Clear a stale denial once the user successfully authenticates again
+  // (isAuthenticated flips back to true while accessDenied is still
+  // true from a previous failed switchActive) — a retry after logging
+  // back in. Without this, the retry stays permanently blocked by the
+  // access-check effect's own `if (accessDenied) return;` guard above,
+  // which exists specifically to keep that effect from fighting with
+  // the denied-access page while the denial is still current.
   //
   // Adjusted directly during render (React's documented alternative to
   // an Effect for reacting to a state change) instead of in a
@@ -130,7 +133,7 @@ export function SubdomainProvider({
   if (isAuthenticated !== prevIsAuthenticated) {
     setPrevIsAuthenticated(isAuthenticated);
 
-    if (!isAuthenticated && accessDenied) {
+    if (isAuthenticated && accessDenied) {
       setAccessDenied(false);
     }
   }
