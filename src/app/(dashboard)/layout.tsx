@@ -10,6 +10,7 @@ import { OrgSwitcher } from "@/components/dashboard/OrgSwitcher";
 import { UserMenu } from "@/components/dashboard/UserMenu";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
+import { PlanBadge } from "@/components/dashboard/PlanBadge";
 
 const NAV_ITEMS = [
   {
@@ -82,6 +83,7 @@ export default function DashboardLayout({
 
         <div className="px-4 py-4 border-b border-surface-200 space-y-3">
           <OrgSwitcher />
+          <PlanBadge />
           <Link
             href="/dashboard/sessions/new"
             className="flex items-center justify-center gap-2 w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
@@ -143,6 +145,10 @@ export default function DashboardLayout({
             <UserMenu compact />
           </div>
         </header>
+
+        <div className="md:hidden bg-surface-0 border-b border-surface-200 px-4 py-2">
+          <PlanBadge compact />
+        </div>
 
         {/* Page content */}
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8 pb-20 md:pb-8 max-w-6xl w-full mx-auto">

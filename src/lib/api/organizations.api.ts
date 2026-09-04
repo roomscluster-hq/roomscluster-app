@@ -21,7 +21,8 @@ export interface OrgMembership {
   maxCoHostsPerSession: number;
   customBrandingEntitled: boolean;
   groupsEnabled: boolean;
-  qaPollsHistoryEnabled: boolean
+  qaPollsHistoryEnabled: boolean;
+  trialEndsAt: Date;
 }
 
 export interface PublicOrgBranding {
