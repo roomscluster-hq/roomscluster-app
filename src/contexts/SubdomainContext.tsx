@@ -51,6 +51,7 @@ export function SubdomainProvider({
   const pathname = usePathname();
 
   const switchKeyRef = useRef<string | null>(null);
+  const prevAccessDeniedRef = useRef(accessDenied);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -76,12 +77,19 @@ export function SubdomainProvider({
   useEffect(() => {
     if (!org) return;
 
-    // Once access has been denied, stop this effect from taking any
-    // further action. Without this, clearAuth() below flips
-    // isAuthenticated to false, this effect re-runs (isAuthenticated is
-    // a dependency), and its own "not logged in -> go to /login" branch
-    // fires automatically — auto-redirecting a denied user away from
-    // the error page before they've done anything themselves.
+    // If we just recovered from a denial (accessDenied flipped true ->
+    // false, e.g. from a fresh successful login), clear the switchKey
+    // guard RIGHT HERE, before the check below — in the same effect
+    // that reads it, not a separate effect. Two separate effects both
+    // reacting to accessDenied changing run in declaration order within
+    // one commit; putting the reset in a later-declared effect meant it
+    // always ran too late, after this effect had already read the
+    // stale ref value and bailed out.
+    if (prevAccessDeniedRef.current && !accessDenied) {
+      switchKeyRef.current = null;
+    }
+    prevAccessDeniedRef.current = accessDenied;
+
     if (accessDenied) return;
 
     if (!isAuthenticated) {
@@ -118,18 +126,10 @@ export function SubdomainProvider({
       });
   }, [org, isAuthenticated, user?.id, pathname, router, accessDenied]);
 
-  // Clear a stale denial once the user successfully authenticates again
-  // (isAuthenticated flips back to true while accessDenied is still
-  // true from a previous failed switchActive) — a retry after logging
-  // back in. Without this, the retry stays permanently blocked by the
-  // access-check effect's own `if (accessDenied) return;` guard above,
-  // which exists specifically to keep that effect from fighting with
-  // the denied-access page while the denial is still current.
-  //
-  // Adjusted directly during render (React's documented alternative to
-  // an Effect for reacting to a state change) instead of in a
-  // useEffect, since this is a synchronous response to isAuthenticated
-  // changing, not a sync with an external system.
+  // Reset stale denial state on a fresh, successful login while
+  // previously denied — the transition INTO isAuthenticated=true, not
+  // out of it. Adjusted directly during render (React's documented
+  // alternative to an Effect for reacting to a prop/state change).
   if (isAuthenticated !== prevIsAuthenticated) {
     setPrevIsAuthenticated(isAuthenticated);
 
@@ -137,22 +137,6 @@ export function SubdomainProvider({
       setAccessDenied(false);
     }
   }
-
-  // Clears switchKeyRef once accessDenied actually flips back to false:
-  // without this, the SAME account logging back in to retry computes
-  // the identical switchKey as before, the guard above sees it
-  // "already tried", and silently skips calling switchActive a second
-  // time at all. This has to run as a real Effect rather than during
-  // render, since refs can't be written while rendering.
-  const prevAccessDeniedRef = useRef(accessDenied);
-
-  useEffect(() => {
-    if (prevAccessDeniedRef.current && !accessDenied) {
-      switchKeyRef.current = null;
-    }
-
-    prevAccessDeniedRef.current = accessDenied;
-  }, [accessDenied]);
 
   function applyBrandingOverride(
     ramp: Record<string, string>,
