@@ -75,7 +75,7 @@ export function SubdomainProvider({
     if (!org) return;
 
     if (!isAuthenticated) {
-      if (pathname !== "/login" && pathname !== "/no-access") {
+      if (pathname !== "/login") {
         router.replace("/login");
       }
 
@@ -106,28 +106,8 @@ export function SubdomainProvider({
         await useAuthStore.getState().clearAuth();
 
         setAccessDenied(true);
-
-        if (pathname !== "/no-access") {
-          router.replace("/no-access");
-        }
       });
   }, [org, isAuthenticated, user?.id, pathname, router]);
-
-  const effectiveAccessDenied = isAuthenticated
-    ? accessDenied
-    : false;
-
-  useEffect(() => {
-    if (!effectiveAccessDenied) return;
-
-    const styleEl = document.getElementById(
-      "org-branding-override",
-    );
-
-    if (styleEl) {
-      styleEl.remove();
-    }
-  }, [effectiveAccessDenied]);
 
   function applyBrandingOverride(
     ramp: Record<string, string>,
@@ -197,13 +177,25 @@ export function SubdomainProvider({
     }
   }, [org]);
 
+  useEffect(() => {
+    if (!accessDenied) return;
+
+    const styleEl = document.getElementById(
+      "org-branding-override",
+    );
+
+    if (styleEl) {
+      styleEl.remove();
+    }
+  }, [accessDenied]);
+
   return (
     <SubdomainContext.Provider
       value={{
         slug,
         org: org ?? null,
         isLoading,
-        accessDenied: effectiveAccessDenied,
+        accessDenied,
         notFound,
       }}
     >
