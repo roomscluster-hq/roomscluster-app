@@ -43,7 +43,7 @@ export function SubdomainProvider({
   const [slug, setSlug] = useState<string | null>(null);
   const [accessDenied, setAccessDenied] = useState(false);
 
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   const router = useRouter();
   const pathname = usePathname();
@@ -75,14 +75,16 @@ export function SubdomainProvider({
     if (!org) return;
 
     if (!isAuthenticated) {
-      if (pathname !== "/login") {
+      if (pathname !== "/login" && pathname !== "/no-access") {
         router.replace("/login");
       }
 
       return;
     }
 
-    const switchKey = org.id;
+    if (!user?.id) return;
+
+    const switchKey = `${user.id}:${org.id}`;
 
     if (switchKeyRef.current === switchKey) {
       return;
@@ -99,17 +101,28 @@ export function SubdomainProvider({
           router.replace(homeRoute);
         }
       })
-      .catch(() => {
-        setAccessDenied(true);
-      });
-  }, [org, isAuthenticated, pathname, router]);
+      .catch(async () => {
 
-  const effectiveAccessDenied = isAuthenticated ? accessDenied : false;
+        await useAuthStore.getState().clearAuth();
+
+        setAccessDenied(true);
+
+        if (pathname !== "/no-access") {
+          router.replace("/no-access");
+        }
+      });
+  }, [org, isAuthenticated, user?.id, pathname, router]);
+
+  const effectiveAccessDenied = isAuthenticated
+    ? accessDenied
+    : false;
 
   useEffect(() => {
     if (!effectiveAccessDenied) return;
 
-    const styleEl = document.getElementById("org-branding-override");
+    const styleEl = document.getElementById(
+      "org-branding-override",
+    );
 
     if (styleEl) {
       styleEl.remove();
