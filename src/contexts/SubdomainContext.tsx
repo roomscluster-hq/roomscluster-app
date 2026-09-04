@@ -71,43 +71,32 @@ export function SubdomainProvider({
 
   const notFound = !!slug && !isLoading && isError;
 
-  useEffect(() => {
-    if (!org) return;
+useEffect(() => {
+  if (!org) return;
+  if (accessDenied) return; // Once denied, stop auto-navigating entirely —
+                              // leave it to the error page's own link, not
+                              // this effect reacting to the logout it just caused
+  if (!isAuthenticated) {
+    if (pathname !== "/login") router.replace("/login");
+    return;
+  }
+  if (!user?.id) return;
 
-    if (!isAuthenticated) {
-      if (pathname !== "/login") {
-        router.replace("/login");
-      }
+  const switchKey = `${user.id}:${org.id}`;
+  if (switchKeyRef.current === switchKey) return;
+  switchKeyRef.current = switchKey;
 
-      return;
-    }
-
-    if (!user?.id) return;
-
-    const switchKey = `${user.id}:${org.id}`;
-
-    if (switchKeyRef.current === switchKey) {
-      return;
-    }
-
-    switchKeyRef.current = switchKey;
-
-    organizationsApi
-      .switchActive(org.id)
-      .then(async () => {
-        const homeRoute = await resolveHomeRoute();
-
-        if (pathname !== homeRoute) {
-          router.replace(homeRoute);
-        }
-      })
-      .catch(async () => {
-
-        await useAuthStore.getState().clearAuth();
-
-        setAccessDenied(true);
-      });
-  }, [org, isAuthenticated, user?.id, pathname, router]);
+  organizationsApi
+    .switchActive(org.id)
+    .then(async () => {
+      const homeRoute = await resolveHomeRoute();
+      if (pathname !== homeRoute) router.replace(homeRoute);
+    })
+    .catch(async () => {
+      await useAuthStore.getState().clearAuth();
+      setAccessDenied(true);
+    });
+}, [org, isAuthenticated, user?.id, pathname, router, accessDenied]);
 
   function applyBrandingOverride(
     ramp: Record<string, string>,
