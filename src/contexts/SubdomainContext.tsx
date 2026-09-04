@@ -35,19 +35,27 @@ const SubdomainContext = createContext<SubdomainContextValue>({
   notFound: false,
 });
 
-export function SubdomainProvider({ children }: { children: ReactNode }) {
+export function SubdomainProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [slug, setSlug] = useState<string | null>(null);
   const [accessDenied, setAccessDenied] = useState(false);
+
   const { isAuthenticated } = useAuthStore();
+
   const router = useRouter();
   const pathname = usePathname();
-  const hasSwitchedRef = useRef(false);
+
+  const switchKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setSlug(getSubdomainSlug());
     }, 0);
-    return () => clearTimeout(t);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const {
@@ -61,47 +69,63 @@ export function SubdomainProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
-  // Only true once we're certain: a subdomain was detected, the lookup
-  // has finished, and no valid, enabled organization came back for it.
   const notFound = !!slug && !isLoading && isError;
 
   useEffect(() => {
     if (!org) return;
 
     if (!isAuthenticated) {
-      if (pathname !== "/login") router.replace("/login");
+      if (pathname !== "/login") {
+        router.replace("/login");
+      }
+
       return;
     }
 
-    // Only ever attempt the real access-check once — but only actually
-    // set this once we're genuinely authenticated and about to try it,
-    // not preemptively on the earlier "redirect to login" path. This is
-    // the fix: the old hasRedirected ref blocked THIS call permanently
-    // once it had already fired for the login-redirect case.
-    if (hasSwitchedRef.current) return;
-    hasSwitchedRef.current = true;
+    const switchKey = org.id;
+
+    if (switchKeyRef.current === switchKey) {
+      return;
+    }
+
+    switchKeyRef.current = switchKey;
 
     organizationsApi
       .switchActive(org.id)
       .then(async () => {
         const homeRoute = await resolveHomeRoute();
-        if (pathname !== homeRoute) router.replace(homeRoute);
+
+        if (pathname !== homeRoute) {
+          router.replace(homeRoute);
+        }
       })
-      .catch(() => setAccessDenied(true));
+      .catch(() => {
+        setAccessDenied(true);
+      });
   }, [org, isAuthenticated, pathname, router]);
 
+  const effectiveAccessDenied = isAuthenticated ? accessDenied : false;
+
   useEffect(() => {
-    if (!accessDenied) return;
+    if (!effectiveAccessDenied) return;
+
     const styleEl = document.getElementById("org-branding-override");
-    if (styleEl) styleEl.remove();
-  }, [accessDenied]);
+
+    if (styleEl) {
+      styleEl.remove();
+    }
+  }, [effectiveAccessDenied]);
 
   function applyBrandingOverride(
     ramp: Record<string, string>,
     fontFamily?: string | null,
   ) {
     const styleId = "org-branding-override";
-    let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
+
+    let styleEl = document.getElementById(
+      styleId,
+    ) as HTMLStyleElement | null;
+
     if (!styleEl) {
       styleEl = document.createElement("style");
       styleEl.id = styleId;
@@ -109,24 +133,33 @@ export function SubdomainProvider({ children }: { children: ReactNode }) {
     }
 
     const rules: string[] = [];
+
     for (const [shade, hex] of Object.entries(ramp)) {
       rules.push(
         `.bg-primary-${shade} { background-color: ${hex} !important; }`,
       );
-      rules.push(`.text-primary-${shade} { color: ${hex} !important; }`);
+
+      rules.push(
+        `.text-primary-${shade} { color: ${hex} !important; }`,
+      );
+
       rules.push(
         `.border-primary-${shade} { border-color: ${hex} !important; }`,
       );
+
       rules.push(
         `.hover\\:bg-primary-${shade}:hover { background-color: ${hex} !important; }`,
       );
+
       rules.push(
         `.hover\\:text-primary-${shade}:hover { color: ${hex} !important; }`,
       );
     }
 
     if (fontFamily) {
-      rules.push(`body, .font-sans { font-family: ${fontFamily} !important; }`);
+      rules.push(
+        `body, .font-sans { font-family: ${fontFamily} !important; }`,
+      );
     }
 
     styleEl.textContent = rules.join("\n");
@@ -134,17 +167,17 @@ export function SubdomainProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!org) return;
+
     if (org.primaryColor) {
       const ramp = generateColorRamp(org.primaryColor);
-      // Keep the CSS variables too — harmless, and helps any component
-      // that DOES reference var(--color-primary-600) directly, like the
-      // shadcn semantic bridge tokens
+
       for (const [shade, hex] of Object.entries(ramp)) {
         document.documentElement.style.setProperty(
           `--color-primary-${shade}`,
           hex,
         );
       }
+
       applyBrandingOverride(ramp, org.fontFamily);
     } else if (org.fontFamily) {
       applyBrandingOverride({}, org.fontFamily);
@@ -153,7 +186,13 @@ export function SubdomainProvider({ children }: { children: ReactNode }) {
 
   return (
     <SubdomainContext.Provider
-      value={{ slug, org: org ?? null, isLoading, accessDenied, notFound }}
+      value={{
+        slug,
+        org: org ?? null,
+        isLoading,
+        accessDenied: effectiveAccessDenied,
+        notFound,
+      }}
     >
       {children}
     </SubdomainContext.Provider>
