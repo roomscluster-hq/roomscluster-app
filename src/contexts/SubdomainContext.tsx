@@ -45,6 +45,8 @@ export function SubdomainProvider({
 
   const { isAuthenticated, user } = useAuthStore();
 
+  const [prevIsAuthenticated, setPrevIsAuthenticated] = useState(isAuthenticated);
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -71,32 +73,66 @@ export function SubdomainProvider({
 
   const notFound = !!slug && !isLoading && isError;
 
-useEffect(() => {
-  if (!org) return;
-  if (accessDenied) return; // Once denied, stop auto-navigating entirely —
-                              // leave it to the error page's own link, not
-                              // this effect reacting to the logout it just caused
-  if (!isAuthenticated) {
-    if (pathname !== "/login") router.replace("/login");
-    return;
+  useEffect(() => {
+    if (!org) return;
+
+    // Once access has been denied, stop this effect from taking any
+    // further action. Without this, clearAuth() below flips
+    // isAuthenticated to false, this effect re-runs (isAuthenticated is
+    // a dependency), and its own "not logged in -> go to /login" branch
+    // fires automatically — auto-redirecting a denied user away from
+    // the error page before they've done anything themselves.
+    if (accessDenied) return;
+
+    if (!isAuthenticated) {
+      if (pathname !== "/login") {
+        router.replace("/login");
+      }
+
+      return;
+    }
+
+    if (!user?.id) return;
+
+    const switchKey = `${user.id}:${org.id}`;
+
+    if (switchKeyRef.current === switchKey) {
+      return;
+    }
+
+    switchKeyRef.current = switchKey;
+
+    organizationsApi
+      .switchActive(org.id)
+      .then(async () => {
+        const homeRoute = await resolveHomeRoute();
+
+        if (pathname !== homeRoute) {
+          router.replace(homeRoute);
+        }
+      })
+      .catch(async () => {
+        await useAuthStore.getState().clearAuth();
+
+        setAccessDenied(true);
+      });
+  }, [org, isAuthenticated, user?.id, pathname, router, accessDenied]);
+
+  // Reset stale denial state once the user is no longer authenticated
+  // as anyone (e.g. they explicitly log out from the error page) — so
+  // a fresh login attempt isn't wrongly blocked by leftover state.
+  //
+  // Adjusted directly during render (React's documented alternative to
+  // an Effect for reacting to a state change) instead of in a
+  // useEffect, since this is a synchronous response to isAuthenticated
+  // changing, not a sync with an external system.
+  if (isAuthenticated !== prevIsAuthenticated) {
+    setPrevIsAuthenticated(isAuthenticated);
+
+    if (!isAuthenticated && accessDenied) {
+      setAccessDenied(false);
+    }
   }
-  if (!user?.id) return;
-
-  const switchKey = `${user.id}:${org.id}`;
-  if (switchKeyRef.current === switchKey) return;
-  switchKeyRef.current = switchKey;
-
-  organizationsApi
-    .switchActive(org.id)
-    .then(async () => {
-      const homeRoute = await resolveHomeRoute();
-      if (pathname !== homeRoute) router.replace(homeRoute);
-    })
-    .catch(async () => {
-      await useAuthStore.getState().clearAuth();
-      setAccessDenied(true);
-    });
-}, [org, isAuthenticated, user?.id, pathname, router, accessDenied]);
 
   function applyBrandingOverride(
     ramp: Record<string, string>,
