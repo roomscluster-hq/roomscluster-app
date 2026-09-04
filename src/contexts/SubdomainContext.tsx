@@ -119,8 +119,9 @@ export function SubdomainProvider({
   }, [org, isAuthenticated, user?.id, pathname, router, accessDenied]);
 
   // Reset stale denial state once the user is no longer authenticated
-  // as anyone (e.g. they explicitly log out from the error page) — so
-  // a fresh login attempt isn't wrongly blocked by leftover state.
+  // as anyone (e.g. they explicitly log out, or clearAuth() ran after
+  // a denied switchActive) — so a fresh login attempt isn't wrongly
+  // blocked by leftover state.
   //
   // Adjusted directly during render (React's documented alternative to
   // an Effect for reacting to a state change) instead of in a
@@ -133,6 +134,22 @@ export function SubdomainProvider({
       setAccessDenied(false);
     }
   }
+
+  // Clears switchKeyRef once accessDenied actually flips back to false:
+  // without this, the SAME account logging back in to retry computes
+  // the identical switchKey as before, the guard above sees it
+  // "already tried", and silently skips calling switchActive a second
+  // time at all. This has to run as a real Effect rather than during
+  // render, since refs can't be written while rendering.
+  const prevAccessDeniedRef = useRef(accessDenied);
+
+  useEffect(() => {
+    if (prevAccessDeniedRef.current && !accessDenied) {
+      switchKeyRef.current = null;
+    }
+
+    prevAccessDeniedRef.current = accessDenied;
+  }, [accessDenied]);
 
   function applyBrandingOverride(
     ramp: Record<string, string>,
