@@ -13,6 +13,7 @@ import { PasswordInput } from "./PasswordInput";
 import { FormDivider } from "./FormDivider";
 import { cn, isValidEmail } from "@/lib/utils";
 import { resolveHomeRoute } from "@/hooks/resolveHomeRoute";
+import { useSubdomain } from "@/contexts/SubdomainContext";
 
 interface LoginFormProps {
   onMagicLinkSent?: () => void;
@@ -32,6 +33,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   const [method, setMethod] = useState<AuthMethod>("password");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+  const { slug } = useSubdomain();
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
@@ -39,6 +41,11 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
       localStorage.setItem("access_token", data.access_token);
       const user = await authApi.me();
       setAuth(user, data.access_token);
+
+      if (slug) {
+        return;
+      }
+
       toast.success("Welcome back!");
       const homeRoute = await resolveHomeRoute();
       router.replace(homeRoute);
@@ -52,7 +59,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (isSubmitting) return; // Prevent duplicate submissions
+    if (isSubmitting) return; 
 
     // Validate email format
     if (!isValidEmail(email)) {
@@ -66,8 +73,8 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   }
 
   async function handleMagicLink() {
-    if (isSubmitting) return; // Prevent duplicate submissions
-    
+    if (isSubmitting) return;
+
     if (!email.trim()) {
       toast.error("Enter your email first");
       return;
@@ -103,7 +110,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
             method === "password"
               ? "bg-surface-0 text-ink-900 shadow-sm"
               : "text-ink-600 hover:text-ink-800",
-            isSubmitting && "opacity-50 cursor-not-allowed"
+            isSubmitting && "opacity-50 cursor-not-allowed",
           )}
         >
           <span className="flex items-center justify-center gap-2">
@@ -132,7 +139,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
             method === "magic-link"
               ? "bg-surface-0 text-ink-900 shadow-sm"
               : "text-ink-600 hover:text-ink-800",
-            isSubmitting && "opacity-50 cursor-not-allowed"
+            isSubmitting && "opacity-50 cursor-not-allowed",
           )}
         >
           <span className="flex items-center justify-center gap-2">
@@ -180,7 +187,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
               href="/forgot-password"
               className={cn(
                 "text-sm text-primary-600 hover:underline font-medium",
-                isSubmitting && "pointer-events-none opacity-50"
+                isSubmitting && "pointer-events-none opacity-50",
               )}
               tabIndex={isSubmitting ? -1 : 0}
             >
@@ -207,11 +214,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
 
       {/* Submit Button */}
       {method === "password" ? (
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           <span className="flex items-center justify-center gap-2">
             {isSubmitting ? (
               <>
@@ -285,7 +288,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
         href={`${API_URL}/auth/google`}
         className={cn(
           "w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-surface-200 rounded-lg hover:bg-surface-50 transition-colors text-sm font-medium text-ink-700",
-          isSubmitting && "pointer-events-none opacity-50"
+          isSubmitting && "pointer-events-none opacity-50",
         )}
         tabIndex={isSubmitting ? -1 : 0}
       >
@@ -316,7 +319,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
           href="/register"
           className={cn(
             "text-primary-600 hover:underline font-medium",
-            isSubmitting && "pointer-events-none opacity-50"
+            isSubmitting && "pointer-events-none opacity-50",
           )}
           tabIndex={isSubmitting ? -1 : 0}
         >
