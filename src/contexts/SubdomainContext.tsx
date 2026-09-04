@@ -41,7 +41,7 @@ export function SubdomainProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
-  const hasRedirected = useRef(false);
+  const hasSwitchedRef = useRef(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -66,14 +66,20 @@ export function SubdomainProvider({ children }: { children: ReactNode }) {
   const notFound = !!slug && !isLoading && isError;
 
   useEffect(() => {
-    if (!org || hasRedirected.current) return;
-
-    hasRedirected.current = true;
+    if (!org) return;
 
     if (!isAuthenticated) {
       if (pathname !== "/login") router.replace("/login");
       return;
     }
+
+    // Only ever attempt the real access-check once — but only actually
+    // set this once we're genuinely authenticated and about to try it,
+    // not preemptively on the earlier "redirect to login" path. This is
+    // the fix: the old hasRedirected ref blocked THIS call permanently
+    // once it had already fired for the login-redirect case.
+    if (hasSwitchedRef.current) return;
+    hasSwitchedRef.current = true;
 
     organizationsApi
       .switchActive(org.id)
@@ -83,6 +89,12 @@ export function SubdomainProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => setAccessDenied(true));
   }, [org, isAuthenticated, pathname, router]);
+
+  useEffect(() => {
+    if (!accessDenied) return;
+    const styleEl = document.getElementById("org-branding-override");
+    if (styleEl) styleEl.remove();
+  }, [accessDenied]);
 
   function applyBrandingOverride(
     ramp: Record<string, string>,
