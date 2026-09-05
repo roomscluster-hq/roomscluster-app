@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
@@ -33,7 +33,18 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
   const [method, setMethod] = useState<AuthMethod>("password");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
-  const { slug } = useSubdomain();
+  const { slug, accessDenied } = useSubdomain();
+  const hasShownDeniedToast = useRef(false);
+
+  useEffect(() => {
+    if (accessDenied && slug && !hasShownDeniedToast.current) {
+      hasShownDeniedToast.current = true;
+      toast.error("This account doesn't have access to this organization.");
+    }
+    if (!accessDenied) {
+      hasShownDeniedToast.current = false; // allow the toast again on a future denied attempt
+    }
+  }, [accessDenied, slug]);
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
@@ -59,7 +70,7 @@ export function LoginForm({ onMagicLinkSent }: LoginFormProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (isSubmitting) return; 
+    if (isSubmitting) return;
 
     // Validate email format
     if (!isValidEmail(email)) {
