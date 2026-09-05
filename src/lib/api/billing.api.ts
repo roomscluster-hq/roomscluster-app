@@ -12,6 +12,8 @@ export interface BillingStatus {
   canRecordBothSimultaneously: boolean;
   groupsEnabled: boolean;
   customBrandingEntitled: boolean;
+  trialEndsAt: string | null;
+  subscriptionRenewsAt: string | null;
 }
 
 export const billingApi = {

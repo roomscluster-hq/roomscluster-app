@@ -22,7 +22,7 @@ export interface OrgMembership {
   customBrandingEntitled: boolean;
   groupsEnabled: boolean;
   qaPollsHistoryEnabled: boolean;
-  trialEndsAt: Date;
+  trialEndsAt: string | null;
 }
 
 export interface PublicOrgBranding {
