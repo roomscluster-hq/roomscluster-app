@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
 import { organizationsApi } from "@/lib/api/organizations.api";
@@ -12,7 +12,10 @@ import { X, Sparkles, Check } from "lucide-react";
 
 export function UpgradePromptModal() {
   const { isOpen, message, suggestedPlan, close } = useUpgradePromptStore();
-  const [loadingPlan, setLoadingPlan] = useState<"PRO" | "BUSINESS" | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<"PRO" | "BUSINESS" | null>(
+    null,
+  );
+  const [now, setNow] = useState(() => Date.now());
 
   // Reads the same cached data every other part of the app already uses —
   // usually already in the cache, so this rarely triggers a fresh fetch
@@ -46,11 +49,21 @@ export function UpgradePromptModal() {
     upgradeMutation.mutate(plan);
   }
 
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!isOpen) return null;
 
   // Only show plans genuinely above the org's current one
+  const trialEndsAt = activeOrg?.trialEndsAt
+    ? new Date(activeOrg.trialEndsAt)
+    : null;
+  const isOnTrial = !!trialEndsAt && trialEndsAt.getTime() > now;
+
   const plansToShow = (["PRO", "BUSINESS"] as const).filter(
-    (plan) => plan !== activeOrg?.plan,
+    (plan) => plan !== activeOrg?.plan || isOnTrial,
   );
 
   return (
@@ -68,7 +81,9 @@ export function UpgradePromptModal() {
           <Sparkles size={22} />
         </div>
 
-        <h2 className="text-lg font-semibold text-ink-900 mb-2">Upgrade required</h2>
+        <h2 className="text-lg font-semibold text-ink-900 mb-2">
+          Upgrade required
+        </h2>
         <p className="text-sm text-ink-700/60 mb-6">{message}</p>
 
         <div className="space-y-3">
@@ -81,13 +96,23 @@ export function UpgradePromptModal() {
                 className={`rounded-xl border p-4 ${isSuggested ? "border-primary-600 bg-primary-50/30" : "border-surface-200"}`}
               >
                 <div className="flex items-baseline justify-between mb-2">
-                  <h3 className="font-semibold text-ink-900">{details.label}</h3>
-                  <span className="text-sm font-bold text-ink-900">{details.price}</span>
+                  <h3 className="font-semibold text-ink-900">
+                    {details.label}
+                  </h3>
+                  <span className="text-sm font-bold text-ink-900">
+                    {details.price}
+                  </span>
                 </div>
                 <ul className="space-y-1 mb-3">
                   {details.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-xs text-ink-700">
-                      <Check size={14} className="text-primary-600 shrink-0 mt-0.5" />
+                    <li
+                      key={feature}
+                      className="flex items-start gap-2 text-xs text-ink-700"
+                    >
+                      <Check
+                        size={14}
+                        className="text-primary-600 shrink-0 mt-0.5"
+                      />
                       {feature}
                     </li>
                   ))}
@@ -98,7 +123,9 @@ export function UpgradePromptModal() {
                   onClick={() => handleUpgrade(plan)}
                   disabled={loadingPlan === plan || !activeOrg}
                 >
-                  {loadingPlan === plan ? "Redirecting..." : `Upgrade to ${details.label}`}
+                  {loadingPlan === plan
+                    ? "Redirecting..."
+                    : `Upgrade to ${details.label}`}
                 </Button>
               </div>
             );
