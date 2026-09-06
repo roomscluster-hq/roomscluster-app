@@ -144,9 +144,9 @@ export function BillingPanel({ organizationId }: BillingPanelProps) {
       <div className="grid sm:grid-cols-2 gap-4">
         {(["PRO", "BUSINESS"] as const).map((plan) => {
           const details = PLAN_DETAILS[plan];
-          const isCurrent = status.plan === plan;
+          const isCurrent = status.plan === plan && !isOnTrial;
           const isDowngradeTarget =
-            status.plan === "BUSINESS" && plan === "PRO";
+            status.plan === "BUSINESS" && plan === "PRO" && !isOnTrial;
 
           return (
             <Card key={plan} className={isCurrent ? "border-primary-600" : ""}>
