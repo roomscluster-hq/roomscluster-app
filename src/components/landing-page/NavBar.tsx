@@ -48,6 +48,9 @@ export function NavBar() {
             <Link href="/#faq" className="hover:text-ink-900 transition-colors">
               FAQ
             </Link>
+            <Link href="/blog" className="hover:text-ink-900 transition-colors">
+              Blog
+            </Link>
             <Link href="/about" className="hover:text-ink-900 transition-colors">
               About
             </Link>
