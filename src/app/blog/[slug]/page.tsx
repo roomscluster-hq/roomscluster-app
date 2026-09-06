@@ -54,6 +54,20 @@ export default async function BlogPostPage({
         <div className="prose-brand prose mt-10 max-w-none">
           <MDXRemote source={post.content} />
         </div>
+
+        {/* Google Preferred Sources — a plain deeplink needs no JS setup at
+            all; swap for Google's official embeddable button/badge asset
+            later if you want the visual "Preferred" styling instead. */}
+        <div className="mt-12 pt-6 border-t border-surface-200 not-prose">
+          <a
+            href="https://www.google.com/preferences/source?q=roomscluster.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-primary-600 hover:underline"
+          >
+            Add RoomsCluster as a preferred source on Google
+          </a>
+        </div>
       </article>
 
       <Footer />
