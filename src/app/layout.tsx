@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     siteName: "RoomsCluster",
     images: [
       {
-        url: "https://roomscluster.com/og-image.png",
+        url: "https://roomscluster.com/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "RoomsCluster — Virtual Webinar & Classroom Platform",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "RoomsCluster",
     description: "Virtual Webinar & Classroom Platform",
-    images: ["https://roomscluster.com/og-image.png"],
+    images: ["https://roomscluster.com/og-image.jpg"],
   },
 };
 
