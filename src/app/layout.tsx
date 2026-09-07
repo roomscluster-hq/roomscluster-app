@@ -12,9 +12,15 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
     apple: "/favicon.png",
   },
+  verification: {
+    other: {
+      "msvalidate.01": "3345CF8BD5B4FA4F9374594861B00F78",
+    },
+  },
   openGraph: {
     title: "RoomsCluster",
-    description: "Virtual Webinar & Classroom Platform — enrollment, live sessions, and access control built for training academies.",
+    description:
+      "Virtual Webinar & Classroom Platform — enrollment, live sessions, and access control built for training academies.",
     url: "https://roomscluster.com",
     siteName: "RoomsCluster",
     images: [
@@ -46,16 +52,16 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster
-          theme="dark"
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: "var(--color-ink-800)",
-              border: "1px solid var(--color-ink-700)",
-              color: "var(--color-surface-200)",
-            },
-          }}
-        />
+            theme="dark"
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "var(--color-ink-800)",
+                border: "1px solid var(--color-ink-700)",
+                color: "var(--color-surface-200)",
+              },
+            }}
+          />
         </Providers>
       </body>
     </html>
