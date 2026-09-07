@@ -65,7 +65,7 @@ export function NavBar() {
         <div className="flex items-center gap-8">
           <Link href="/" className="text-lg font-bold text-primary-600 tracking-tight">
             <Image
-              src={"/logo2.png"}
+              src={"/logo.png"}
               alt="RoomsCluster"
               width={160}
               height={48}
