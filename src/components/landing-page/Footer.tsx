@@ -34,7 +34,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-2">
             <Link href="/" className="inline-flex items-center">
               <Image
-                src="/logo2.png"
+                src="/logo.png"
                 alt="RoomsCluster"
                 width={160}
                 height={48}

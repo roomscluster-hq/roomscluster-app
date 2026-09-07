@@ -12,6 +12,27 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
     apple: "/favicon.png",
   },
+  openGraph: {
+    title: "RoomsCluster",
+    description: "Virtual Webinar & Classroom Platform — enrollment, live sessions, and access control built for training academies.",
+    url: "https://roomscluster.com",
+    siteName: "RoomsCluster",
+    images: [
+      {
+        url: "https://roomscluster.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "RoomsCluster — Virtual Webinar & Classroom Platform",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RoomsCluster",
+    description: "Virtual Webinar & Classroom Platform",
+    images: ["https://roomscluster.com/og-image.png"],
+  },
 };
 
 export default function RootLayout({
