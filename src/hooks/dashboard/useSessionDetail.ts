@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionsApi } from "@/lib/api";
@@ -15,7 +15,10 @@ export function useSessionDetail() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const [generatingTranscriptId, setGeneratingTranscriptId] = useState<string | null>(null);
+  const [generatingTranscriptId, setGeneratingTranscriptId] = useState<
+    string | null
+  >(null);
+  const prevStatusesRef = useRef<Record<string, string>>({});
 
   // Queries
   const { data: session, isLoading } = useQuery({
@@ -33,7 +36,35 @@ export function useSessionDetail() {
     queryKey: ["session-recordings", id],
     queryFn: () => recordingApi.list(id),
     enabled: !!session,
+    refetchInterval: (query) => {
+      const hasProcessing = query.state.data?.some(
+        (r: any) => r.transcriptStatus === "PROCESSING",
+      );
+      return hasProcessing ? 5000 : false;
+    },
   });
+
+  useEffect(() => {
+    if (!recordings) return;
+
+    for (const recording of recordings as any[]) {
+      const prevStatus = prevStatusesRef.current[recording.id];
+      const currentStatus = recording.transcriptStatus;
+
+      if (prevStatus === "PROCESSING" && currentStatus === "COMPLETED") {
+        toast.success("Transcript is ready!");
+        if (generatingTranscriptId === recording.id)
+          setTimeout(() => setGeneratingTranscriptId(null), 0);
+      }
+      if (prevStatus === "PROCESSING" && currentStatus === "FAILED") {
+        toast.error("Transcript generation failed — please try again.");
+        if (generatingTranscriptId === recording.id)
+          setTimeout(() => setGeneratingTranscriptId(null), 0);
+      }
+
+      prevStatusesRef.current[recording.id] = currentStatus;
+    }
+  }, [recordings, generatingTranscriptId]);
 
   const isCohost = session?.participants?.some(
     (p) => p.user?.id === user?.id && p.role === "COHOST",
@@ -104,10 +135,11 @@ export function useSessionDetail() {
     try {
       await transcriptApi.generate(recordingId);
       queryClient.invalidateQueries({ queryKey: ["session-recordings", id] });
-      toast.success("Transcript generated successfully!");
+      toast("Transcript is being generated — this may take a few minutes.");
     } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Failed to generate transcript");
-    } finally {
+      toast.error(
+        err.response?.data?.message ?? "Failed to generate transcript",
+      );
       setGeneratingTranscriptId(null);
     }
   };
