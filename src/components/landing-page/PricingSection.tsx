@@ -31,7 +31,7 @@ export function PricingSection() {
       key: "business",
       label: PLAN_DETAILS.BUSINESS.label,
       eyebrow: "For established organizations",
-      price: "₦75,000",
+      price: "₦85,000",
       period: "/month",
       description:
         "Put your brand on the experience and give your organization a more professional live-learning platform.",
