@@ -33,8 +33,8 @@ export function useLiveKit(joinCode: string) {
     let cancelled = false;
 
     const room = new Room({
-      adaptiveStream: false,
-      dynacast: false,
+      adaptiveStream: true,
+      dynacast: true,
     });
 
     connectingRef.current = true;
