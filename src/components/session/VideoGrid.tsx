@@ -87,22 +87,41 @@ function ScreenShareTile({
 
   useEffect(() => {
     if (!videoRef.current) return;
-    const pubs = [...participant.videoTrackPublications.values()];
-    const screenPub = pubs.find(
-      (pub) => pub.source === Track.Source.ScreenShare,
-    );
 
-    if (
-      screenPub &&
-      !screenPub.isSubscribed &&
-      participant instanceof RemoteParticipant
-    ) {
-      (screenPub as RemoteTrackPublication).setSubscribed(true);
+    function attachScreenTrack() {
+      const pubs = [...participant.videoTrackPublications.values()];
+      const screenPub = pubs.find(
+        (pub) => pub.source === Track.Source.ScreenShare,
+      );
+
+      if (
+        screenPub &&
+        !screenPub.isSubscribed &&
+        participant instanceof RemoteParticipant
+      ) {
+        (screenPub as RemoteTrackPublication).setSubscribed(true);
+      }
+
+      if (screenPub?.track && videoRef.current) {
+        screenPub.track.attach(videoRef.current);
+      }
     }
 
-    const screenTrack = screenPub?.track;
-    if (screenTrack && videoRef.current) screenTrack.attach(videoRef.current);
+    attachScreenTrack();
+
+    // The missing piece — react to the subscription actually completing,
+    // rather than only checking once, synchronously, before the track exists
+    const handleSubscribed = () => attachScreenTrack();
+    participant.on("trackSubscribed", handleSubscribed);
+    participant.on("trackPublished", handleSubscribed);
+
     return () => {
+      participant.off("trackSubscribed", handleSubscribed);
+      participant.off("trackPublished", handleSubscribed);
+      const pubs = [...participant.videoTrackPublications.values()];
+      const screenTrack = pubs.find(
+        (pub) => pub.source === Track.Source.ScreenShare,
+      )?.track;
       screenTrack?.detach();
     };
   }, [participant]);
