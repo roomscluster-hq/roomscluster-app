@@ -416,13 +416,11 @@ export function VideoGrid({
     ];
 
     return candidates.filter((p) => {
-      // Skip duplicates
       if (seen.has(p.identity)) return false;
       seen.add(p.identity);
 
-      // Check if sharing screen
       return [...p.videoTrackPublications.values()].some(
-        (pub) => pub.track?.source === Track.Source.ScreenShare,
+        (pub) => pub.source === Track.Source.ScreenShare,
       );
     });
   }, [localParticipant, remoteParticipants, trackVersion]);
