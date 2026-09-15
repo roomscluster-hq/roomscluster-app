@@ -140,7 +140,7 @@ export function useLiveKit(joinCode: string) {
 
         debugLog("🔵 Connecting to:", serverUrl);
 
-        await room.connect(serverUrl, token);
+        await room.connect(serverUrl, token, { autoSubscribe: false });
 
         // Effect was cleaned up while connect() was running
         if (cancelled) {
@@ -212,7 +212,7 @@ export function useLiveKit(joinCode: string) {
           serverUrl = data.serverUrl;
         }
 
-        await room.connect(serverUrl, token, { autoSubscribe: true });
+        await room.connect(serverUrl, token, { autoSubscribe: false });
 
         setIsConnected(true);
         setLocalParticipant(room.localParticipant);
