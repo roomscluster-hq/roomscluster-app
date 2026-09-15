@@ -48,6 +48,7 @@ export function useLiveKit(joinCode: string) {
 
     room.on(RoomEvent.ParticipantConnected, updateParticipants);
     room.on(RoomEvent.ParticipantDisconnected, updateParticipants);
+    room.on(RoomEvent.TrackPublished, updateParticipants);
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       debugLog("🎥 HOST RECEIVED TRACK", {
         participant: participant.identity,
