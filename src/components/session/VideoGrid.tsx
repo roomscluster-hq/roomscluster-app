@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LocalParticipant,
   RemoteParticipant,
+  RemoteTrackPublication,
   Track,
   TrackPublication,
 } from "livekit-client";
@@ -24,6 +25,25 @@ function AudioRenderer({ participant }: { participant: RemoteParticipant }) {
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
+
+    // With autoSubscribe now false on the room connection, audio needs
+    // an explicit opt-in — we always want to hear every participant
+    // regardless of whether their video tile is on the visible page.
+    const subscribeExistingAudio = () => {
+      const pubs = [...participant.audioTrackPublications.values()];
+      for (const pub of pubs) {
+        if (pub.source === Track.Source.Microphone && !pub.isSubscribed) {
+          pub.setSubscribed(true);
+        }
+      }
+    };
+    subscribeExistingAudio();
+
+    const handleTrackPublished = (pub: any) => {
+      if (pub.source === Track.Source.Microphone) pub.setSubscribed(true);
+    };
+    participant.on("trackPublished", handleTrackPublished);
+
     const attachExisting = () => {
       const pubs = [...participant.audioTrackPublications.values()];
       for (const pub of pubs) {
@@ -41,6 +61,7 @@ function AudioRenderer({ participant }: { participant: RemoteParticipant }) {
     participant.on("trackSubscribed", handleSubscribed);
     participant.on("trackUnsubscribed", handleUnsubscribed);
     return () => {
+      participant.off("trackPublished", handleTrackPublished);
       participant.off("trackSubscribed", handleSubscribed);
       participant.off("trackUnsubscribed", handleUnsubscribed);
       const pubs = [...participant.audioTrackPublications.values()];
@@ -66,12 +87,41 @@ function ScreenShareTile({
 
   useEffect(() => {
     if (!videoRef.current) return;
-    const pubs = [...participant.videoTrackPublications.values()];
-    const screenTrack = pubs.find(
-      (pub) => pub.track?.source === Track.Source.ScreenShare,
-    )?.track;
-    if (screenTrack && videoRef.current) screenTrack.attach(videoRef.current);
+
+    function attachScreenTrack() {
+      const pubs = [...participant.videoTrackPublications.values()];
+      const screenPub = pubs.find(
+        (pub) => pub.source === Track.Source.ScreenShare,
+      );
+
+      if (
+        screenPub &&
+        !screenPub.isSubscribed &&
+        participant instanceof RemoteParticipant
+      ) {
+        (screenPub as RemoteTrackPublication).setSubscribed(true);
+      }
+
+      if (screenPub?.track && videoRef.current) {
+        screenPub.track.attach(videoRef.current);
+      }
+    }
+
+    attachScreenTrack();
+
+    // The missing piece — react to the subscription actually completing,
+    // rather than only checking once, synchronously, before the track exists
+    const handleSubscribed = () => attachScreenTrack();
+    participant.on("trackSubscribed", handleSubscribed);
+    participant.on("trackPublished", handleSubscribed);
+
     return () => {
+      participant.off("trackSubscribed", handleSubscribed);
+      participant.off("trackPublished", handleSubscribed);
+      const pubs = [...participant.videoTrackPublications.values()];
+      const screenTrack = pubs.find(
+        (pub) => pub.source === Track.Source.ScreenShare,
+      )?.track;
       screenTrack?.detach();
     };
   }, [participant]);
@@ -385,13 +435,11 @@ export function VideoGrid({
     ];
 
     return candidates.filter((p) => {
-      // Skip duplicates
       if (seen.has(p.identity)) return false;
       seen.add(p.identity);
 
-      // Check if sharing screen
       return [...p.videoTrackPublications.values()].some(
-        (pub) => pub.track?.source === Track.Source.ScreenShare,
+        (pub) => pub.source === Track.Source.ScreenShare,
       );
     });
   }, [localParticipant, remoteParticipants, trackVersion]);
@@ -428,6 +476,28 @@ export function VideoGrid({
   );
   const [desktopCols, desktopRows] = getDesktopGridDimensions(paginated.length);
   const mobileCols = getMobileColumns(paginated.length);
+
+  useEffect(() => {
+    const visibleIds = new Set(
+      paginated.map(({ participant }) => participant.identity),
+    );
+
+    for (const { participant, isLocal } of allParticipants) {
+      if (isLocal) continue; // nothing to subscribe to for yourself
+
+      const remote = participant as RemoteParticipant;
+      const videoPubs = [...remote.videoTrackPublications.values()].filter(
+        (pub) => pub.source === Track.Source.Camera,
+      );
+
+      const shouldBeSubscribed = visibleIds.has(participant.identity);
+      for (const pub of videoPubs) {
+        if (pub.isSubscribed !== shouldBeSubscribed) {
+          pub.setSubscribed(shouldBeSubscribed);
+        }
+      }
+    }
+  }, [paginated, allParticipants]);
 
   useEffect(() => {
     if (page >= totalPages && totalPages > 0) {

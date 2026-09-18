@@ -48,6 +48,7 @@ export function useLiveKit(joinCode: string) {
 
     room.on(RoomEvent.ParticipantConnected, updateParticipants);
     room.on(RoomEvent.ParticipantDisconnected, updateParticipants);
+    room.on(RoomEvent.TrackPublished, updateParticipants);
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       debugLog("🎥 HOST RECEIVED TRACK", {
         participant: participant.identity,
@@ -140,7 +141,7 @@ export function useLiveKit(joinCode: string) {
 
         debugLog("🔵 Connecting to:", serverUrl);
 
-        await room.connect(serverUrl, token);
+        await room.connect(serverUrl, token, { autoSubscribe: false });
 
         // Effect was cleaned up while connect() was running
         if (cancelled) {
@@ -212,7 +213,7 @@ export function useLiveKit(joinCode: string) {
           serverUrl = data.serverUrl;
         }
 
-        await room.connect(serverUrl, token, { autoSubscribe: true });
+        await room.connect(serverUrl, token, { autoSubscribe: false });
 
         setIsConnected(true);
         setLocalParticipant(room.localParticipant);
