@@ -20,7 +20,7 @@ export function PricingSection() {
       key: "pro",
       label: PLAN_DETAILS.PRO.label,
       eyebrow: "For growing academies",
-      price: "₦20,000",
+      price: "₦30,000",
       period: "/month",
       description:
         "Enroll members, control access, and run recurring classes without the manual work.",

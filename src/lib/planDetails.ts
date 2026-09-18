@@ -6,7 +6,7 @@ export const PLAN_DETAILS = {
   },
   PRO: {
     label: "Pro",
-    price: "₦20,000/month",
+    price: "₦30,000/month",
     features: [
       "3 teammates",
       "2 co-hosts per session",
