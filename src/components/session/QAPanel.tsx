@@ -55,7 +55,7 @@ export function QAPanel({
     const sock = socketRef.current;
     if (!sock) return;
 
-    sock.emit("qa:load", { joinCode });
+    sock.emit("qa:load");
 
     const handleQuestions = (data: Question[]) => setQuestions(data);
     const handleNewQuestion = (q: Question) => {
