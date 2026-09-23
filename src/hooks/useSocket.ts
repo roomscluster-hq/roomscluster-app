@@ -54,12 +54,34 @@ export function useSocket(joinCode: string) {
 
     socketRef.current = socket;
 
+    // Restore chat after a page refresh: requested once per page load. A
+    // socket.io reconnect keeps `messages` in state, so a network blip
+    // doesn't refetch.
+    let chatHistoryRequested = false;
+
     socket.on("connect", () => {
       setIsConnected(true);
       if (!joinedRef.current) {
         joinedRef.current = true;
         socket.emit("room:join", { joinCode });
       }
+      if (!chatHistoryRequested) {
+        chatHistoryRequested = true;
+        socket.emit("chat:load");
+      }
+    });
+
+    // Live messages that arrived first are kept; history is deduped by id.
+    socket.on("chat:history", (history: ChatMessage[]) => {
+      setMessages((prev) => {
+        const known = new Set(prev.map((m) => m.id));
+        const restored = history
+          .filter((m) => !known.has(m.id))
+          .map((m) => ({ ...m, fromHistory: true }));
+        return [...restored, ...prev].sort(
+          (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt),
+        );
+      });
     });
 
     socket.on("reconnect", () => {

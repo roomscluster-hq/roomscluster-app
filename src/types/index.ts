@@ -97,6 +97,8 @@ export interface ChatMessage {
   createdAt: string;
   replyTo?: ChatReplyContext | null;
   mentions?: ChatMention[];
+  /** Frontend-only: restored from REST history on page load, not received live. */
+  fromHistory?: boolean;
 }
 
 // ── API response wrapper ───────────────────────────────
