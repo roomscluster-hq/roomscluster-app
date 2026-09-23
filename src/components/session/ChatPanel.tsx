@@ -235,7 +235,7 @@ export function ChatPanel({
                     {msg.senderName}
                   </span>
                 )}
-                <div className="flex items-end gap-1">
+                <div className="flex items-end gap-1 max-w-[85%]">
                   {/* Message actions — visible on hover */}
                   {hoveredMessageId === msg.id && (
                     <div className={`flex items-center gap-0.5 ${isMe ? 'order-first' : 'order-last'}`}>
@@ -261,7 +261,7 @@ export function ChatPanel({
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm border transition-shadow ${
+                    className={`min-w-0 px-3 py-2 rounded-2xl text-sm border transition-shadow [overflow-wrap:anywhere] ${
                       isMe
                         ? "bg-primary-600/20 border-primary-500/30 text-white rounded-tr-sm"
                         : "bg-white/5 border-white/5 text-gray-100 rounded-tl-sm"

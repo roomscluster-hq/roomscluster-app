@@ -12,6 +12,7 @@ export interface HistoricalPoll {
   question: string;
   type: "SINGLE" | "MULTIPLE";
   status: string;
+  isAnonymous?: boolean;
   totalVoters: number;
   createdAt: string;
   options: HistoricalPollOption[];
