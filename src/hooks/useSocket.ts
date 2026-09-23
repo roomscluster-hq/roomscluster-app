@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { ChatMessage } from "@/types";
+import { ChatMessage, ChatMention } from "@/types";
 import { getCookie } from "@/lib/cookies";
 
 const SOCKET_URL =
@@ -220,9 +220,12 @@ export function useSocket(joinCode: string) {
   }, [joinCode]);
 
   // ── Actions ───────────────────────────────────────
-  const sendMessage = useCallback((content: string) => {
-    socketRef.current?.emit("chat:send", { content });
-  }, []);
+  const sendMessage = useCallback(
+    (content: string, replyToId?: string, mentions?: ChatMention[]) => {
+      socketRef.current?.emit("chat:send", { content, replyToId, mentions });
+    },
+    [],
+  );
 
   const raiseHand = useCallback(() => {
     socketRef.current?.emit("hand:raise");

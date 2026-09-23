@@ -7,10 +7,10 @@ import { VideoGrid } from "@/components/session/VideoGrid";
 import { ChatPanel } from "@/components/session/ChatPanel";
 import { ControlBar } from "@/components/session/ControlBar";
 import { Whiteboard } from "@/components/session/Whiteboard";
-import { ParticipantsPanel } from "@/components/session/ParticipantsPanel";
+import { ParticipantsPanel, resolveName, type Participant } from "@/components/session/ParticipantsPanel";
 import { Spinner } from "@/components/ui/spinner";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { clearGuestCookies } from "@/lib/cookies";
+import { clearGuestCookies, getCookie } from "@/lib/cookies";
 import { RoomProvider } from "@/contexts/RoomContext";
 import { useRoomSession } from "@/hooks/session/useRoomSession";
 import type { DrawEvent } from "@/hooks/useWhiteboard";
@@ -31,6 +31,9 @@ import { FloatingReactions } from "@/components/session/FloatingReactions";
 import { useHomeRoute } from "@/hooks/useHomeRoute";
 import { useActiveOrganization } from "@/hooks/useOrganizationsMine";
 import { useUpgradePromptStore } from "@/store/upgrade-prompt.store";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { useChatToastNotifications } from "@/hooks/session/useChatToastNotifications";
+import { useAuthStore } from "@/store/auth.store";
 
 type MainView = "video" | "whiteboard";
 
@@ -47,6 +50,9 @@ function RoomContent({ joinCode }: RoomContentProps) {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("chat");
   const [chatOpen, setChatOpen] = useState(true);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [scrollToMessageId, setScrollToMessageId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  const { user } = useAuthStore();
 
   const remoteDrawRef = useRef<WhiteboardDrawCallback | null>(null);
   const remoteClearRef = useRef<WhiteboardClearCallback | null>(null);
@@ -181,6 +187,42 @@ function RoomContent({ joinCode }: RoomContentProps) {
     setMobileSheetOpen(true);
   }
 
+  function openChatToMessage(messageId: string) {
+    setSidebarTab("chat");
+    setChatOpen(true);
+    setMobileSheetOpen(true);
+    setScrollToMessageId(messageId);
+  }
+
+  // Chat is only actually on-screen when its tab is selected AND the
+  // surface for the current viewport (desktop sidebar vs. mobile sheet) is
+  // open — `chatOpen`/`mobileSheetOpen` are independent booleans for two
+  // mutually-exclusive (by breakpoint) surfaces, so only one of them
+  // reflects real visibility at a time.
+  const isChatVisible =
+    sidebarTab === "chat" && (isMobile ? mobileSheetOpen : chatOpen);
+  const myEmail = user?.email ?? getCookie("guest_email") ?? "";
+
+  // Candidates for the @-mention dropdown — the same live participant list
+  // ParticipantsPanel renders from, reduced to {name, email} and excluding
+  // yourself, deduped since a stale/duplicate entry shouldn't show twice.
+  const mentionCandidates = Array.from(
+    new Map(
+      (participants as Participant[])
+        .map((p) => ({ name: resolveName(p), email: p.email }))
+        .filter((p) => p.email && p.email !== myEmail)
+        .map((p) => [p.email, p]),
+    ).values(),
+  );
+
+  useChatToastNotifications({
+    messages,
+    isChatVisible,
+    myEmail,
+    sendMessage,
+    onOpenChat: openChatToMessage,
+  });
+
   if (isLoading) {
     return (
       <div className="h-screen bg-ink-900 flex items-center justify-center">
@@ -203,6 +245,9 @@ function RoomContent({ joinCode }: RoomContentProps) {
           onDeleteMessage={deleteMessage}
           chatEnabled={roomChatEnabled}
           canManage={canManage}
+          scrollToMessageId={scrollToMessageId}
+          onScrolledToMessage={() => setScrollToMessageId(null)}
+          participants={mentionCandidates}
         />
       )}
       {sidebarTab === "qa" && session && (
