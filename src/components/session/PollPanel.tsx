@@ -420,7 +420,7 @@ export function PollPanel({ joinCode, socketRef, canManage, onPollCountChange }:
     const sock = socketRef.current;
     if (!sock) return;
 
-    sock.emit('poll:load', { joinCode });
+    sock.emit('poll:load');
 
     const handlePolls = (data: Poll[]) => setPolls(data);
     const handleNew = (poll: Poll) => {
