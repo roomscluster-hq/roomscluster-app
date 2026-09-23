@@ -78,12 +78,25 @@ export interface Participant {
 }
 
 // ── Chat ───────────────────────────────────────────────
+export interface ChatReplyContext {
+  id: string;
+  senderName: string;
+  contentSnippet: string;
+}
+
+export interface ChatMention {
+  name: string;
+  email: string;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
   senderName: string;
   senderEmail: string;
   createdAt: string;
+  replyTo?: ChatReplyContext | null;
+  mentions?: ChatMention[];
 }
 
 // ── API response wrapper ───────────────────────────────

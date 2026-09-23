@@ -6,7 +6,7 @@ import { getInitials } from "@/lib/utils";
 import { Mic, Star, UserMinus, Hand, Ban, MoreVertical } from "lucide-react";
 
 
-interface Participant {
+export interface Participant {
   userId: string;
   user?: { id: string; name?: string; email?: string; image?: string | null };
   name: string;
@@ -41,7 +41,7 @@ function resolveId(p: Participant): string {
   return p.user?.id ?? p.userId;
 }
 
-function resolveName(p: Participant): string {
+export function resolveName(p: Participant): string {
   return p.user?.name ?? p.name ?? p.user?.email ?? p.email ?? "Unknown";
 }
 
