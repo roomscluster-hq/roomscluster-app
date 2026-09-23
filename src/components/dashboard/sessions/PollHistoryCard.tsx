@@ -81,7 +81,10 @@ export function PollHistoryCard({ sessionId }: { sessionId: string }) {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-ink-700/40 mt-2">{poll.totalVoters} voter{poll.totalVoters === 1 ? "" : "s"}</p>
+                <p className="text-xs text-ink-700/40 mt-2">
+                  {poll.totalVoters} voter{poll.totalVoters === 1 ? "" : "s"}
+                  {poll.isAnonymous ? " · Anonymous" : ""}
+                </p>
               </div>
             ))}
           </div>

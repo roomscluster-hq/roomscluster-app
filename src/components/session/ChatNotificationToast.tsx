@@ -6,6 +6,7 @@ import type { ChatMessage } from "@/types";
 
 interface ChatNotificationToastProps {
   message: ChatMessage;
+  mentioned?: boolean;
   onReply: (content: string) => void;
   onOpenChat: () => void;
   onDismiss: () => void;
@@ -18,6 +19,7 @@ function truncate(content: string, max = 90) {
 
 export function ChatNotificationToast({
   message,
+  mentioned = false,
   onReply,
   onOpenChat,
   onDismiss,
@@ -46,9 +48,14 @@ export function ChatNotificationToast({
       className="w-80 rounded-xl border border-white/10 bg-ink-800 shadow-xl shadow-black/30 overflow-hidden cursor-pointer"
     >
       <div className="px-3.5 pt-3 pb-2.5">
-        <p className="text-xs font-semibold text-white">{message.senderName}</p>
+        <p className="text-xs font-semibold text-white">
+          {message.senderName}
+          {mentioned && (
+            <span className="ml-1.5 font-normal text-primary-300">mentioned you</span>
+          )}
+        </p>
         <p className="text-xs text-gray-300 mt-0.5 line-clamp-2">
-          {truncate(message.content)}
+          {truncate(message.content.replace(/@\[([^\]]+)\]/g, "@$1"))}
         </p>
       </div>
 

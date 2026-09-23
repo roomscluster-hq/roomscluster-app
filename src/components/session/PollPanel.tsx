@@ -14,7 +14,8 @@ interface PollOption {
   order: number;
   voteCount: number;
   percentage: number;
-  isMyVote: boolean;
+  // Absent on room-wide broadcasts — only the voter's own copy carries it.
+  isMyVote?: boolean;
 }
 
 interface Poll {
@@ -23,10 +24,11 @@ interface Poll {
   type: 'SINGLE' | 'MULTIPLE';
   status: 'ACTIVE' | 'CLOSED';
   showResults: boolean;
+  isAnonymous?: boolean;
   closesAt: string | null;
   createdAt: string;
   totalVoters: number;
-  hasVoted: boolean;
+  hasVoted?: boolean;
   options: PollOption[];
 }
 
@@ -49,6 +51,7 @@ function CreatePollForm({
   const [type, setType] = useState<'SINGLE' | 'MULTIPLE'>('SINGLE');
   const [options, setOptions] = useState(["", ""]);
   const [showResults, setShowResults] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [autoClose, setAutoClose] = useState(false);
   const [closesInSeconds, setClosesInSeconds] = useState(60);
 
@@ -82,6 +85,7 @@ function CreatePollForm({
       type,
       options: validOptions,
       showResults,
+      isAnonymous,
       closesInSeconds: autoClose ? closesInSeconds : undefined,
     });
   }
@@ -173,6 +177,15 @@ function CreatePollForm({
               className="w-3.5 h-3.5 rounded"
             />
             <span className="text-xs text-gray-300">Show results to participants</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="w-3.5 h-3.5 rounded"
+            />
+            <span className="text-xs text-gray-300">Anonymous poll (hide voter identities)</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -278,6 +291,9 @@ function PollCard({
             <span className="text-[10px] text-gray-500 flex items-center gap-1">
               <Users size={10} /> {poll.totalVoters} voted
             </span>
+            {poll.isAnonymous && (
+              <span className="text-[10px] text-gray-500">Anonymous</span>
+            )}
           </div>
           <p className="text-sm font-medium text-white mt-1 leading-snug">{poll.question}</p>
         </div>
@@ -413,8 +429,24 @@ export function PollPanel({ joinCode, socketRef, canManage, onPollCountChange }:
         return [poll, ...prev];
       });
     };
+    // Room-wide updates omit hasVoted/isMyVote (they'd reveal someone else's
+    // choice), so keep this client's own values when the payload lacks them.
     const handleUpdated = (poll: Poll) => {
-      setPolls((prev) => prev.map((p) => (p.id === poll.id ? poll : p)));
+      setPolls((prev) =>
+        prev.map((p) =>
+          p.id !== poll.id
+            ? p
+            : {
+                ...poll,
+                hasVoted: poll.hasVoted ?? p.hasVoted,
+                options: poll.options.map((o) => ({
+                  ...o,
+                  isMyVote:
+                    o.isMyVote ?? p.options.find((x) => x.id === o.id)?.isMyVote,
+                })),
+              },
+        ),
+      );
     };
     const handleVoteCount = (data: { pollId: string; totalVoters: number }) => {
       setPolls((prev) =>

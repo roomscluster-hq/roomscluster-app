@@ -17,6 +17,7 @@ function showChatToast(
     sendMessage: (content: string, replyToId?: string) => void;
     onOpenChat: (messageId: string) => void;
   },
+  mentioned: boolean,
 ) {
   const render = (duration: number) =>
     toast.custom(
@@ -24,6 +25,7 @@ function showChatToast(
         <ChatNotificationToast
           key={message.id}
           message={message}
+          mentioned={mentioned}
           onReply={(content) => handlers.sendMessage(content, message.id)}
           onOpenChat={() => {
             handlers.onOpenChat(message.id);
@@ -71,16 +73,21 @@ export function useChatToastNotifications({
 
     const seen = seenIdsRef.current;
     let latestUnseen: ChatMessage | null = null;
+    let latestMention: ChatMessage | null = null;
     for (const msg of messages) {
       if (seen.has(msg.id)) continue;
       seen.add(msg.id);
-      if (msg.senderEmail !== myEmail) {
-        latestUnseen = msg;
+      if (msg.senderEmail === myEmail) continue;
+      latestUnseen = msg;
+      if (msg.mentions?.some((m) => m.email === myEmail)) {
+        latestMention = msg;
       }
     }
 
-    if (latestUnseen && !isChatVisible) {
-      showChatToast(latestUnseen, { sendMessage, onOpenChat });
+    // Chat visible: only interrupt for @mentions of me. Chat hidden: any message.
+    const toShow = isChatVisible ? latestMention : (latestMention ?? latestUnseen);
+    if (toShow) {
+      showChatToast(toShow, { sendMessage, onOpenChat }, toShow === latestMention);
     }
   }, [messages, isChatVisible, myEmail, sendMessage, onOpenChat]);
 }
