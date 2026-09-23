@@ -77,7 +77,7 @@ export function useChatToastNotifications({
     for (const msg of messages) {
       if (seen.has(msg.id)) continue;
       seen.add(msg.id);
-      if (msg.senderEmail === myEmail) continue;
+      if (msg.fromHistory || msg.senderEmail === myEmail) continue;
       latestUnseen = msg;
       if (msg.mentions?.some((m) => m.email === myEmail)) {
         latestMention = msg;
